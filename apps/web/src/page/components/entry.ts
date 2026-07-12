@@ -1,4 +1,5 @@
 import { Html } from "foldkit";
+import { FileDrop } from "@foldkit/ui";
 import { Option } from "effect";
 import { canvasDropZone, canvasElement } from "../../core/canvasDrag";
 import type { Sticker } from "@dearly/domain";
@@ -8,10 +9,10 @@ import {
   ChangedText,
   DiscardedDraft,
   FinishedResize,
+  GotFileDropMessage,
   ResizedCanvasElement,
   SaveRequested,
   StartedResize,
-  SelectedImage,
   SelectedSticker,
   ToggledStickerPicker,
 } from "../../core/message";
@@ -133,6 +134,7 @@ export const toolRail = (
 export const canvasShell = (
   h: HtmlFactory,
   text: string,
+  fileDrop: FileDrop.Model,
   imageMediaObjectId: string | null,
   imagePosition: { readonly x: number; readonly y: number },
   imageSize: { readonly width: number; readonly height: number },
@@ -162,35 +164,29 @@ export const canvasShell = (
         [],
       ),
       imageMediaObjectId === null
-        ? h.div(
-            [
-              h.AllowDrop(),
-              h.OnDropFiles((files) => SelectedImage({ file: files[0]! })),
-              h.Class(
-                "relative mb-6 flex min-h-28 max-w-lg items-center justify-center border border-dashed border-line px-4 py-5 text-center transition-colors hover:border-wine",
-              ),
-            ],
-            [
-              h.label(
-                [
-                  h.Class(
-                    "cursor-pointer font-note text-[10px] tracking-[.1em] text-muted uppercase",
-                  ),
-                ],
-                [
-                  "Drop an image here or ",
-                  h.span([h.Class("text-wine")], ["choose a file"]),
-                  h.input([
-                    h.Type("file"),
-                    h.Accept("image/jpeg,image/png,image/webp,image/gif"),
-                    h.OnFileChange((files) => SelectedImage({ file: files[0]! })),
-                    h.AriaLabel("Add entry image"),
-                    h.Class("sr-only"),
-                  ]),
-                ],
-              ),
-            ],
-          )
+        ? h.submodel({
+            slotId: "entry-media-drop",
+            model: fileDrop,
+            view: FileDrop.view,
+            toParentMessage: (message) => GotFileDropMessage({ message }),
+            viewInputs: {
+              accept: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+              toView: ({ root, input }) =>
+                h.label(
+                  [
+                    ...root,
+                    h.Class(
+                      "relative mb-6 flex min-h-28 max-w-lg cursor-pointer items-center justify-center border border-dashed border-line px-4 py-5 text-center font-note text-[10px] tracking-[.1em] text-muted uppercase transition-colors hover:border-wine data-[drag-over=true]:border-wine data-[drag-over=true]:bg-rose/20",
+                    ),
+                  ],
+                  [
+                    "Drop an image here or ",
+                    h.span([h.Class("text-wine")], ["choose a file"]),
+                    h.input([...input, h.AriaLabel("Add entry image")]),
+                  ],
+                ),
+            },
+          })
         : null,
       imageMediaObjectId === null
         ? null

@@ -1,4 +1,5 @@
-import { Match } from "effect";
+import { Match, Option } from "effect";
+import { FileDrop } from "@foldkit/ui";
 import type { DiaryEntry } from "@dearly/domain";
 import type { Command } from "foldkit";
 import {
@@ -12,7 +13,7 @@ import {
   storeDraft,
   uploadImage,
 } from "./command";
-import { ChangedRoute, type AppMessage } from "./message";
+import { ChangedRoute, SelectedImage, type AppMessage } from "./message";
 import type { Model } from "./model";
 import { EntryRoute } from "./route";
 
@@ -59,6 +60,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             stickerSize: { width: 160, height: 160 },
             resizing: null,
             stickerPickerOpen: false,
+            fileDrop: FileDrop.init({ id: "entry-media" }),
             uploadState: "idle",
             saveState: "idle",
           },
@@ -121,6 +123,16 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         },
         [],
       ],
+      GotFileDropMessage: ({ message }): UpdateResult => {
+        const [fileDrop, _commands, outMessage] = FileDrop.update(model.fileDrop, message);
+        return Option.match(outMessage, {
+          onNone: () => [{ ...model, fileDrop }, []],
+          onSome: (out) =>
+            out._tag === "ReceivedFiles"
+              ? update({ ...model, fileDrop }, SelectedImage({ file: out.files[0] }))
+              : [{ ...model, fileDrop }, []],
+        });
+      },
       SelectedImage: ({ file }): UpdateResult => [
         { ...model, uploadState: "uploading" },
         [uploadImage({ file })],

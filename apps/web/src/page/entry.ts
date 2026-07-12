@@ -41,6 +41,7 @@ export const entryPage = (model: Model): Html.Document => {
                 canvasShell(
                   h,
                   model.entryText,
+                  model.fileDrop,
                   model.imageMediaObjectId,
                   model.imagePosition,
                   model.imageSize,

@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { FileDrop } from "@foldkit/ui";
 import { DiaryEntry, EntryPreview, MediaObjectId, OwnerSession, Sticker } from "@dearly/domain";
 import { File } from "foldkit/file";
 import { Message } from "foldkit";
@@ -41,6 +42,7 @@ export const ResizedCanvasElement = Message.m("ResizedCanvasElement", {
   screenY: Schema.Number,
 });
 export const FinishedResize = Message.m("FinishedResize");
+export const GotFileDropMessage = Message.m("GotFileDropMessage", { message: FileDrop.Message });
 
 export const AppMessage = Schema.Union([
   ChangedRoute,
@@ -67,5 +69,6 @@ export const AppMessage = Schema.Union([
   StartedResize,
   ResizedCanvasElement,
   FinishedResize,
+  GotFileDropMessage,
 ]);
 export type AppMessage = Schema.Schema.Type<typeof AppMessage>;

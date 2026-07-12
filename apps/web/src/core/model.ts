@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { FileDrop } from "@foldkit/ui";
 import {
   CalendarDate,
   CanvasElementId,
@@ -44,6 +45,7 @@ export const Model = Schema.Struct({
     }),
   ),
   stickerPickerOpen: Schema.Boolean,
+  fileDrop: FileDrop.Model,
   uploadState: Schema.Literals(["idle", "uploading", "failed"]),
   saveState: Schema.Literals(["idle", "saving", "failed"]),
 });
@@ -73,6 +75,7 @@ export const initialModel = (route: AppRoute): Model => {
     stickerSize: { width: 160, height: 160 },
     resizing: null,
     stickerPickerOpen: false,
+    fileDrop: FileDrop.init({ id: "entry-media" }),
     uploadState: "idle",
     saveState: "idle",
   };
