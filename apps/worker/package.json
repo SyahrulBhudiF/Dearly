@@ -1,0 +1,18 @@
+{
+  "name": "@dearly/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "dev": "bun --watch src/index.ts",
+    "deploy": "bun ../../infra/alchemy.run.ts"
+  },
+  "dependencies": {
+    "@dearly/domain": "workspace:*",
+    "@dearly/rpc": "workspace:*",
+    "effect": "4.0.0-beta.88"
+  }
+}

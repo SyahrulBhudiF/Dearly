@@ -1,0 +1,44 @@
+{
+  "name": "dearly",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "turbo run build",
+    "check": "turbo run check",
+    "test": "turbo run test",
+    "lint": "oxlint .",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "prepare": "husky",
+    "dev": "turbo run dev",
+    "deploy": "turbo run deploy"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.0.0-beta.88",
+    "effect": "4.0.0-beta.88",
+    "foldkit": "^0.127.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest",
+    "@effect/vitest": "^0.29.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "oxfmt": "^0.58.0",
+    "oxlint": "^1.73.0",
+    "turbo": "^2.10.4",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "latest"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "oxlint --fix",
+      "oxfmt --write"
+    ]
+  },
+  "packageManager": "bun@1.3.14"
+}
