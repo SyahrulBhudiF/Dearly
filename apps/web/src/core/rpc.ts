@@ -17,10 +17,32 @@ export const getSession = client.pipe(Effect.flatMap((rpc) => rpc.getSession()))
 export const listMonthEntries = (month: string) =>
   client.pipe(Effect.flatMap((rpc) => rpc.listMonthEntries({ month: month as never })));
 
+export const uploadImage = (file: File) =>
+  client.pipe(
+    Effect.flatMap((rpc) =>
+      rpc.createMediaUpload({ kind: "image", mimeType: file.type, sizeBytes: file.size }),
+    ),
+    Effect.flatMap((upload) =>
+      Effect.promise(() =>
+        fetch(upload.uploadUrl, {
+          method: "POST",
+          headers: { "content-type": file.type },
+          body: file,
+        }),
+      ).pipe(
+        Effect.filterOrFail(
+          (response) => response.ok,
+          () => new Error("Image upload failed"),
+        ),
+        Effect.as(upload.mediaObjectId),
+      ),
+    ),
+  );
+
 export const getEntryByDate = (date: string) =>
   client.pipe(Effect.flatMap((rpc) => rpc.getEntryByDate({ date: date as never })));
 
-export const saveEntry = (date: string, text: string) =>
+export const saveEntry = (date: string, text: string, imageMediaObjectId: string | null) =>
   client.pipe(
     Effect.flatMap((rpc) =>
       rpc.saveEntry({
@@ -30,6 +52,20 @@ export const saveEntry = (date: string, text: string) =>
           logicalWidth: 1000,
           logicalHeight: 1400,
           elements: [
+            ...(imageMediaObjectId === null
+              ? []
+              : [
+                  {
+                    id: crypto.randomUUID() as never,
+                    payload: { kind: "image" as const, mediaObjectId: imageMediaObjectId as never },
+                    x: 80,
+                    y: 80,
+                    width: 480,
+                    height: 320,
+                    rotation: 0,
+                    layer: 0,
+                  },
+                ]),
             {
               id: crypto.randomUUID() as never,
               payload: {
@@ -41,11 +77,11 @@ export const saveEntry = (date: string, text: string) =>
                 },
               },
               x: 80,
-              y: 120,
+              y: imageMediaObjectId === null ? 120 : 440,
               width: 720,
               height: 240,
               rotation: 0,
-              layer: 0,
+              layer: 1,
             },
           ],
         },

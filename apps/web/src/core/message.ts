@@ -1,5 +1,6 @@
 import { Schema } from "effect";
-import { DiaryEntry, EntryPreview, OwnerSession } from "@dearly/domain";
+import { DiaryEntry, EntryPreview, MediaObjectId, OwnerSession } from "@dearly/domain";
+import { File } from "foldkit/file";
 import { Message } from "foldkit";
 import { AppRoute } from "./route";
 
@@ -17,6 +18,9 @@ export const FailedToSave = Message.m("FailedToSave");
 export const DiscardedDraft = Message.m("DiscardedDraft");
 export const LoadedDraft = Message.m("LoadedDraft", { text: Schema.NullOr(Schema.String) });
 export const StoredDraft = Message.m("StoredDraft");
+export const SelectedImage = Message.m("SelectedImage", { file: File });
+export const UploadedImage = Message.m("UploadedImage", { mediaObjectId: MediaObjectId });
+export const FailedToUploadImage = Message.m("FailedToUploadImage");
 
 export const AppMessage = Schema.Union([
   ChangedRoute,
@@ -33,5 +37,8 @@ export const AppMessage = Schema.Union([
   DiscardedDraft,
   LoadedDraft,
   StoredDraft,
+  SelectedImage,
+  UploadedImage,
+  FailedToUploadImage,
 ]);
 export type AppMessage = Schema.Schema.Type<typeof AppMessage>;

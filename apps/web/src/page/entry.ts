@@ -38,7 +38,7 @@ export const entryPage = (model: Model): Html.Document => {
               [],
               [
                 entryHeader(h, model.selectedDate, model.saveState),
-                canvasShell(h, model.entryText),
+                canvasShell(h, model.entryText, model.imageMediaObjectId, model.uploadState),
               ],
             ),
           ],

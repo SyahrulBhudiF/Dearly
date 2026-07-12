@@ -9,6 +9,7 @@ import {
   removeDraft,
   saveEntry,
   storeDraft,
+  uploadImage,
 } from "./command";
 import { ChangedRoute, type AppMessage } from "./message";
 import type { Model } from "./model";
@@ -45,6 +46,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             entryText: "",
             savedText: "",
             localDraft: null,
+            imageMediaObjectId: null,
+            uploadState: "idle",
             saveState: "idle",
           },
           [
@@ -69,6 +72,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             ...model,
             savedText,
             entryText: model.localDraft ?? savedText,
+            imageMediaObjectId: entry === null ? null : imageMediaObjectId(entry),
             saveState: "idle",
           },
           [],
@@ -79,6 +83,15 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         [],
       ],
       StoredDraft: (): UpdateResult => [model, []],
+      SelectedImage: ({ file }): UpdateResult => [
+        { ...model, uploadState: "uploading" },
+        [uploadImage({ file })],
+      ],
+      UploadedImage: ({ mediaObjectId }): UpdateResult => [
+        { ...model, imageMediaObjectId: mediaObjectId, uploadState: "idle" },
+        [],
+      ],
+      FailedToUploadImage: (): UpdateResult => [{ ...model, uploadState: "failed" }, []],
       FailedToLoad: (): UpdateResult => [{ ...model, loadState: "failed" }, []],
       ChangedText: ({ text }): UpdateResult => [
         { ...model, entryText: text, localDraft: text, saveState: "idle" },
@@ -86,7 +99,13 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       ],
       SaveRequested: (): UpdateResult => [
         { ...model, saveState: "saving" },
-        [saveEntry({ date: model.selectedDate, text: model.entryText })],
+        [
+          saveEntry({
+            date: model.selectedDate,
+            text: model.entryText,
+            imageMediaObjectId: model.imageMediaObjectId,
+          }),
+        ],
       ],
       SavedEntry: ({ entry }): UpdateResult => [
         { ...model, savedText: model.entryText, localDraft: null, saveState: "idle" },
@@ -99,6 +118,11 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       ],
     }),
   );
+
+const imageMediaObjectId = (entry: DiaryEntry) => {
+  const element = entry.document.elements.find((value) => value.payload.kind === "image");
+  return element?.payload.kind === "image" ? element.payload.mediaObjectId : null;
+};
 
 const entryText = (entry: DiaryEntry): string => {
   const element = entry.document.elements.find((value) => value.payload.kind === "text");

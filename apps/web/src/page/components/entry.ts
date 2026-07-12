@@ -1,6 +1,12 @@
 import { Html } from "foldkit";
 import type { AppMessage } from "../../core/message";
-import { ChangedRoute, ChangedText, DiscardedDraft, SaveRequested } from "../../core/message";
+import {
+  ChangedRoute,
+  ChangedText,
+  DiscardedDraft,
+  SaveRequested,
+  SelectedImage,
+} from "../../core/message";
 import { CalendarRoute } from "../../core/route";
 import { dateLabel, weekdayLabel } from "../../libs/date";
 
@@ -56,23 +62,39 @@ export const toolRail = (h: HtmlFactory) =>
     [h.Class("flex gap-2 lg:flex-col")],
     [
       ["T", "Text"],
-      ["◌", "Image"],
       ["✦", "Sticker"],
       ["↗", "Move"],
-    ].map(([symbol, label]) =>
-      h.button(
-        [
-          h.AriaLabel(label!),
+    ]
+      .map(([symbol, label]) =>
+        h.button(
+          [
+            h.AriaLabel(label!),
+            h.Class(
+              "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
+            ),
+          ],
+          [symbol!],
+        ),
+      )
+      .concat([
+        h.input([
+          h.Type("file"),
+          h.Accept("image/jpeg,image/png,image/webp,image/gif"),
+          h.OnFileChange((files) => SelectedImage({ file: files[0]! })),
+          h.AriaLabel("Add image"),
           h.Class(
-            "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
+            "block w-28 text-[10px] text-muted file:mr-2 file:border file:border-line file:bg-paper file:px-2 file:py-2 file:font-note file:text-[9px] file:tracking-[.1em] file:text-ink file:uppercase hover:file:border-wine sm:w-auto lg:w-28",
           ),
-        ],
-        [symbol!],
-      ),
-    ),
+        ]),
+      ]),
   );
 
-export const canvasShell = (h: HtmlFactory, text: string) =>
+export const canvasShell = (
+  h: HtmlFactory,
+  text: string,
+  imageMediaObjectId: string | null,
+  uploadState: "idle" | "uploading" | "failed",
+) =>
   h.div(
     [
       h.Class(
@@ -88,6 +110,24 @@ export const canvasShell = (h: HtmlFactory, text: string) =>
         ],
         [],
       ),
+      imageMediaObjectId === null
+        ? null
+        : h.img([
+            h.Src(`/media/${imageMediaObjectId}`),
+            h.Alt("Entry image"),
+            h.Class("relative mb-6 max-h-80 w-full max-w-lg object-cover"),
+          ]),
+      uploadState === "uploading"
+        ? h.p(
+            [h.Class("relative mb-4 font-note text-[10px] text-muted uppercase")],
+            ["Uploading image…"],
+          )
+        : uploadState === "failed"
+          ? h.p(
+              [h.Class("relative mb-4 font-note text-[10px] text-wine uppercase")],
+              ["Image upload failed"],
+            )
+          : null,
       h.textarea(
         [
           h.OnInput((value) => ChangedText({ text: value })),

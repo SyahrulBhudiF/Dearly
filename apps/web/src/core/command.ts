@@ -9,9 +9,23 @@ import {
   LoadedEntry,
   LoadedSession,
   SavedEntry,
+  UploadedImage,
+  FailedToUploadImage,
 } from "./message";
 import * as draft from "./draft";
 import * as rpc from "./rpc";
+
+export const uploadImage = Command.define(
+  "uploadImage",
+  { file: Schema.Any },
+  UploadedImage,
+  FailedToUploadImage,
+)(({ file }) =>
+  rpc.uploadImage(file as File).pipe(
+    Effect.map((mediaObjectId) => UploadedImage({ mediaObjectId })),
+    Effect.catch(() => Effect.succeed(FailedToUploadImage())),
+  ),
+);
 
 export const loadSession = Command.define(
   "loadSession",
@@ -76,11 +90,11 @@ const writeOrRemoveDraft = (date: string, text: string) =>
 
 export const saveEntry = Command.define(
   "saveEntry",
-  { date: Schema.String, text: Schema.String },
+  { date: Schema.String, text: Schema.String, imageMediaObjectId: Schema.NullOr(Schema.String) },
   SavedEntry,
   FailedToSave,
-)(({ date, text }) =>
-  rpc.saveEntry(date, text).pipe(
+)(({ date, text, imageMediaObjectId }) =>
+  rpc.saveEntry(date, text, imageMediaObjectId).pipe(
     Effect.map((entry) => SavedEntry({ entry })),
     Effect.catch(() => Effect.succeed(FailedToSave())),
   ),

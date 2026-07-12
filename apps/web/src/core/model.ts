@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { CalendarDate, EntryPreview, OwnerSession } from "@dearly/domain";
+import { CalendarDate, EntryPreview, MediaObjectId, OwnerSession } from "@dearly/domain";
 import { today } from "../libs/date";
 import { CalendarRoute, EntryRoute, NotFoundRoute, type AppRoute } from "./route";
 
@@ -16,6 +16,8 @@ export const Model = Schema.Struct({
   entryText: Schema.String,
   savedText: Schema.String,
   localDraft: Schema.NullOr(Schema.String),
+  imageMediaObjectId: Schema.NullOr(MediaObjectId),
+  uploadState: Schema.Literals(["idle", "uploading", "failed"]),
   saveState: Schema.Literals(["idle", "saving", "failed"]),
 });
 export type Model = Schema.Schema.Type<typeof Model>;
@@ -32,6 +34,8 @@ export const initialModel = (route: AppRoute): Model => {
     entryText: "",
     savedText: "",
     localDraft: null,
+    imageMediaObjectId: null,
+    uploadState: "idle",
     saveState: "idle",
   };
 };
