@@ -111,8 +111,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         const [stickerPopover, commands] = Popover.update(model.stickerPopover, popoverMessage);
         return [
           { ...model, stickerPopover },
-          Command.mapMessages(commands, (popoverMessage) =>
-            GotStickerPopoverMessage({ message: popoverMessage }),
+          Command.mapMessages(commands, (childPopoverMessage) =>
+            GotStickerPopoverMessage({ message: childPopoverMessage }),
           ),
         ];
       },
@@ -142,8 +142,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         },
         [],
       ],
-      GotFileDropMessage: ({ message }): UpdateResult => {
-        const [fileDrop, _commands, outMessage] = FileDrop.update(model.fileDrop, message);
+      GotFileDropMessage: ({ message: fileDropMessage }): UpdateResult => {
+        const [fileDrop, _commands, outMessage] = FileDrop.update(model.fileDrop, fileDropMessage);
         return Option.match(outMessage, {
           onNone: () => [{ ...model, fileDrop }, []],
           onSome: (out) =>
