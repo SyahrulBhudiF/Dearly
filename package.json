@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "latest",
-    "@effect/vitest": "^0.29.0",
+    "@effect/vitest": "4.0.0-beta.88",
     "husky": "^9.1.7",
     "lint-staged": "^16.0.0",
     "oxfmt": "^0.58.0",

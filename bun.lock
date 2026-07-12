@@ -11,7 +11,7 @@
       },
       "devDependencies": {
         "@cloudflare/workers-types": "latest",
-        "@effect/vitest": "^0.29.0",
+        "@effect/vitest": "4.0.0-beta.88",
         "husky": "^9.1.7",
         "lint-staged": "^16.0.0",
         "oxfmt": "^0.58.0",
@@ -59,7 +59,7 @@
 
     "@effect/platform-browser": ["@effect/platform-browser@4.0.0-beta.88", "", { "dependencies": { "multipasta": "^0.2.7" }, "peerDependencies": { "effect": "^4.0.0-beta.88" } }, "sha512-SwJ9KJ4g8dk1XDscxCy1NYJl4AJYqvxwQx43g4LV9OwipUisjdqKUZLrFo3PY3Rfkh2FCGpis55mrAXNklaKdg=="],
 
-    "@effect/vitest": ["@effect/vitest@0.29.0", "", { "peerDependencies": { "effect": "^3.21.0", "vitest": "^3.2.0" } }, "sha512-DvWr1aeEcaZ8mtu8hNVb4e3rEYvGEwQSr7wsNrW53t6nKYjkmjRICcvVEsXUhjoCblRHSxRsRV0TOt0+UmcvaQ=="],
+    "@effect/vitest": ["@effect/vitest@4.0.0-beta.88", "", { "peerDependencies": { "effect": "^4.0.0-beta.88", "vitest": "^3.0.0 || ^4.0.0" } }, "sha512-UHZBQCsJJTB0nJOxAa5wfV3x53WYIOLL/BbZvd1NSNbh9/noGucXviyou1HovmFQVj+/vkeYqJ/nABzP42MClQ=="],
 
     "@emnapi/core": ["@emnapi/core@1.11.1", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.2", "tslib": "^2.4.0" } }, "sha512-RSvbQmHzdKzNsLYa/wHrbc3KN4sYLKAdPZxqiM2HATqv/SBk2/ENSHpvXGaLOMcsAyz0poEGqkmmKYG3OWiJEQ=="],
 
