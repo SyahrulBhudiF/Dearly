@@ -1,5 +1,7 @@
+import { Option } from "effect";
 import { Html } from "foldkit";
 import type { AppMessage } from "../core/message";
+import { SaveRequested } from "../core/message";
 import type { Model } from "../core/model";
 import { CalendarLink } from "./components/link";
 import { EntryHeader } from "./components/header";
@@ -19,7 +21,14 @@ export const entryPage = (model: Model): Html.Document => {
   return {
     title: `Dearly — ${model.selectedDate}`,
     body: h.main(
-      [h.Class("paper-grain min-h-screen bg-paper px-5 py-7 text-ink sm:px-10 lg:px-16")],
+      [
+        h.OnKeyDownPreventDefault((key, modifiers) =>
+          (modifiers.metaKey || modifiers.ctrlKey) && key.toLowerCase() === "s"
+            ? Option.some(SaveRequested())
+            : Option.none(),
+        ),
+        h.Class("paper-grain min-h-screen bg-paper px-5 py-7 text-ink sm:px-10 lg:px-16"),
+      ],
       [
         h.header(
           [
