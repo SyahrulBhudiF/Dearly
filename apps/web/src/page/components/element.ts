@@ -1,4 +1,4 @@
-import { Button } from "@foldkit/ui";
+import { Button, Textarea } from "@foldkit/ui";
 import { Option } from "effect";
 import { Html } from "foldkit";
 import { ArrowUpRight, RotateCw, Trash2 } from "lucide";
@@ -11,6 +11,7 @@ import {
   StartedResize,
   RotatedCanvasElement,
   SelectedCanvasElement,
+  ChangedText,
 } from "../../core/message";
 import { icon } from "./icon";
 
@@ -20,10 +21,14 @@ export const CanvasItem = (
   h: HtmlFactory,
   element: CanvasElement,
   selectedElementId: string | null,
+  text: string,
 ) => {
-  if (element.payload.kind === "text") return null;
-  const alt =
-    element.payload.kind === "image" ? (element.payload.alt ?? "Entry image") : "Entry sticker";
+  const isText = element.payload.kind === "text";
+  const alt = isText
+    ? "Diary entry"
+    : element.payload.kind === "image"
+      ? (element.payload.alt ?? "Entry image")
+      : "Entry sticker";
   const isSelected = element.id === selectedElementId;
   return h.keyed("div")(
     element.id,
@@ -46,11 +51,30 @@ export const CanvasItem = (
       ),
     ],
     [
-      h.img([
-        h.Src(`/media/${element.payload.mediaObjectId}`),
-        h.Alt(alt),
-        h.Class("size-full object-contain"),
-      ]),
+      isText
+        ? Textarea.view({
+            id: `entry-text-${element.id}`,
+            value: text,
+            rows: 6,
+            placeholder: "What deserves a place on this page?",
+            onInput: (value) => ChangedText({ text: value }),
+            toView: ({ textarea }) =>
+              h.textarea(
+                [
+                  ...textarea,
+                  h.AriaLabel("Diary entry"),
+                  h.Class(
+                    "size-full resize-none bg-transparent font-display text-2xl leading-tight placeholder:text-muted/70 focus:outline-none sm:text-3xl",
+                  ),
+                ],
+                [],
+              ),
+          })
+        : h.img([
+            h.Src(`/media/${element.payload.mediaObjectId}`),
+            h.Alt(alt),
+            h.Class("size-full object-contain"),
+          ]),
       isSelected ? canvasControls(h) : null,
       Button.view<AppMessage>({
         toView: ({ button }) =>

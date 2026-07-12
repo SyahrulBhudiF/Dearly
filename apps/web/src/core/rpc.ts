@@ -54,26 +54,7 @@ export const saveEntry = (date: string, text: string, elements: ReadonlyArray<Ca
           version: 1,
           logicalWidth: 1000,
           logicalHeight: 1400,
-          elements: [
-            ...elements,
-            {
-              id: crypto.randomUUID() as never,
-              payload: {
-                kind: "text",
-                document: {
-                  type: "doc",
-                  content:
-                    text === "" ? [] : [{ type: "paragraph", content: [{ type: "text", text }] }],
-                },
-              },
-              x: 80,
-              y: 440,
-              width: 720,
-              height: 240,
-              rotation: 0,
-              layer: elements.length,
-            },
-          ],
+          elements,
         },
         preview: {
           date: date as never,

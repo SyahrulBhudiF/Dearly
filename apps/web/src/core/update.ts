@@ -85,7 +85,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             ...model,
             savedText,
             entryText: model.localDraft ?? savedText,
-            elements: entry === null ? [] : nonTextElements(entry),
+            elements: entry === null ? [textElement("")] : entry.document.elements,
             selectedElementId: null,
             resizing: null,
             saveState: "idle",
@@ -123,7 +123,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
               width: 160,
               height: 160,
               rotation: 0,
-              layer: model.elements.length,
+              layer: nextLayer(model.elements),
             },
           ],
           selectedElementId: null,
@@ -161,7 +161,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
               width: 480,
               height: 320,
               rotation: 0,
-              layer: model.elements.length,
+              layer: nextLayer(model.elements),
             },
           ],
           selectedElementId: null,
@@ -248,7 +248,13 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       FailedToUploadImage: (): UpdateResult => [{ ...model, uploadState: "failed" }, []],
       FailedToLoad: (): UpdateResult => [{ ...model, loadState: "failed" }, []],
       ChangedText: ({ text }): UpdateResult => [
-        { ...model, entryText: text, localDraft: text, saveState: "idle" },
+        {
+          ...model,
+          entryText: text,
+          elements: setText(model.elements, text),
+          localDraft: text,
+          saveState: "idle",
+        },
         [storeDraft({ date: model.selectedDate, text })],
       ],
       SaveRequested: (): UpdateResult => [
@@ -272,9 +278,6 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       ],
     }),
   );
-
-const nonTextElements = (entry: DiaryEntry) =>
-  entry.document.elements.filter((element) => element.payload.kind !== "text");
 
 const moveElement = (
   elements: ReadonlyArray<CanvasElement>,
@@ -317,6 +320,37 @@ const changeLayer = (
     return element;
   });
 };
+
+const textElement = (text: string): CanvasElement => ({
+  id: crypto.randomUUID() as never,
+  payload: textPayload(text),
+  x: 80,
+  y: 440,
+  width: 720,
+  height: 240,
+  rotation: 0,
+  layer: 0,
+});
+
+const textPayload = (text: string) => ({
+  kind: "text" as const,
+  document: {
+    type: "doc" as const,
+    content: text === "" ? [] : [{ type: "paragraph", content: [{ type: "text", text }] }],
+  },
+});
+
+const setText = (elements: ReadonlyArray<CanvasElement>, text: string) => {
+  const existing = elements.find((element) => element.payload.kind === "text");
+  return existing === undefined
+    ? [...elements, { ...textElement(text), layer: nextLayer(elements) }]
+    : elements.map((element) =>
+        element.id === existing.id ? { ...element, payload: textPayload(text) } : element,
+      );
+};
+
+const nextLayer = (elements: ReadonlyArray<CanvasElement>) =>
+  elements.reduce((layer, element) => Math.max(layer, element.layer), -1) + 1;
 
 const entryText = (entry: DiaryEntry): string => {
   const element = entry.document.elements.find((value) => value.payload.kind === "text");

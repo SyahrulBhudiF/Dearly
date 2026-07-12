@@ -1,12 +1,11 @@
 import { Html } from "foldkit";
-import { Button, Dialog, FileDrop, Popover, Textarea } from "@foldkit/ui";
+import { Button, Dialog, FileDrop, Popover } from "@foldkit/ui";
 import { ArrowUpRight, Sparkles, Type } from "lucide";
 import { Option } from "effect";
 import type { CanvasElement, Sticker } from "@dearly/domain";
 import { canvasDropZone } from "../../core/canvasDrag";
 import type { AppMessage } from "../../core/message";
 import {
-  ChangedText,
   FinishedResize,
   GotFileDropMessage,
   GotStickerPopoverMessage,
@@ -150,7 +149,7 @@ export const canvasShell = (
       }),
       ...[...elements]
         .sort((a, b) => a.layer - b.layer)
-        .map((element) => CanvasItem(h, element, selectedElementId)),
+        .map((element) => CanvasItem(h, element, selectedElementId, text)),
       DeleteDialog(h, deleteDialog),
       uploadState === "uploading"
         ? h.p(
@@ -163,24 +162,6 @@ export const canvasShell = (
               ["Image upload failed"],
             )
           : null,
-      Textarea.view({
-        id: "entry-text",
-        value: text,
-        rows: 14,
-        placeholder: "What deserves a place on this page?",
-        onInput: (value) => ChangedText({ text: value }),
-        toView: ({ textarea }) =>
-          h.textarea(
-            [
-              ...textarea,
-              h.Class(
-                "relative block w-full max-w-xl resize-none bg-transparent font-display text-2xl leading-tight placeholder:text-muted/70 focus:outline-none sm:text-3xl",
-              ),
-              h.AriaLabel("Diary entry"),
-            ],
-            [],
-          ),
-      }),
     ],
   );
 
