@@ -46,9 +46,8 @@ export const CanvasItem = (
         transform: `rotate(${element.rotation}deg)`,
       }),
       h.OnClick(SelectedCanvasElement({ id: element.id })),
-      h.Class(
-        `cursor-move touch-none ${isSelected ? "z-10 outline-2 -outline-offset-2 outline-wine" : ""}`,
-      ),
+      h.DataAttribute("canvas-element", "true"),
+      h.Class(`touch-none ${isSelected ? "z-10 outline-2 -outline-offset-2 outline-wine" : ""}`),
     ],
     [
       isText
@@ -66,6 +65,7 @@ export const CanvasItem = (
                   h.Class(
                     "size-full resize-none bg-transparent font-display text-2xl leading-tight placeholder:text-muted/70 focus:outline-none sm:text-3xl",
                   ),
+                  h.DataAttribute("canvas-editable", "true"),
                 ],
                 [],
               ),
@@ -106,7 +106,10 @@ export const CanvasItem = (
 
 const canvasControls = (h: HtmlFactory) =>
   h.div(
-    [h.Class("absolute -top-11 left-0 z-20 flex gap-1 border border-line bg-paper p-1")],
+    [
+      h.DataAttribute("canvas-controls", "true"),
+      h.Class("absolute -top-11 left-0 z-20 flex gap-1 border border-line bg-paper p-1"),
+    ],
     [
       controlButton(h, "Rotate", RotateCw, RotatedCanvasElement({ degrees: 15 })),
       controlButton(

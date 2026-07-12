@@ -31,14 +31,15 @@ export const canvasElement = (
         window.removeEventListener("pointerup", end);
       };
       const startDrag = (event: Event) => {
-        if (!(event instanceof PointerEvent)) return;
+        if (!(event instanceof PointerEvent) || event.button !== 0) return;
+        const target = event.target;
         if (
-          event.button !== 0 ||
-          event.target instanceof HTMLTextAreaElement ||
-          event.target instanceof HTMLButtonElement
+          !(target instanceof Element) ||
+          target.closest("[data-canvas-editable], [data-canvas-controls], button") !== null
         )
           return;
         start = { ...position, clientX: event.clientX, clientY: event.clientY };
+        element.setPointerCapture(event.pointerId);
         window.addEventListener("pointermove", move);
         window.addEventListener("pointerup", end, { once: true });
       };
