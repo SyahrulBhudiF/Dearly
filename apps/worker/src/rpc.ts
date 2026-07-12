@@ -7,7 +7,7 @@ import {
 } from "@dearly/domain";
 import { Effect, Option, Schema } from "effect";
 import { json, notImplemented, type WorkerEffect } from "./libs/http";
-import { getEntryByDate, listMonthEntries, saveEntry } from "./modules/rpc";
+import { getEntryByDate, listMonthEntries, saveEntry } from "./modules/entry";
 import { getSession } from "./modules/session";
 import type { WorkerContext } from "./types";
 
