@@ -1,4 +1,4 @@
-import { Navigation, Runtime, type Url } from "foldkit";
+import { Runtime, type Url } from "foldkit";
 import type { UrlRequest } from "foldkit/navigation";
 import { ChangedRoute, AppMessage } from "./core/message";
 import { initialModel, Model } from "./core/model";
@@ -8,7 +8,7 @@ import { view } from "./view";
 
 export const application = Runtime.makeApplication({
   Model: Model,
-  init: () => init(initialModel(parseRoute({ pathname: location.pathname } as never))),
+  init: (url: Url.Url) => init(initialModel(parseRoute(url))),
   update,
   view,
   container: document.getElementById("root"),
@@ -21,5 +21,3 @@ export const application = Runtime.makeApplication({
   },
   devTools: { Message: AppMessage },
 });
-
-void Navigation;
