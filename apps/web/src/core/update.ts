@@ -51,10 +51,13 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             imageMediaObjectId: null,
             imageElementId: null,
             imagePosition: { x: 80, y: 80 },
+            imageSize: { width: 480, height: 320 },
             stickerId: null,
             stickerMediaObjectId: null,
             stickerElementId: null,
             stickerPosition: { x: 620, y: 100 },
+            stickerSize: { width: 160, height: 160 },
+            resizing: null,
             stickerPickerOpen: false,
             uploadState: "idle",
             saveState: "idle",
@@ -84,10 +87,13 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             imageMediaObjectId: entry === null ? null : imageMediaObjectId(entry),
             imageElementId: null,
             imagePosition: entry === null ? { x: 80, y: 80 } : imagePosition(entry),
+            imageSize: entry === null ? { width: 480, height: 320 } : imageSize(entry),
             stickerId: null,
             stickerMediaObjectId: null,
             stickerElementId: null,
             stickerPosition: { x: 620, y: 100 },
+            stickerSize: { width: 160, height: 160 },
+            resizing: null,
             saveState: "idle",
           },
           [],
@@ -110,6 +116,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
           stickerMediaObjectId: sticker.mediaObjectId,
           stickerElementId: null,
           stickerPosition: { x: 620, y: 100 },
+          stickerSize: { width: 160, height: 160 },
           stickerPickerOpen: false,
         },
         [],
@@ -124,6 +131,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
           imageMediaObjectId: mediaObjectId,
           imageElementId: null,
           imagePosition: { x: 80, y: 80 },
+          imageSize: { width: 480, height: 320 },
           uploadState: "idle",
         },
         [],
@@ -135,6 +143,25 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         },
         [],
       ],
+      StartedResize: ({ id, screenX, screenY, width, height }): UpdateResult => [
+        { ...model, resizing: { id, screenX, screenY, width, height } },
+        [],
+      ],
+      ResizedCanvasElement: ({ screenX, screenY }): UpdateResult => {
+        if (model.resizing === null) return [model, []];
+        const size = {
+          width: Math.max(80, model.resizing.width + screenX - model.resizing.screenX),
+          height: Math.max(80, model.resizing.height + screenY - model.resizing.screenY),
+        };
+        return [
+          {
+            ...model,
+            ...(model.resizing.id === "image" ? { imageSize: size } : { stickerSize: size }),
+          },
+          [],
+        ];
+      },
+      FinishedResize: (): UpdateResult => [{ ...model, resizing: null }, []],
       FailedToUploadImage: (): UpdateResult => [{ ...model, uploadState: "failed" }, []],
       FailedToLoad: (): UpdateResult => [{ ...model, loadState: "failed" }, []],
       ChangedText: ({ text }): UpdateResult => [
@@ -151,7 +178,9 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             stickerMediaObjectId: model.stickerMediaObjectId,
             stickerId: model.stickerId,
             imagePosition: model.imagePosition,
+            imageSize: model.imageSize,
             stickerPosition: model.stickerPosition,
+            stickerSize: model.stickerSize,
           }),
         ],
       ],
@@ -175,6 +204,13 @@ const imageMediaObjectId = (entry: DiaryEntry) => {
 const imagePosition = (entry: DiaryEntry) => {
   const element = entry.document.elements.find((value) => value.payload.kind === "image");
   return element?.payload.kind === "image" ? { x: element.x, y: element.y } : { x: 80, y: 80 };
+};
+
+const imageSize = (entry: DiaryEntry) => {
+  const element = entry.document.elements.find((value) => value.payload.kind === "image");
+  return element?.payload.kind === "image"
+    ? { width: element.width, height: element.height }
+    : { width: 480, height: 320 };
 };
 
 const entryText = (entry: DiaryEntry): string => {

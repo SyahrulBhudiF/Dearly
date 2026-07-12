@@ -1,4 +1,5 @@
 import { Html } from "foldkit";
+import { Option } from "effect";
 import { canvasDropZone, canvasElement } from "../../core/canvasDrag";
 import type { Sticker } from "@dearly/domain";
 import type { AppMessage } from "../../core/message";
@@ -6,7 +7,10 @@ import {
   ChangedRoute,
   ChangedText,
   DiscardedDraft,
+  FinishedResize,
+  ResizedCanvasElement,
   SaveRequested,
+  StartedResize,
   SelectedImage,
   SelectedSticker,
   ToggledStickerPicker,
@@ -131,13 +135,19 @@ export const canvasShell = (
   text: string,
   imageMediaObjectId: string | null,
   imagePosition: { readonly x: number; readonly y: number },
+  imageSize: { readonly width: number; readonly height: number },
   stickerMediaObjectId: string | null,
   stickerPosition: { readonly x: number; readonly y: number },
+  stickerSize: { readonly width: number; readonly height: number },
   uploadState: "idle" | "uploading" | "failed",
 ) =>
   h.div(
     [
       h.OnMount({ name: "canvas-drop-zone", f: canvasDropZone }),
+      h.OnPointerMove((screenX, screenY) =>
+        Option.some(ResizedCanvasElement({ screenX, screenY })),
+      ),
+      h.OnPointerUp(() => Option.some(FinishedResize())),
       h.Class(
         "relative min-h-[55vh] overflow-hidden border border-line bg-canvas p-5 sm:min-h-[60vh] sm:p-12",
       ),
@@ -184,40 +194,17 @@ export const canvasShell = (
         : null,
       imageMediaObjectId === null
         ? null
-        : h.img([
-            h.OnMount({
-              name: "canvas-image",
-              f: (element) => canvasElement("image", imagePosition, element),
-            }),
-            h.Src(`/media/${imageMediaObjectId}`),
-            h.Alt("Entry image"),
-            h.Style({
-              position: "absolute",
-              left: `${imagePosition.x}px`,
-              top: `${imagePosition.y}px`,
-              width: "480px",
-              height: "320px",
-            }),
-            h.Class("cursor-move object-cover touch-none"),
-          ]),
+        : canvasImage(h, "image", imageMediaObjectId, "Entry image", imagePosition, imageSize),
       stickerMediaObjectId === null
         ? null
-        : h.img([
-            h.OnMount({
-              name: "canvas-sticker",
-              f: (element) => canvasElement("sticker", stickerPosition, element),
-            }),
-            h.Src(`/media/${stickerMediaObjectId}`),
-            h.Alt("Entry sticker"),
-            h.Style({
-              position: "absolute",
-              left: `${stickerPosition.x}px`,
-              top: `${stickerPosition.y}px`,
-              width: "160px",
-              height: "160px",
-            }),
-            h.Class("cursor-move object-contain touch-none"),
-          ]),
+        : canvasImage(
+            h,
+            "sticker",
+            stickerMediaObjectId,
+            "Entry sticker",
+            stickerPosition,
+            stickerSize,
+          ),
       uploadState === "uploading"
         ? h.p(
             [h.Class("relative mb-4 font-note text-[10px] text-muted uppercase")],
@@ -239,6 +226,41 @@ export const canvasShell = (
             "relative block w-full max-w-xl resize-none bg-transparent font-display text-2xl leading-tight placeholder:text-muted/70 focus:outline-none sm:text-3xl",
           ),
           h.AriaLabel("Diary entry"),
+        ],
+        [],
+      ),
+    ],
+  );
+
+const canvasImage = (
+  h: HtmlFactory,
+  id: string,
+  mediaObjectId: string,
+  alt: string,
+  position: { readonly x: number; readonly y: number },
+  size: { readonly width: number; readonly height: number },
+) =>
+  h.div(
+    [
+      h.OnMount({ name: `canvas-${id}`, f: (element) => canvasElement(id, position, element) }),
+      h.Style({
+        position: "absolute",
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        width: `${size.width}px`,
+        height: `${size.height}px`,
+      }),
+      h.Class("cursor-move touch-none"),
+    ],
+    [
+      h.img([h.Src(`/media/${mediaObjectId}`), h.Alt(alt), h.Class("size-full object-contain")]),
+      h.button(
+        [
+          h.OnPointerDown((_pointerType, _button, screenX, screenY) =>
+            Option.some(StartedResize({ id, screenX, screenY, ...size })),
+          ),
+          h.AriaLabel(`Resize ${alt}`),
+          h.Class("absolute right-0 bottom-0 size-5 cursor-nwse-resize border border-ink bg-paper"),
         ],
         [],
       ),

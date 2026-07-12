@@ -109,7 +109,9 @@ export const saveEntry = Command.define(
     stickerMediaObjectId: Schema.NullOr(Schema.String),
     stickerId: Schema.NullOr(Schema.String),
     imagePosition: Schema.Struct({ x: Schema.Number, y: Schema.Number }),
+    imageSize: Schema.Struct({ width: Schema.Number, height: Schema.Number }),
     stickerPosition: Schema.Struct({ x: Schema.Number, y: Schema.Number }),
+    stickerSize: Schema.Struct({ width: Schema.Number, height: Schema.Number }),
   },
   SavedEntry,
   FailedToSave,
@@ -121,7 +123,9 @@ export const saveEntry = Command.define(
     stickerMediaObjectId,
     stickerId,
     imagePosition,
+    imageSize,
     stickerPosition,
+    stickerSize,
   }) =>
     rpc
       .saveEntry(
@@ -131,7 +135,9 @@ export const saveEntry = Command.define(
         stickerMediaObjectId,
         stickerId,
         imagePosition,
+        imageSize,
         stickerPosition,
+        stickerSize,
       )
       .pipe(
         Effect.map((entry) => SavedEntry({ entry })),

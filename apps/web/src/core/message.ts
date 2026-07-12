@@ -29,6 +29,18 @@ export const MovedCanvasElement = Message.m("MovedCanvasElement", {
   x: Schema.Number,
   y: Schema.Number,
 });
+export const StartedResize = Message.m("StartedResize", {
+  id: Schema.String,
+  screenX: Schema.Number,
+  screenY: Schema.Number,
+  width: Schema.Number,
+  height: Schema.Number,
+});
+export const ResizedCanvasElement = Message.m("ResizedCanvasElement", {
+  screenX: Schema.Number,
+  screenY: Schema.Number,
+});
+export const FinishedResize = Message.m("FinishedResize");
 
 export const AppMessage = Schema.Union([
   ChangedRoute,
@@ -52,5 +64,8 @@ export const AppMessage = Schema.Union([
   LoadedStickers,
   SelectedSticker,
   MovedCanvasElement,
+  StartedResize,
+  ResizedCanvasElement,
+  FinishedResize,
 ]);
 export type AppMessage = Schema.Schema.Type<typeof AppMessage>;

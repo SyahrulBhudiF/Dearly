@@ -51,7 +51,9 @@ export const saveEntry = (
   stickerMediaObjectId: string | null,
   stickerId: string | null,
   imagePosition: { readonly x: number; readonly y: number },
+  imageSize: { readonly width: number; readonly height: number },
   stickerPosition: { readonly x: number; readonly y: number },
+  stickerSize: { readonly width: number; readonly height: number },
 ) =>
   client.pipe(
     Effect.flatMap((rpc) =>
@@ -70,8 +72,8 @@ export const saveEntry = (
                     payload: { kind: "image" as const, mediaObjectId: imageMediaObjectId as never },
                     x: imagePosition.x,
                     y: imagePosition.y,
-                    width: 480,
-                    height: 320,
+                    width: imageSize.width,
+                    height: imageSize.height,
                     rotation: 0,
                     layer: 0,
                   },
@@ -88,8 +90,8 @@ export const saveEntry = (
                     },
                     x: stickerPosition.x,
                     y: stickerPosition.y,
-                    width: 160,
-                    height: 160,
+                    width: stickerSize.width,
+                    height: stickerSize.height,
                     rotation: 0,
                     layer: 1,
                   },
