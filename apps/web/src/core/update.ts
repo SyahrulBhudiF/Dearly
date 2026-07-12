@@ -1,21 +1,25 @@
 import { Match, Option } from "effect";
-import { Dialog, FileDrop, Popover } from "@foldkit/ui";
+import { Dialog, FileDrop, Popover, VirtualList } from "@foldkit/ui";
 import type { DiaryEntry } from "@dearly/domain";
 import { Command } from "foldkit";
 import {
   loadDraft,
   loadEntries,
   loadEntry,
+  loadImages,
   loadSession,
   loadStickers,
   removeDraft,
   saveEntry,
   storeDraft,
   uploadImage,
+  uploadSticker,
 } from "./command";
 import {
   ChangedRoute,
   GotDeleteDialogMessage,
+  GotEmojiListMessage,
+  GotImagePopoverMessage,
   GotStickerPopoverMessage,
   type AppMessage,
 } from "./message";
@@ -39,6 +43,7 @@ export const init = (model: Model): UpdateResult => [
     loadSession(),
     loadEntries({ month: model.month }),
     loadStickers(),
+    loadImages(),
     ...(model.route._tag === "EntryRoute"
       ? [loadEntry({ date: model.selectedDate }), loadDraft({ date: model.selectedDate })]
       : []),
@@ -68,6 +73,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             deleteDialog: Dialog.init({ id: "delete-canvas-element" }),
             resizing: null,
             stickerPopover: Popover.init({ id: "sticker-picker" }),
+            stickerFileDrop: FileDrop.init({ id: "sticker-media" }),
+            imagePopover: Popover.init({ id: "image-picker" }),
             fileDrop: FileDrop.init({ id: "entry-media" }),
             uploadState: "idle",
             saveState: "idle",
@@ -107,6 +114,25 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         [],
       ],
       StoredDraft: (): UpdateResult => [model, []],
+      GotImagePopoverMessage: ({ message: popoverMessage }): UpdateResult => {
+        const [imagePopover, commands] = Popover.update(model.imagePopover, popoverMessage);
+        return [
+          { ...model, imagePopover },
+          Command.mapMessages(commands, (childPopoverMessage) =>
+            GotImagePopoverMessage({ message: childPopoverMessage }),
+          ),
+        ];
+      },
+      LoadedImages: ({ images }): UpdateResult => [{ ...model, images }, []],
+      SelectedStoredImage: ({ mediaObjectId }): UpdateResult => [
+        {
+          ...model,
+          elements: [...model.elements, imageElement(model, mediaObjectId)],
+          selectedElementId: null,
+          imagePopover: Popover.close(model.imagePopover)[0],
+        },
+        [],
+      ],
       GotStickerPopoverMessage: ({ message: popoverMessage }): UpdateResult => {
         const [stickerPopover, commands] = Popover.update(model.stickerPopover, popoverMessage);
         return [
@@ -117,6 +143,45 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         ];
       },
       LoadedStickers: ({ stickers }): UpdateResult => [{ ...model, stickers }, []],
+      SelectedStickerTab: ({ tab }): UpdateResult => [{ ...model, stickerTab: tab }, []],
+      ChangedImageSearch: ({ value }): UpdateResult => [{ ...model, imageSearch: value }, []],
+      ChangedStickerSearch: ({ value }): UpdateResult => [{ ...model, stickerSearch: value }, []],
+      ChangedEmojiSearch: ({ value }): UpdateResult => [{ ...model, emojiSearch: value }, []],
+      GotEmojiListMessage: ({ message: listMessage }): UpdateResult => {
+        const [emojiList, commands] = VirtualList.update(model.emojiList, listMessage);
+        return [
+          { ...model, emojiList },
+          Command.mapMessages(commands, (commandMessage) =>
+            GotEmojiListMessage({ message: commandMessage }),
+          ),
+        ];
+      },
+      SelectedEmoji: ({ emoji }): UpdateResult => [
+        {
+          ...model,
+          elements: [
+            ...model.elements,
+            {
+              id: crypto.randomUUID() as never,
+              payload: {
+                kind: "sticker",
+                stickerId: crypto.randomUUID() as never,
+                mediaObjectId: crypto.randomUUID() as never,
+                emoji,
+              },
+              x: 620,
+              y: 100,
+              width: 160,
+              height: 160,
+              rotation: 0,
+              layer: nextLayer(model.elements),
+            },
+          ],
+          selectedElementId: null,
+          stickerPopover: Popover.close(model.stickerPopover)[0],
+        },
+        [],
+      ],
       SelectedSticker: ({ sticker }): UpdateResult => [
         {
           ...model,
@@ -142,6 +207,26 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         },
         [],
       ],
+      UploadedSticker: ({ sticker }): UpdateResult => [
+        { ...model, stickers: [...model.stickers, sticker], uploadState: "idle" },
+        [],
+      ],
+      GotStickerFileDropMessage: ({ message: fileDropMessage }): UpdateResult => {
+        const [stickerFileDrop, _commands, outMessage] = FileDrop.update(
+          model.stickerFileDrop,
+          fileDropMessage,
+        );
+        return Option.match(outMessage, {
+          onNone: () => [{ ...model, stickerFileDrop }, []],
+          onSome: (out) =>
+            out._tag === "ReceivedFiles"
+              ? [
+                  { ...model, stickerFileDrop, uploadState: "uploading" },
+                  out.files.map((file) => uploadSticker({ file })),
+                ]
+              : [{ ...model, stickerFileDrop }, []],
+        });
+      },
       GotFileDropMessage: ({ message: fileDropMessage }): UpdateResult => {
         const [fileDrop, _commands, outMessage] = FileDrop.update(model.fileDrop, fileDropMessage);
         return Option.match(outMessage, {
@@ -155,6 +240,28 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
               : [{ ...model, fileDrop }, []],
         });
       },
+      ChangedImageTitle: ({ id, title }): UpdateResult => [
+        {
+          ...model,
+          elements: model.elements.map((element) =>
+            element.id === id && element.payload.kind === "image"
+              ? { ...element, payload: { ...element.payload, alt: title } }
+              : element,
+          ),
+        },
+        [],
+      ],
+      AddedTextCanvasElement: (): UpdateResult => {
+        const element = textElement("");
+        return [
+          {
+            ...model,
+            elements: [...model.elements, { ...element, layer: nextLayer(model.elements) }],
+            selectedElementId: element.id,
+          },
+          [],
+        ];
+      },
       SelectedImage: ({ file }): UpdateResult => [
         { ...model, uploadState: "uploading" },
         [uploadImage({ file })],
@@ -162,25 +269,24 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       UploadedImage: ({ mediaObjectId }): UpdateResult => [
         {
           ...model,
-          elements: [
-            ...model.elements,
-            {
-              id: crypto.randomUUID() as never,
-              payload: { kind: "image", mediaObjectId },
-              x: 80,
-              y: 80,
-              width: 480,
-              height: 320,
-              rotation: 0,
-              layer: nextLayer(model.elements),
-            },
-          ],
+          elements: [...model.elements, imageElement(model, mediaObjectId)],
           selectedElementId: null,
+          images: model.images,
           uploadState: "idle",
         },
         [],
       ],
       SelectedCanvasElement: ({ id }): UpdateResult => [{ ...model, selectedElementId: id }, []],
+      DeselectedCanvasElement: (): UpdateResult => [{ ...model, selectedElementId: null }, []],
+      TransformedCanvasElement: ({ id, x, y, width, height, rotation }): UpdateResult => [
+        {
+          ...model,
+          elements: model.elements.map((element) =>
+            element.id === id ? { ...element, x, y, width, height, rotation } : element,
+          ),
+        },
+        [],
+      ],
       DeleteCanvasElementRequested: (): UpdateResult => {
         if (model.selectedElementId === null) return [model, []];
         const [deleteDialog, commands] = Dialog.open(model.deleteDialog);
@@ -289,6 +395,17 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       ],
     }),
   );
+
+const imageElement = (model: Model, mediaObjectId: string) => ({
+  id: crypto.randomUUID() as never,
+  payload: { kind: "image" as const, mediaObjectId: mediaObjectId as never },
+  x: 80,
+  y: 80,
+  width: 480,
+  height: 320,
+  rotation: 0,
+  layer: nextLayer(model.elements),
+});
 
 const entryText = (entry: DiaryEntry): string => {
   const element = entry.document.elements.find((value) => value.payload.kind === "text");

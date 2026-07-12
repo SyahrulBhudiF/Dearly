@@ -26,6 +26,7 @@ export const CanvasElementPayload = Schema.Union([
     kind: Schema.Literal("sticker"),
     stickerId: StickerId,
     mediaObjectId: MediaObjectId,
+    emoji: Schema.optional(Schema.String),
   }),
 ]);
 export type CanvasElementPayload = Schema.Schema.Type<typeof CanvasElementPayload>;

@@ -1,6 +1,7 @@
-import { Runtime, type Url } from "foldkit";
+import { Runtime, Subscription, type Url } from "foldkit";
+import { VirtualList } from "@foldkit/ui";
 import type { UrlRequest } from "foldkit/navigation";
-import { ChangedRoute, AppMessage } from "./core/message";
+import { AppMessage, ChangedRoute, GotEmojiListMessage } from "./core/message";
 import { initialModel, Model } from "./core/model";
 import { parseRoute } from "./core/route";
 import { init, update } from "./core/update";
@@ -11,6 +12,12 @@ export const application = Runtime.makeApplication({
   init: (url: Url.Url) => init(initialModel(parseRoute(url))),
   update,
   view,
+  subscriptions: Subscription.lift({
+    emojiListEvents: VirtualList.subscriptions.containerEvents,
+  })<Model, AppMessage>({
+    toChildModel: (model) => model.emojiList,
+    toParentMessage: (message) => GotEmojiListMessage({ message }),
+  }),
   container: document.getElementById("root"),
   routing: {
     onUrlRequest: (request: UrlRequest) =>

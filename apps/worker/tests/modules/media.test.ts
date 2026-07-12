@@ -13,7 +13,12 @@ const owner = { ownerId, email: "owner@dearly.test", displayName: "Owner" } as n
 describe("media module", () => {
   it("creates upload metadata", async () => {
     const upload = await Effect.runPromise(
-      createMediaUpload(context(), owner, { kind: "image", mimeType: "image/png", sizeBytes: 4 }),
+      createMediaUpload(context(), owner, {
+        kind: "image",
+        name: "image.png",
+        mimeType: "image/png",
+        sizeBytes: 4,
+      }),
     );
 
     expect(upload.r2Key.startsWith(`${ownerId}/`)).toBe(true);

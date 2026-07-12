@@ -11,6 +11,7 @@ export const MediaObject = Schema.Struct({
   ownerId: OwnerId,
   kind: MediaKind,
   r2Key: Schema.String,
+  name: Schema.String,
   mimeType: Schema.String,
   sizeBytes: NonNegativeNumber,
   createdAt: Schema.DateTimeUtc,
@@ -28,6 +29,7 @@ export type Sticker = Schema.Schema.Type<typeof Sticker>;
 
 export const CreateMediaUploadPayload = Schema.Struct({
   kind: MediaKind,
+  name: Schema.String,
   mimeType: Schema.String,
   sizeBytes: NonNegativeNumber,
 });

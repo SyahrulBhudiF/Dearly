@@ -1,6 +1,8 @@
 import {
   addDays,
   addMonths,
+  getDaysInMonth,
+  getISODay,
   format,
   parseISO,
   startOfMonth,
@@ -13,7 +15,8 @@ export const today = () => format(new Date(), "yyyy-MM-dd");
 export const monthDays = (month: string) => {
   const firstDay = startOfMonth(parseISO(`${month}-01`));
   const firstMonday = startOfWeek(firstDay, { weekStartsOn: 1 });
-  return Array.from({ length: 42 }, (_, index) =>
+  const days = Math.ceil((getISODay(firstDay) - 1 + getDaysInMonth(firstDay)) / 7) * 7;
+  return Array.from({ length: days }, (_, index) =>
     format(addDays(firstMonday, index), "yyyy-MM-dd"),
   );
 };

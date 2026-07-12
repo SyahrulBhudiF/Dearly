@@ -7,6 +7,7 @@ export const mediaObjects = sqliteTable(
     ownerId: text("owner_id").notNull(),
     kind: text("kind", { enum: ["image", "sticker", "thumbnail"] }).notNull(),
     r2Key: text("r2_key").notNull().unique(),
+    name: text("name").notNull(),
     mimeType: text("mime_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
     createdAt: text("created_at").notNull(),

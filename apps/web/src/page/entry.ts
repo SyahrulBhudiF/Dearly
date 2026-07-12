@@ -44,7 +44,20 @@ export const entryPage = (model: Model): Html.Document => {
         h.section(
           [h.Class("mx-auto grid max-w-6xl gap-8 py-10 lg:grid-cols-[72px_minmax(0,1fr)]")],
           [
-            toolRail(h, model.stickerPopover, model.stickers),
+            toolRail(
+              h,
+              model.imagePopover,
+              model.images,
+              model.imageSearch,
+              model.stickerPopover,
+              model.stickers,
+              model.stickerSearch,
+              model.stickerTab,
+              model.emojiSearch,
+              model.emojiList,
+              model.stickerFileDrop,
+              model.fileDrop,
+            ),
             h.div(
               [],
               [

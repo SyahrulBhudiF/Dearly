@@ -36,8 +36,9 @@ export const DeleteDialog = (
                     h.div(
                       [
                         ...panel,
+                        h.DataAttribute("canvas-dialog", "true"),
                         h.Class(
-                          "fixed top-1/2 left-1/2 w-[min(90vw,24rem)] -translate-x-1/2 -translate-y-1/2 border border-line bg-paper p-6",
+                          "fixed top-1/2 left-1/2 w-[min(90vw,24rem)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius)] border border-line bg-paper p-6 shadow-[var(--shadow)]",
                         ),
                       ],
                       [
@@ -60,7 +61,9 @@ export const DeleteDialog = (
                                   [
                                     ...button,
                                     ...initialFocus,
-                                    h.Class("bg-wine px-3 py-2 text-sm text-paper"),
+                                    h.Class(
+                                      "rounded-[var(--radius)] bg-wine px-3 py-2 text-sm text-paper",
+                                    ),
                                   ],
                                   ["Delete"],
                                 ),

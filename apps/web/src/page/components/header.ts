@@ -48,7 +48,7 @@ export const EntryHeader = (
                 [
                   ...button,
                   h.Class(
-                    "border border-ink bg-ink px-4 py-2 font-note text-[10px] tracking-[.14em] text-paper hover:bg-wine disabled:cursor-wait disabled:bg-muted uppercase",
+                    "rounded-[var(--radius)] border border-primary bg-primary px-4 py-2 font-note text-[10px] tracking-[.14em] text-primary-foreground shadow-[var(--shadow)] hover:bg-accent hover:text-accent-foreground disabled:cursor-wait disabled:bg-muted uppercase",
                   ),
                 ],
                 [saveState === "saving" ? "Saving…" : "Save entry"],

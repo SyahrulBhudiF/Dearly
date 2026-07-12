@@ -10,9 +10,11 @@ import {
   LoadedEntry,
   LoadedSession,
   LoadedStickers,
+  LoadedImages,
   SavedEntry,
   UploadedImage,
   FailedToUploadImage,
+  UploadedSticker,
 } from "./message";
 import * as draft from "./draft";
 import * as rpc from "./rpc";
@@ -28,6 +30,17 @@ export const loadStickers = Command.define(
   ),
 );
 
+export const loadImages = Command.define(
+  "loadImages",
+  LoadedImages,
+  FailedToLoad,
+)(
+  rpc.listImages.pipe(
+    Effect.map((images) => LoadedImages({ images })),
+    Effect.catch(() => Effect.succeed(FailedToLoad())),
+  ),
+);
+
 export const uploadImage = Command.define(
   "uploadImage",
   { file: Schema.Any },
@@ -39,6 +52,20 @@ export const uploadImage = Command.define(
     Effect.catch(() => Effect.succeed(FailedToUploadImage())),
   ),
 );
+
+export const uploadSticker = Command.define(
+  "uploadSticker",
+  { file: Schema.Any },
+  UploadedSticker,
+  FailedToUploadImage,
+)(({ file }) => {
+  const image = file as File;
+  return rpc.uploadImage(image).pipe(
+    Effect.flatMap((mediaObjectId) => rpc.createSticker(mediaObjectId, image.name)),
+    Effect.map((sticker) => UploadedSticker({ sticker })),
+    Effect.catch(() => Effect.succeed(FailedToUploadImage())),
+  );
+});
 
 export const loadSession = Command.define(
   "loadSession",

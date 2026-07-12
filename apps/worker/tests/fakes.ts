@@ -6,7 +6,16 @@ export const mediaId = "00000000-0000-4000-8000-000000000003";
 export const stickerId = "00000000-0000-4000-8000-000000000004";
 export const now = "2026-07-12T00:00:00.000Z";
 export const document = { version: 1, logicalWidth: 1000, logicalHeight: 1000, elements: [] };
-export const mediaRow = [mediaId, ownerId, "image", "media/image.png", "image/png", 4, now];
+export const mediaRow = [
+  mediaId,
+  ownerId,
+  "image",
+  "media/image.png",
+  "image.png",
+  "image/png",
+  4,
+  now,
+];
 
 export interface DbState {
   media?: unknown[] | null;
@@ -36,7 +45,7 @@ const statement = (
 
 const raw = (sql: string, state: DbState, params: ReadonlyArray<unknown>) => async () => {
   if (sql.includes('insert into "media_objects"')) {
-    const row = [params[0], params[1], params[2], params[3], params[4], params[5], now];
+    const row = [params[0], params[1], params[2], params[3], params[4], params[5], params[6], now];
     state.media = row;
     return [row];
   }

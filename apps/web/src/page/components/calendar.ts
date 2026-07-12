@@ -59,14 +59,17 @@ export const dateCard = (
         [
           ...button,
           h.Class(
-            `date-card min-h-28 border-r border-b border-line p-2 text-left sm:min-h-36 sm:p-3 ${date === selectedDate ? "bg-rose/35" : preview?.hasSavedEntry ? "bg-sage/25" : "bg-paper"}`,
+            `date-card min-h-28 border-r border-b border-line p-2 text-left sm:min-h-36 sm:p-3 ${date === selectedDate ? "bg-primary/30" : preview?.hasSavedEntry ? "bg-secondary/30" : "bg-card"}`,
           ),
           h.AriaLabel(`Open ${date}`),
         ],
         [
-          h.span([h.Class("font-note text-[11px] text-muted")], [String(Number(date.slice(-2)))]),
+          h.span(
+            [h.Class("font-note text-[11px] text-muted-foreground")],
+            [String(Number(date.slice(-2)))],
+          ),
           preview?.snippet === undefined
-            ? h.span([h.Class("mt-6 block text-xs text-muted/70")], ["—"])
+            ? h.span([h.Class("mt-6 block text-xs text-muted-foreground/70")], ["—"])
             : h.p([h.Class("mt-5 line-clamp-3 font-display text-sm leading-5")], [preview.snippet]),
           preview?.hasDraft === true
             ? h.span(

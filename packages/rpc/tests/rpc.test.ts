@@ -14,6 +14,7 @@ describe("DearlyRpc", () => {
       "getEntryByDate",
       "getMediaObject",
       "getSession",
+      "listImages",
       "listMonthEntries",
       "listStickers",
       "saveEntry",

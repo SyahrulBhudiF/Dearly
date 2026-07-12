@@ -4,7 +4,7 @@ import { Effect, Layer, Option } from "effect";
 import * as HttpEffect from "effect/unstable/http/HttpEffect";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { discardServerEntry, getEntryByDate, listMonthEntries, saveEntry } from "./modules/entry";
-import { createMediaUpload, getMediaObject } from "./modules/media";
+import { createMediaUpload, getMediaObject, listImages } from "./modules/media";
 import { getSession } from "./modules/session";
 import { createSticker, deleteStickerFromPicker, listStickers } from "./modules/sticker";
 import type { WorkerEffect } from "./libs/http";
@@ -62,6 +62,7 @@ const handlers = (context: WorkerContext) =>
           ),
         ),
       ),
+    listImages: () => withOwner(context, (owner) => listImages(context, owner)),
     listStickers: () => withOwner(context, (owner) => listStickers(context, owner)),
     createSticker: ({ mediaObjectId, label }) =>
       withOwner(context, (owner) => createSticker(context, owner, mediaObjectId, label)),

@@ -1,17 +1,10 @@
 import { Button, Textarea } from "@foldkit/ui";
-import { Option } from "effect";
 import { Html } from "foldkit";
-import { Grip, RotateCw, Trash2 } from "lucide";
+import { Grip, Trash2 } from "lucide";
 import type { CanvasElement } from "@dearly/domain";
 import { canvasElement as draggableCanvasElement } from "../../core/canvasDrag";
 import type { AppMessage } from "../../core/message";
-import {
-  DeleteCanvasElementRequested,
-  StartedResize,
-  RotatedCanvasElement,
-  SelectedCanvasElement,
-  ChangedText,
-} from "../../core/message";
+import { ChangedImageTitle, ChangedText, DeleteCanvasElementRequested } from "../../core/message";
 import { icon } from "./icon";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
@@ -34,7 +27,7 @@ export const CanvasItem = (
     [
       h.OnMount({
         name: `canvas-${element.id}`,
-        f: (node) => draggableCanvasElement(element.id, element, node),
+        f: (node) => draggableCanvasElement(element, node),
       }),
       h.Style({
         position: "absolute",
@@ -44,8 +37,12 @@ export const CanvasItem = (
         height: `${element.height}px`,
         transform: `rotate(${element.rotation}deg)`,
       }),
-      h.OnClick(SelectedCanvasElement({ id: element.id })),
       h.DataAttribute("canvas-element", "true"),
+      h.DataAttribute("canvas-x", String(element.x)),
+      h.DataAttribute("canvas-y", String(element.y)),
+      h.DataAttribute("canvas-width", String(element.width)),
+      h.DataAttribute("canvas-height", String(element.height)),
+      h.DataAttribute("canvas-rotation", String(element.rotation)),
       h.Class(`touch-none ${isSelected ? "z-10 outline-2 -outline-offset-2 outline-wine" : ""}`),
     ],
     [
@@ -69,74 +66,99 @@ export const CanvasItem = (
                 [],
               ),
           })
-        : h.img([
-            h.Src(`/media/${element.payload.mediaObjectId}`),
-            h.Alt(alt),
-            h.Class("size-full object-contain"),
-          ]),
-      isSelected ? canvasControls(h) : null,
-      Button.view<AppMessage>({
-        toView: ({ button }) =>
-          h.button(
+        : h.div(
+            [h.Class("size-full")],
             [
-              ...button,
-              h.OnPointerDown((_pointerType, _button, screenX, screenY) =>
-                Option.some(
-                  StartedResize({
-                    id: element.id,
-                    screenX,
-                    screenY,
-                    width: element.width,
-                    height: element.height,
-                  }),
-                ),
-              ),
-              h.AriaLabel(`Resize ${alt}`),
-              h.Class(
-                "absolute right-0 bottom-0 size-5 cursor-nwse-resize border border-ink bg-paper",
-              ),
+              element.payload.kind === "sticker" && element.payload.emoji !== undefined
+                ? h.span(
+                    [h.Class("grid size-full place-items-center text-8xl leading-none")],
+                    [element.payload.emoji],
+                  )
+                : h.img([
+                    h.Src(`/media/${element.payload.mediaObjectId}`),
+                    h.Alt(alt),
+                    h.Class("size-full object-contain"),
+                  ]),
+              element.payload.kind === "image"
+                ? h.input([
+                    h.Type("text"),
+                    h.Value(element.payload.alt ?? ""),
+                    h.Placeholder("Image title"),
+                    h.AriaLabel("Image title"),
+                    h.OnInput((title) => ChangedImageTitle({ id: element.id, title })),
+                    h.DataAttribute("canvas-editable", "true"),
+                    h.Class(
+                      "absolute right-0 bottom-0 left-0 border-t border-line bg-paper/90 px-2 py-1 font-note text-xs text-ink placeholder:text-muted focus:outline-none",
+                    ),
+                  ])
+                : null,
             ],
-            [],
           ),
-      }),
+      ...(isSelected ? canvasControls(h, alt) : []),
     ],
   );
 };
 
-const canvasControls = (h: HtmlFactory) =>
+const canvasControls = (h: HtmlFactory, alt: string) => [
   h.div(
     [
       h.DataAttribute("canvas-controls", "true"),
       h.Class("absolute -top-11 left-0 z-20 flex gap-1 border border-line bg-paper p-1"),
     ],
     [
-      gripButton(h),
-      controlButton(h, "Rotate 15 degrees", RotateCw, RotatedCanvasElement({ degrees: 15 })),
-      controlButton(h, "Delete", Trash2, DeleteCanvasElementRequested()),
+      h.span(
+        [
+          h.DataAttribute("canvas-grab", "true"),
+          h.AriaLabel("Drag element"),
+          h.Class(
+            "grid size-8 cursor-grab place-items-center active:cursor-grabbing hover:bg-rose/35",
+          ),
+        ],
+        [icon(h, Grip, "Drag element")],
+      ),
+      Button.view<AppMessage>({
+        onClick: DeleteCanvasElementRequested(),
+        toView: ({ button }) =>
+          h.button(
+            [
+              ...button,
+              h.AriaLabel(`Delete ${alt}`),
+              h.Class("grid size-8 place-items-center hover:bg-rose/35"),
+            ],
+            [icon(h, Trash2, `Delete ${alt}`)],
+          ),
+      }),
     ],
-  );
-
-const gripButton = (h: HtmlFactory) =>
+  ),
   h.span(
     [
-      h.DataAttribute("canvas-grab", "true"),
-      h.AriaLabel("Drag element"),
-      h.Class("grid size-8 cursor-grab place-items-center active:cursor-grabbing hover:bg-rose/35"),
-    ],
-    [icon(h, Grip, "Drag element")],
-  );
-
-const controlButton = (
-  h: HtmlFactory,
-  label: string,
-  symbol: Parameters<typeof icon>[1],
-  onClick: AppMessage,
-) =>
-  Button.view<AppMessage>({
-    onClick,
-    toView: ({ button }) =>
-      h.button(
-        [...button, h.AriaLabel(label), h.Class("grid size-8 place-items-center hover:bg-rose/35")],
-        [icon(h, symbol, label)],
+      h.DataAttribute("canvas-rotate", "true"),
+      h.AriaLabel(`Rotate ${alt}`),
+      h.Class(
+        "absolute z-30 left-1/2 -top-16 size-4 -translate-x-1/2 rounded-full border-2 border-wine bg-primary cursor-grab",
       ),
-  });
+    ],
+    [],
+  ),
+  ...(
+    [
+      ["north-west", "-left-1 -top-1 cursor-nwse-resize"],
+      ["north", "left-1/2 -top-1 -translate-x-1/2 cursor-ns-resize"],
+      ["north-east", "-right-1 -top-1 cursor-nesw-resize"],
+      ["east", "-right-1 top-1/2 -translate-y-1/2 cursor-ew-resize"],
+      ["south-east", "-right-1 -bottom-1 cursor-nwse-resize"],
+      ["south", "left-1/2 -bottom-1 -translate-x-1/2 cursor-ns-resize"],
+      ["south-west", "-left-1 -bottom-1 cursor-nesw-resize"],
+      ["west", "-left-1 top-1/2 -translate-y-1/2 cursor-ew-resize"],
+    ] as const
+  ).map(([handle, position]) =>
+    h.span(
+      [
+        h.DataAttribute("canvas-resize", handle),
+        h.AriaLabel(`Resize ${alt}`),
+        h.Class(`absolute z-20 size-2 rounded-full border border-wine bg-paper ${position}`),
+      ],
+      [],
+    ),
+  ),
+];

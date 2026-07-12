@@ -7,7 +7,7 @@ import {
   UnsupportedMediaType,
   type OwnerSession,
 } from "@dearly/domain";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { DateTime, Effect, Option, Schema } from "effect";
 import { getDb } from "../database/client";
 import { mediaObjects } from "../database/schema";
@@ -73,6 +73,7 @@ export const createMediaUpload = (
         ownerId: owner.ownerId,
         kind: payload.kind,
         r2Key,
+        name: payload.name,
         mimeType: payload.mimeType,
         sizeBytes: payload.sizeBytes,
         createdAt,
@@ -95,6 +96,21 @@ export const getMediaObject = (
   id: MediaObjectId,
 ): WorkerEffect<Option.Option<MediaObjectResult>> =>
   findOwnedMedia(context, owner, id).pipe(Effect.map((row) => Option.flatMap(row, toMediaObject)));
+
+export const listImages = (
+  context: WorkerContext,
+  owner: OwnerSession,
+): WorkerEffect<ReadonlyArray<MediaObjectResult>> => {
+  const db = getDb(context);
+  if (db === undefined) return Effect.succeed([]);
+  return Effect.promise(() =>
+    db
+      .select()
+      .from(mediaObjects)
+      .where(and(eq(mediaObjects.ownerId, owner.ownerId), eq(mediaObjects.kind, "image")))
+      .orderBy(desc(mediaObjects.createdAt)),
+  ).pipe(Effect.map((rows) => rows.flatMap((row) => Option.toArray(toMediaObject(row)))));
+};
 
 export const uploadPrivateMedia = (
   context: WorkerContext,
@@ -171,6 +187,7 @@ const toMediaObject = (row: MediaRow) =>
     ownerId: row.ownerId,
     kind: row.kind,
     r2Key: row.r2Key,
+    name: row.name,
     mimeType: row.mimeType,
     sizeBytes: row.sizeBytes,
     createdAt: DateTime.makeUnsafe(row.createdAt),

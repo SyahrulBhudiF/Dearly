@@ -29,10 +29,20 @@ export const listStickers = client.pipe(
   Effect.scoped,
 );
 
+export const listImages = client.pipe(
+  Effect.flatMap((rpc) => rpc.listImages()),
+  Effect.scoped,
+);
+
 export const uploadImage = (file: File) =>
   client.pipe(
     Effect.flatMap((rpc) =>
-      rpc.createMediaUpload({ kind: "image", mimeType: file.type, sizeBytes: file.size }),
+      rpc.createMediaUpload({
+        kind: "image",
+        name: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size,
+      }),
     ),
     Effect.flatMap((upload) =>
       Effect.promise(() =>
@@ -49,6 +59,12 @@ export const uploadImage = (file: File) =>
         Effect.as(upload.mediaObjectId),
       ),
     ),
+    Effect.scoped,
+  );
+
+export const createSticker = (mediaObjectId: string, label: string) =>
+  client.pipe(
+    Effect.flatMap((rpc) => rpc.createSticker({ mediaObjectId: mediaObjectId as never, label })),
     Effect.scoped,
   );
 

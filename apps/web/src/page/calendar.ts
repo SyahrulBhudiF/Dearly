@@ -40,13 +40,17 @@ export const calendarPage = (model: Model): Html.Document => {
           [
             monthHeader(h, month),
             h.div(
-              [h.Class("mt-8 grid grid-cols-7 border-t border-l border-line")],
               [
-                ...weekdays.map((weekday) =>
+                h.Class(
+                  "mt-8 grid grid-cols-7 overflow-hidden rounded-[var(--radius)] border border-line [&>*:nth-child(7n)]:border-r-0",
+                ),
+              ],
+              [
+                ...weekdays.map((weekday, index) =>
                   h.div(
                     [
                       h.Class(
-                        "border-r border-b border-line px-2 py-3 font-note text-[10px] tracking-[.12em] text-muted uppercase",
+                        `border-r border-b border-line px-2 py-3 font-note text-[10px] tracking-[.12em] text-foreground uppercase ${index < 2 ? "bg-primary/25" : index < 5 ? "bg-accent/45" : "bg-secondary/25"}`,
                       ),
                     ],
                     [weekday],

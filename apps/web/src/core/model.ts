@@ -1,6 +1,13 @@
 import { Schema } from "effect";
-import { Dialog, FileDrop, Popover } from "@foldkit/ui";
-import { CalendarDate, CanvasElement, EntryPreview, OwnerSession, Sticker } from "@dearly/domain";
+import { Dialog, FileDrop, Popover, VirtualList } from "@foldkit/ui";
+import {
+  CalendarDate,
+  CanvasElement,
+  EntryPreview,
+  MediaObject,
+  OwnerSession,
+  Sticker,
+} from "@dearly/domain";
 import { today } from "../libs/date";
 import { CalendarRoute, EntryRoute, NotFoundRoute, type AppRoute } from "./route";
 
@@ -21,6 +28,12 @@ export const Model = Schema.Struct({
   selectedElementId: Schema.NullOr(Schema.String),
   deleteDialog: Dialog.Model,
   stickers: Schema.Array(Sticker),
+  images: Schema.Array(MediaObject),
+  imagePopover: Popover.Model,
+  imageSearch: Schema.String,
+  stickerSearch: Schema.String,
+  emojiSearch: Schema.String,
+  emojiList: VirtualList.Model,
   resizing: Schema.NullOr(
     Schema.Struct({
       id: Schema.String,
@@ -31,6 +44,8 @@ export const Model = Schema.Struct({
     }),
   ),
   stickerPopover: Popover.Model,
+  stickerTab: Schema.Literals(["stickers", "emoji"]),
+  stickerFileDrop: FileDrop.Model,
   fileDrop: FileDrop.Model,
   uploadState: Schema.Literals(["idle", "uploading", "failed"]),
   saveState: Schema.Literals(["idle", "saving", "failed"]),
@@ -53,8 +68,16 @@ export const initialModel = (route: AppRoute): Model => {
     selectedElementId: null,
     deleteDialog: Dialog.init({ id: "delete-canvas-element" }),
     stickers: [],
+    images: [],
+    imagePopover: Popover.init({ id: "image-picker" }),
+    imageSearch: "",
+    stickerSearch: "",
+    emojiSearch: "",
+    emojiList: VirtualList.init({ id: "emoji-picker-list", rowHeightPx: 52 }),
     resizing: null,
     stickerPopover: Popover.init({ id: "sticker-picker" }),
+    stickerTab: "stickers",
+    stickerFileDrop: FileDrop.init({ id: "sticker-media" }),
     fileDrop: FileDrop.init({ id: "entry-media" }),
     uploadState: "idle",
     saveState: "idle",

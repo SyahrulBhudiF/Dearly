@@ -71,6 +71,10 @@ export class DearlyRpc extends RpcGroup.make(
     success: MediaObject,
     error: DearlyErrors,
   }),
+  Rpc.make("listImages", {
+    success: Schema.Array(MediaObject),
+    error: DearlyErrors,
+  }),
   Rpc.make("listStickers", {
     success: Schema.Array(Sticker),
     error: DearlyErrors,
