@@ -37,9 +37,14 @@ test("selected canvas element rotates, changes layer, and deletes", () => {
       expect(model.elements[0]?.layer).toBe(1);
       expect(model.elements[1]?.layer).toBe(0);
     }),
+    Story.message(ChangedCanvasElementLayer({ direction: "backward" })),
+    Story.model((model) => {
+      expect(model.elements[0]?.layer).toBe(0);
+      expect(model.elements[1]?.layer).toBe(1);
+    }),
     Story.message(DeletedCanvasElement()),
     Story.model((model) => {
-      expect(model.elements).toEqual([element("second", 0)]);
+      expect(model.elements).toEqual([element("second", 1)]);
       expect(model.selectedElementId).toBeNull();
     }),
   );

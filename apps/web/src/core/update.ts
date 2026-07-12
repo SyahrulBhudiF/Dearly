@@ -102,7 +102,9 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         const [stickerPopover, commands] = Popover.update(model.stickerPopover, popoverMessage);
         return [
           { ...model, stickerPopover },
-          Command.mapMessages(commands, (message) => GotStickerPopoverMessage({ message })),
+          Command.mapMessages(commands, (popoverMessage) =>
+            GotStickerPopoverMessage({ message: popoverMessage }),
+          ),
         ];
       },
       LoadedStickers: ({ stickers }): UpdateResult => [{ ...model, stickers }, []],

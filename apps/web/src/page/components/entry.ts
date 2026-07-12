@@ -63,10 +63,10 @@ export const toolRail = (
                           stickers.map((sticker) =>
                             Button.view<AppMessage>({
                               onClick: SelectedSticker({ sticker }),
-                              toView: ({ button }) =>
+                              toView: ({ button: stickerButton }) =>
                                 h.button(
                                   [
-                                    ...button,
+                                    ...stickerButton,
                                     h.AriaLabel(`Add ${sticker.label}`),
                                     h.Class(
                                       "size-11 overflow-hidden border border-line hover:border-wine",

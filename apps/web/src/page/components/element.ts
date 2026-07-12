@@ -1,7 +1,7 @@
 import { Button, Textarea } from "@foldkit/ui";
 import { Option } from "effect";
 import { Html } from "foldkit";
-import { ArrowUpRight, RotateCw, Trash2 } from "lucide";
+import { ArrowDownLeft, ArrowUpRight, RotateCw, Trash2 } from "lucide";
 import type { CanvasElement } from "@dearly/domain";
 import { canvasElement as draggableCanvasElement } from "../../core/canvasDrag";
 import type { AppMessage } from "../../core/message";
@@ -114,6 +114,12 @@ const canvasControls = (h: HtmlFactory) =>
         "Bring forward",
         ArrowUpRight,
         ChangedCanvasElementLayer({ direction: "forward" }),
+      ),
+      controlButton(
+        h,
+        "Send backward",
+        ArrowDownLeft,
+        ChangedCanvasElementLayer({ direction: "backward" }),
       ),
       controlButton(h, "Delete", Trash2, DeleteCanvasElementRequested()),
     ],
