@@ -1,5 +1,6 @@
 import { BrowserHttpClient } from "@effect/platform-browser";
 import { DearlyRpc } from "@dearly/rpc";
+import type { CanvasElement } from "@dearly/domain";
 import { Effect, Layer } from "effect";
 import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
 
@@ -44,17 +45,7 @@ export const uploadImage = (file: File) =>
 export const getEntryByDate = (date: string) =>
   client.pipe(Effect.flatMap((rpc) => rpc.getEntryByDate({ date: date as never })));
 
-export const saveEntry = (
-  date: string,
-  text: string,
-  imageMediaObjectId: string | null,
-  stickerMediaObjectId: string | null,
-  stickerId: string | null,
-  imagePosition: { readonly x: number; readonly y: number },
-  imageSize: { readonly width: number; readonly height: number },
-  stickerPosition: { readonly x: number; readonly y: number },
-  stickerSize: { readonly width: number; readonly height: number },
-) =>
+export const saveEntry = (date: string, text: string, elements: ReadonlyArray<CanvasElement>) =>
   client.pipe(
     Effect.flatMap((rpc) =>
       rpc.saveEntry({
@@ -64,38 +55,7 @@ export const saveEntry = (
           logicalWidth: 1000,
           logicalHeight: 1400,
           elements: [
-            ...(imageMediaObjectId === null
-              ? []
-              : [
-                  {
-                    id: crypto.randomUUID() as never,
-                    payload: { kind: "image" as const, mediaObjectId: imageMediaObjectId as never },
-                    x: imagePosition.x,
-                    y: imagePosition.y,
-                    width: imageSize.width,
-                    height: imageSize.height,
-                    rotation: 0,
-                    layer: 0,
-                  },
-                ]),
-            ...(stickerMediaObjectId === null
-              ? []
-              : [
-                  {
-                    id: crypto.randomUUID() as never,
-                    payload: {
-                      kind: "sticker" as const,
-                      stickerId: stickerId as never,
-                      mediaObjectId: stickerMediaObjectId as never,
-                    },
-                    x: stickerPosition.x,
-                    y: stickerPosition.y,
-                    width: stickerSize.width,
-                    height: stickerSize.height,
-                    rotation: 0,
-                    layer: 1,
-                  },
-                ]),
+            ...elements,
             {
               id: crypto.randomUUID() as never,
               payload: {
@@ -107,11 +67,11 @@ export const saveEntry = (
                 },
               },
               x: 80,
-              y: imageMediaObjectId === null ? 120 : 440,
+              y: 440,
               width: 720,
               height: 240,
               rotation: 0,
-              layer: 2,
+              layer: elements.length,
             },
           ],
         },

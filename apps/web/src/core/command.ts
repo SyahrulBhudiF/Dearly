@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import { CanvasElement } from "@dearly/domain";
 import { Command } from "foldkit";
 import {
   FailedToLoad,
@@ -105,42 +106,13 @@ export const saveEntry = Command.define(
   {
     date: Schema.String,
     text: Schema.String,
-    imageMediaObjectId: Schema.NullOr(Schema.String),
-    stickerMediaObjectId: Schema.NullOr(Schema.String),
-    stickerId: Schema.NullOr(Schema.String),
-    imagePosition: Schema.Struct({ x: Schema.Number, y: Schema.Number }),
-    imageSize: Schema.Struct({ width: Schema.Number, height: Schema.Number }),
-    stickerPosition: Schema.Struct({ x: Schema.Number, y: Schema.Number }),
-    stickerSize: Schema.Struct({ width: Schema.Number, height: Schema.Number }),
+    elements: Schema.Array(CanvasElement),
   },
   SavedEntry,
   FailedToSave,
-)(
-  ({
-    date,
-    text,
-    imageMediaObjectId,
-    stickerMediaObjectId,
-    stickerId,
-    imagePosition,
-    imageSize,
-    stickerPosition,
-    stickerSize,
-  }) =>
-    rpc
-      .saveEntry(
-        date,
-        text,
-        imageMediaObjectId,
-        stickerMediaObjectId,
-        stickerId,
-        imagePosition,
-        imageSize,
-        stickerPosition,
-        stickerSize,
-      )
-      .pipe(
-        Effect.map((entry) => SavedEntry({ entry })),
-        Effect.catch(() => Effect.succeed(FailedToSave())),
-      ),
+)(({ date, text, elements }) =>
+  rpc.saveEntry(date, text, elements).pipe(
+    Effect.map((entry) => SavedEntry({ entry })),
+    Effect.catch(() => Effect.succeed(FailedToSave())),
+  ),
 );

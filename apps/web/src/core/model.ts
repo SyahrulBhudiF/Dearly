@@ -1,14 +1,6 @@
 import { Schema } from "effect";
 import { FileDrop } from "@foldkit/ui";
-import {
-  CalendarDate,
-  CanvasElementId,
-  EntryPreview,
-  MediaObjectId,
-  OwnerSession,
-  Sticker,
-  StickerId,
-} from "@dearly/domain";
+import { CalendarDate, CanvasElement, EntryPreview, OwnerSession, Sticker } from "@dearly/domain";
 import { today } from "../libs/date";
 import { CalendarRoute, EntryRoute, NotFoundRoute, type AppRoute } from "./route";
 
@@ -25,16 +17,8 @@ export const Model = Schema.Struct({
   entryText: Schema.String,
   savedText: Schema.String,
   localDraft: Schema.NullOr(Schema.String),
-  imageMediaObjectId: Schema.NullOr(MediaObjectId),
-  imageElementId: Schema.NullOr(CanvasElementId),
-  imagePosition: Schema.Struct({ x: Schema.Number, y: Schema.Number }),
-  imageSize: Schema.Struct({ width: Schema.Number, height: Schema.Number }),
+  elements: Schema.Array(CanvasElement),
   stickers: Schema.Array(Sticker),
-  stickerId: Schema.NullOr(StickerId),
-  stickerMediaObjectId: Schema.NullOr(MediaObjectId),
-  stickerElementId: Schema.NullOr(CanvasElementId),
-  stickerPosition: Schema.Struct({ x: Schema.Number, y: Schema.Number }),
-  stickerSize: Schema.Struct({ width: Schema.Number, height: Schema.Number }),
   resizing: Schema.NullOr(
     Schema.Struct({
       id: Schema.String,
@@ -63,16 +47,8 @@ export const initialModel = (route: AppRoute): Model => {
     entryText: "",
     savedText: "",
     localDraft: null,
-    imageMediaObjectId: null,
-    imageElementId: null,
-    imagePosition: { x: 80, y: 80 },
-    imageSize: { width: 480, height: 320 },
+    elements: [],
     stickers: [],
-    stickerId: null,
-    stickerMediaObjectId: null,
-    stickerElementId: null,
-    stickerPosition: { x: 620, y: 100 },
-    stickerSize: { width: 160, height: 160 },
     resizing: null,
     stickerPickerOpen: false,
     fileDrop: FileDrop.init({ id: "entry-media" }),

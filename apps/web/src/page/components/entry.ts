@@ -2,8 +2,8 @@ import { Html } from "foldkit";
 import { Button, FileDrop, Textarea } from "@foldkit/ui";
 import { ArrowLeft, ArrowUpRight, Sparkles, Type } from "lucide";
 import { Option } from "effect";
+import type { CanvasElement, Sticker } from "@dearly/domain";
 import { canvasDropZone, canvasElement } from "../../core/canvasDrag";
-import type { Sticker } from "@dearly/domain";
 import type { AppMessage } from "../../core/message";
 import {
   ChangedRoute,
@@ -94,7 +94,7 @@ export const toolRail = (
               h.AriaLabel("Sticker"),
               h.AriaExpanded(stickerPickerOpen),
               h.Class(
-                "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
+                "grid size-11 place-items-center rounded-full border border-line bg-paper hover:border-wine hover:text-wine",
               ),
             ],
             [icon(h, Sparkles, "Sticker")],
@@ -137,12 +137,7 @@ export const canvasShell = (
   h: HtmlFactory,
   text: string,
   fileDrop: FileDrop.Model,
-  imageMediaObjectId: string | null,
-  imagePosition: { readonly x: number; readonly y: number },
-  imageSize: { readonly width: number; readonly height: number },
-  stickerMediaObjectId: string | null,
-  stickerPosition: { readonly x: number; readonly y: number },
-  stickerSize: { readonly width: number; readonly height: number },
+  elements: ReadonlyArray<CanvasElement>,
   uploadState: "idle" | "uploading" | "failed",
 ) =>
   h.div(
@@ -165,44 +160,31 @@ export const canvasShell = (
         ],
         [],
       ),
-      imageMediaObjectId === null
-        ? h.submodel({
-            slotId: "entry-media-drop",
-            model: fileDrop,
-            view: FileDrop.view,
-            toParentMessage: (message) => GotFileDropMessage({ message }),
-            viewInputs: {
-              accept: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-              toView: ({ root, input }) =>
-                h.label(
-                  [
-                    ...root,
-                    h.Class(
-                      "relative mb-6 flex min-h-28 max-w-lg cursor-pointer items-center justify-center border border-dashed border-line px-4 py-5 text-center font-note text-[10px] tracking-[.1em] text-muted uppercase transition-colors hover:border-wine data-[drag-over=true]:border-wine data-[drag-over=true]:bg-rose/20",
-                    ),
-                  ],
-                  [
-                    "Drop an image here or ",
-                    h.span([h.Class("text-wine")], ["choose a file"]),
-                    h.input([...input, h.AriaLabel("Add entry image")]),
-                  ],
+      h.submodel({
+        slotId: "entry-media-drop",
+        model: fileDrop,
+        view: FileDrop.view,
+        toParentMessage: (message) => GotFileDropMessage({ message }),
+        viewInputs: {
+          accept: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+          multiple: true,
+          toView: ({ root, input }) =>
+            h.label(
+              [
+                ...root,
+                h.Class(
+                  "relative mb-6 flex min-h-28 max-w-lg cursor-pointer items-center justify-center border border-dashed border-line px-4 py-5 text-center font-note text-[10px] tracking-[.1em] text-muted uppercase transition-colors hover:border-wine data-[drag-over=true]:border-wine data-[drag-over=true]:bg-rose/20",
                 ),
-            },
-          })
-        : null,
-      imageMediaObjectId === null
-        ? null
-        : canvasImage(h, "image", imageMediaObjectId, "Entry image", imagePosition, imageSize),
-      stickerMediaObjectId === null
-        ? null
-        : canvasImage(
-            h,
-            "sticker",
-            stickerMediaObjectId,
-            "Entry sticker",
-            stickerPosition,
-            stickerSize,
-          ),
+              ],
+              [
+                "Drop images here or ",
+                h.span([h.Class("text-wine")], ["choose files"]),
+                h.input([...input, h.AriaLabel("Add entry images")]),
+              ],
+            ),
+        },
+      }),
+      ...[...elements].sort((a, b) => a.layer - b.layer).map((element) => canvasMedia(h, element)),
       uploadState === "uploading"
         ? h.p(
             [h.Class("relative mb-4 font-note text-[10px] text-muted uppercase")],
@@ -235,35 +217,48 @@ export const canvasShell = (
     ],
   );
 
-const canvasImage = (
-  h: HtmlFactory,
-  id: string,
-  mediaObjectId: string,
-  alt: string,
-  position: { readonly x: number; readonly y: number },
-  size: { readonly width: number; readonly height: number },
-) =>
-  h.div(
+const canvasMedia = (h: HtmlFactory, element: CanvasElement) => {
+  if (element.payload.kind === "text") return null;
+  const alt =
+    element.payload.kind === "image" ? (element.payload.alt ?? "Entry image") : "Entry sticker";
+  return h.keyed("div")(
+    element.id,
     [
-      h.OnMount({ name: `canvas-${id}`, f: (element) => canvasElement(id, position, element) }),
+      h.OnMount({
+        name: `canvas-${element.id}`,
+        f: (node) => canvasElement(element.id, element, node),
+      }),
       h.Style({
         position: "absolute",
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        width: `${size.width}px`,
-        height: `${size.height}px`,
+        left: `${element.x}px`,
+        top: `${element.y}px`,
+        width: `${element.width}px`,
+        height: `${element.height}px`,
+        transform: `rotate(${element.rotation}deg)`,
       }),
       h.Class("cursor-move touch-none"),
     ],
     [
-      h.img([h.Src(`/media/${mediaObjectId}`), h.Alt(alt), h.Class("size-full object-contain")]),
+      h.img([
+        h.Src(`/media/${element.payload.mediaObjectId}`),
+        h.Alt(alt),
+        h.Class("size-full object-contain"),
+      ]),
       Button.view<AppMessage>({
         toView: ({ button }) =>
           h.button(
             [
               ...button,
               h.OnPointerDown((_pointerType, _button, screenX, screenY) =>
-                Option.some(StartedResize({ id, screenX, screenY, ...size })),
+                Option.some(
+                  StartedResize({
+                    id: element.id,
+                    screenX,
+                    screenY,
+                    width: element.width,
+                    height: element.height,
+                  }),
+                ),
               ),
               h.AriaLabel(`Resize ${alt}`),
               h.Class(
@@ -275,6 +270,7 @@ const canvasImage = (
       }),
     ],
   );
+};
 
 const toolButton = (h: HtmlFactory, label: string, content: ReturnType<typeof icon>) =>
   Button.view<AppMessage>({
@@ -284,7 +280,7 @@ const toolButton = (h: HtmlFactory, label: string, content: ReturnType<typeof ic
           ...button,
           h.AriaLabel(label),
           h.Class(
-            "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
+            "grid size-11 place-items-center rounded-full border border-line bg-paper hover:border-wine hover:text-wine",
           ),
         ],
         [content],
@@ -298,7 +294,9 @@ export const calendarLink = (h: HtmlFactory) =>
       h.button(
         [
           ...button,
-          h.Class("font-note text-[11px] tracking-[.1em] text-muted hover:text-wine uppercase"),
+          h.Class(
+            "flex items-center gap-1 font-note text-[11px] tracking-[.1em] text-muted hover:text-wine uppercase",
+          ),
         ],
         [icon(h, ArrowLeft, "Calendar"), "Calendar"],
       ),

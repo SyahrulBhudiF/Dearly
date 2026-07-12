@@ -1,6 +1,6 @@
 import { Match, Option } from "effect";
 import { FileDrop } from "@foldkit/ui";
-import type { DiaryEntry } from "@dearly/domain";
+import type { CanvasElement, DiaryEntry } from "@dearly/domain";
 import type { Command } from "foldkit";
 import {
   loadDraft,
@@ -13,7 +13,7 @@ import {
   storeDraft,
   uploadImage,
 } from "./command";
-import { ChangedRoute, SelectedImage, type AppMessage } from "./message";
+import { ChangedRoute, type AppMessage } from "./message";
 import type { Model } from "./model";
 import { EntryRoute } from "./route";
 
@@ -49,15 +49,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             entryText: "",
             savedText: "",
             localDraft: null,
-            imageMediaObjectId: null,
-            imageElementId: null,
-            imagePosition: { x: 80, y: 80 },
-            imageSize: { width: 480, height: 320 },
-            stickerId: null,
-            stickerMediaObjectId: null,
-            stickerElementId: null,
-            stickerPosition: { x: 620, y: 100 },
-            stickerSize: { width: 160, height: 160 },
+            elements: [],
             resizing: null,
             stickerPickerOpen: false,
             fileDrop: FileDrop.init({ id: "entry-media" }),
@@ -86,15 +78,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             ...model,
             savedText,
             entryText: model.localDraft ?? savedText,
-            imageMediaObjectId: entry === null ? null : imageMediaObjectId(entry),
-            imageElementId: null,
-            imagePosition: entry === null ? { x: 80, y: 80 } : imagePosition(entry),
-            imageSize: entry === null ? { width: 480, height: 320 } : imageSize(entry),
-            stickerId: null,
-            stickerMediaObjectId: null,
-            stickerElementId: null,
-            stickerPosition: { x: 620, y: 100 },
-            stickerSize: { width: 160, height: 160 },
+            elements: entry === null ? [] : nonTextElements(entry),
             resizing: null,
             saveState: "idle",
           },
@@ -114,11 +98,23 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       SelectedSticker: ({ sticker }): UpdateResult => [
         {
           ...model,
-          stickerId: sticker.id,
-          stickerMediaObjectId: sticker.mediaObjectId,
-          stickerElementId: null,
-          stickerPosition: { x: 620, y: 100 },
-          stickerSize: { width: 160, height: 160 },
+          elements: [
+            ...model.elements,
+            {
+              id: crypto.randomUUID() as never,
+              payload: {
+                kind: "sticker",
+                stickerId: sticker.id,
+                mediaObjectId: sticker.mediaObjectId,
+              },
+              x: 620,
+              y: 100,
+              width: 160,
+              height: 160,
+              rotation: 0,
+              layer: model.elements.length,
+            },
+          ],
           stickerPickerOpen: false,
         },
         [],
@@ -129,7 +125,10 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
           onNone: () => [{ ...model, fileDrop }, []],
           onSome: (out) =>
             out._tag === "ReceivedFiles"
-              ? update({ ...model, fileDrop }, SelectedImage({ file: out.files[0] }))
+              ? [
+                  { ...model, fileDrop, uploadState: "uploading" },
+                  out.files.map((file) => uploadImage({ file })),
+                ]
               : [{ ...model, fileDrop }, []],
         });
       },
@@ -140,10 +139,19 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       UploadedImage: ({ mediaObjectId }): UpdateResult => [
         {
           ...model,
-          imageMediaObjectId: mediaObjectId,
-          imageElementId: null,
-          imagePosition: { x: 80, y: 80 },
-          imageSize: { width: 480, height: 320 },
+          elements: [
+            ...model.elements,
+            {
+              id: crypto.randomUUID() as never,
+              payload: { kind: "image", mediaObjectId },
+              x: 80,
+              y: 80,
+              width: 480,
+              height: 320,
+              rotation: 0,
+              layer: model.elements.length,
+            },
+          ],
           uploadState: "idle",
         },
         [],
@@ -151,7 +159,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       MovedCanvasElement: ({ id, x, y }): UpdateResult => [
         {
           ...model,
-          ...(id === "image" ? { imagePosition: { x, y } } : { stickerPosition: { x, y } }),
+          elements: moveElement(model.elements, id, { x, y }),
         },
         [],
       ],
@@ -165,13 +173,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
           width: Math.max(80, model.resizing.width + screenX - model.resizing.screenX),
           height: Math.max(80, model.resizing.height + screenY - model.resizing.screenY),
         };
-        return [
-          {
-            ...model,
-            ...(model.resizing.id === "image" ? { imageSize: size } : { stickerSize: size }),
-          },
-          [],
-        ];
+        return [{ ...model, elements: resizeElement(model.elements, model.resizing.id, size) }, []];
       },
       FinishedResize: (): UpdateResult => [{ ...model, resizing: null }, []],
       FailedToUploadImage: (): UpdateResult => [{ ...model, uploadState: "failed" }, []],
@@ -186,13 +188,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
           saveEntry({
             date: model.selectedDate,
             text: model.entryText,
-            imageMediaObjectId: model.imageMediaObjectId,
-            stickerMediaObjectId: model.stickerMediaObjectId,
-            stickerId: model.stickerId,
-            imagePosition: model.imagePosition,
-            imageSize: model.imageSize,
-            stickerPosition: model.stickerPosition,
-            stickerSize: model.stickerSize,
+            elements: model.elements,
           }),
         ],
       ],
@@ -208,22 +204,20 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
     }),
   );
 
-const imageMediaObjectId = (entry: DiaryEntry) => {
-  const element = entry.document.elements.find((value) => value.payload.kind === "image");
-  return element?.payload.kind === "image" ? element.payload.mediaObjectId : null;
-};
+const nonTextElements = (entry: DiaryEntry) =>
+  entry.document.elements.filter((element) => element.payload.kind !== "text");
 
-const imagePosition = (entry: DiaryEntry) => {
-  const element = entry.document.elements.find((value) => value.payload.kind === "image");
-  return element?.payload.kind === "image" ? { x: element.x, y: element.y } : { x: 80, y: 80 };
-};
+const moveElement = (
+  elements: ReadonlyArray<CanvasElement>,
+  id: string,
+  position: { readonly x: number; readonly y: number },
+) => elements.map((element) => (element.id === id ? { ...element, ...position } : element));
 
-const imageSize = (entry: DiaryEntry) => {
-  const element = entry.document.elements.find((value) => value.payload.kind === "image");
-  return element?.payload.kind === "image"
-    ? { width: element.width, height: element.height }
-    : { width: 480, height: 320 };
-};
+const resizeElement = (
+  elements: ReadonlyArray<CanvasElement>,
+  id: string,
+  size: { readonly width: number; readonly height: number },
+) => elements.map((element) => (element.id === id ? { ...element, ...size } : element));
 
 const entryText = (entry: DiaryEntry): string => {
   const element = entry.document.elements.find((value) => value.payload.kind === "text");
