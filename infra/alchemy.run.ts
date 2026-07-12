@@ -32,6 +32,7 @@ export default Alchemy.Stack(
       ),
     });
     const accessApplication = yield* Cloudflare.Access.Application("Dearly", {
+      name: "Dearly",
       type: "self_hosted",
       domain,
       policies: [accessPolicy.policyId],
