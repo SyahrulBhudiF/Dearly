@@ -1,4 +1,3 @@
-DROP TABLE `owners`;--> statement-breakpoint
 PRAGMA foreign_keys=OFF;--> statement-breakpoint
 CREATE TABLE `__new_diary_entries` (
 	`id` text PRIMARY KEY NOT NULL,
@@ -44,4 +43,5 @@ CREATE TABLE `__new_stickers` (
 INSERT INTO `__new_stickers`("id", "owner_id", "media_object_id", "label", "created_at") SELECT "id", "owner_id", "media_object_id", "label", "created_at" FROM `stickers`;--> statement-breakpoint
 DROP TABLE `stickers`;--> statement-breakpoint
 ALTER TABLE `__new_stickers` RENAME TO `stickers`;--> statement-breakpoint
+DROP TABLE `owners`;--> statement-breakpoint
 CREATE INDEX `stickers_owner_id_idx` ON `stickers` (`owner_id`);
