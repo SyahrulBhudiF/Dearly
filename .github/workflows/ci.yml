@@ -16,5 +16,5 @@ jobs:
       - run: bun run build
       - run: bunx oxlint .
       - run: bunx oxfmt --check .
-      - run: bunx tsc --noEmit
+      - run: bun run check
       - run: bun run test
