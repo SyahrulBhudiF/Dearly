@@ -24,6 +24,11 @@ export const FailedToUploadImage = Message.m("FailedToUploadImage");
 export const ToggledStickerPicker = Message.m("ToggledStickerPicker");
 export const LoadedStickers = Message.m("LoadedStickers", { stickers: Schema.Array(Sticker) });
 export const SelectedSticker = Message.m("SelectedSticker", { sticker: Sticker });
+export const MovedCanvasElement = Message.m("MovedCanvasElement", {
+  id: Schema.String,
+  x: Schema.Number,
+  y: Schema.Number,
+});
 
 export const AppMessage = Schema.Union([
   ChangedRoute,
@@ -46,5 +51,6 @@ export const AppMessage = Schema.Union([
   ToggledStickerPicker,
   LoadedStickers,
   SelectedSticker,
+  MovedCanvasElement,
 ]);
 export type AppMessage = Schema.Schema.Type<typeof AppMessage>;

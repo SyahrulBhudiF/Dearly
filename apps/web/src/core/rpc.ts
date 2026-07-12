@@ -50,6 +50,8 @@ export const saveEntry = (
   imageMediaObjectId: string | null,
   stickerMediaObjectId: string | null,
   stickerId: string | null,
+  imagePosition: { readonly x: number; readonly y: number },
+  stickerPosition: { readonly x: number; readonly y: number },
 ) =>
   client.pipe(
     Effect.flatMap((rpc) =>
@@ -66,8 +68,8 @@ export const saveEntry = (
                   {
                     id: crypto.randomUUID() as never,
                     payload: { kind: "image" as const, mediaObjectId: imageMediaObjectId as never },
-                    x: 80,
-                    y: 80,
+                    x: imagePosition.x,
+                    y: imagePosition.y,
                     width: 480,
                     height: 320,
                     rotation: 0,
@@ -84,8 +86,8 @@ export const saveEntry = (
                       stickerId: stickerId as never,
                       mediaObjectId: stickerMediaObjectId as never,
                     },
-                    x: 620,
-                    y: 100,
+                    x: stickerPosition.x,
+                    y: stickerPosition.y,
                     width: 160,
                     height: 160,
                     rotation: 0,

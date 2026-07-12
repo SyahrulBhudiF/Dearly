@@ -49,8 +49,12 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             savedText: "",
             localDraft: null,
             imageMediaObjectId: null,
+            imageElementId: null,
+            imagePosition: { x: 80, y: 80 },
             stickerId: null,
             stickerMediaObjectId: null,
+            stickerElementId: null,
+            stickerPosition: { x: 620, y: 100 },
             stickerPickerOpen: false,
             uploadState: "idle",
             saveState: "idle",
@@ -78,8 +82,12 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             savedText,
             entryText: model.localDraft ?? savedText,
             imageMediaObjectId: entry === null ? null : imageMediaObjectId(entry),
+            imageElementId: null,
+            imagePosition: entry === null ? { x: 80, y: 80 } : imagePosition(entry),
             stickerId: null,
             stickerMediaObjectId: null,
+            stickerElementId: null,
+            stickerPosition: { x: 620, y: 100 },
             saveState: "idle",
           },
           [],
@@ -100,6 +108,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
           ...model,
           stickerId: sticker.id,
           stickerMediaObjectId: sticker.mediaObjectId,
+          stickerElementId: null,
+          stickerPosition: { x: 620, y: 100 },
           stickerPickerOpen: false,
         },
         [],
@@ -109,7 +119,20 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         [uploadImage({ file })],
       ],
       UploadedImage: ({ mediaObjectId }): UpdateResult => [
-        { ...model, imageMediaObjectId: mediaObjectId, uploadState: "idle" },
+        {
+          ...model,
+          imageMediaObjectId: mediaObjectId,
+          imageElementId: null,
+          imagePosition: { x: 80, y: 80 },
+          uploadState: "idle",
+        },
+        [],
+      ],
+      MovedCanvasElement: ({ id, x, y }): UpdateResult => [
+        {
+          ...model,
+          ...(id === "image" ? { imagePosition: { x, y } } : { stickerPosition: { x, y } }),
+        },
         [],
       ],
       FailedToUploadImage: (): UpdateResult => [{ ...model, uploadState: "failed" }, []],
@@ -127,6 +150,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             imageMediaObjectId: model.imageMediaObjectId,
             stickerMediaObjectId: model.stickerMediaObjectId,
             stickerId: model.stickerId,
+            imagePosition: model.imagePosition,
+            stickerPosition: model.stickerPosition,
           }),
         ],
       ],
@@ -145,6 +170,11 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
 const imageMediaObjectId = (entry: DiaryEntry) => {
   const element = entry.document.elements.find((value) => value.payload.kind === "image");
   return element?.payload.kind === "image" ? element.payload.mediaObjectId : null;
+};
+
+const imagePosition = (entry: DiaryEntry) => {
+  const element = entry.document.elements.find((value) => value.payload.kind === "image");
+  return element?.payload.kind === "image" ? { x: element.x, y: element.y } : { x: 80, y: 80 };
 };
 
 const entryText = (entry: DiaryEntry): string => {

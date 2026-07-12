@@ -1,4 +1,5 @@
 import { Html } from "foldkit";
+import { canvasDropZone, canvasElement } from "../../core/canvasDrag";
 import type { Sticker } from "@dearly/domain";
 import type { AppMessage } from "../../core/message";
 import {
@@ -129,11 +130,14 @@ export const canvasShell = (
   h: HtmlFactory,
   text: string,
   imageMediaObjectId: string | null,
+  imagePosition: { readonly x: number; readonly y: number },
   stickerMediaObjectId: string | null,
+  stickerPosition: { readonly x: number; readonly y: number },
   uploadState: "idle" | "uploading" | "failed",
 ) =>
   h.div(
     [
+      h.OnMount({ name: "canvas-drop-zone", f: canvasDropZone }),
       h.Class(
         "relative min-h-[55vh] overflow-hidden border border-line bg-canvas p-5 sm:min-h-[60vh] sm:p-12",
       ),
@@ -181,16 +185,38 @@ export const canvasShell = (
       imageMediaObjectId === null
         ? null
         : h.img([
+            h.OnMount({
+              name: "canvas-image",
+              f: (element) => canvasElement("image", imagePosition, element),
+            }),
             h.Src(`/media/${imageMediaObjectId}`),
             h.Alt("Entry image"),
-            h.Class("relative mb-6 max-h-80 w-full max-w-lg object-cover"),
+            h.Style({
+              position: "absolute",
+              left: `${imagePosition.x}px`,
+              top: `${imagePosition.y}px`,
+              width: "480px",
+              height: "320px",
+            }),
+            h.Class("cursor-move object-cover touch-none"),
           ]),
       stickerMediaObjectId === null
         ? null
         : h.img([
+            h.OnMount({
+              name: "canvas-sticker",
+              f: (element) => canvasElement("sticker", stickerPosition, element),
+            }),
             h.Src(`/media/${stickerMediaObjectId}`),
             h.Alt("Entry sticker"),
-            h.Class("relative mb-6 size-28 object-contain"),
+            h.Style({
+              position: "absolute",
+              left: `${stickerPosition.x}px`,
+              top: `${stickerPosition.y}px`,
+              width: "160px",
+              height: "160px",
+            }),
+            h.Class("cursor-move object-contain touch-none"),
           ]),
       uploadState === "uploading"
         ? h.p(

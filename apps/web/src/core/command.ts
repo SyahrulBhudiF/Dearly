@@ -108,12 +108,33 @@ export const saveEntry = Command.define(
     imageMediaObjectId: Schema.NullOr(Schema.String),
     stickerMediaObjectId: Schema.NullOr(Schema.String),
     stickerId: Schema.NullOr(Schema.String),
+    imagePosition: Schema.Struct({ x: Schema.Number, y: Schema.Number }),
+    stickerPosition: Schema.Struct({ x: Schema.Number, y: Schema.Number }),
   },
   SavedEntry,
   FailedToSave,
-)(({ date, text, imageMediaObjectId, stickerMediaObjectId, stickerId }) =>
-  rpc.saveEntry(date, text, imageMediaObjectId, stickerMediaObjectId, stickerId).pipe(
-    Effect.map((entry) => SavedEntry({ entry })),
-    Effect.catch(() => Effect.succeed(FailedToSave())),
-  ),
+)(
+  ({
+    date,
+    text,
+    imageMediaObjectId,
+    stickerMediaObjectId,
+    stickerId,
+    imagePosition,
+    stickerPosition,
+  }) =>
+    rpc
+      .saveEntry(
+        date,
+        text,
+        imageMediaObjectId,
+        stickerMediaObjectId,
+        stickerId,
+        imagePosition,
+        stickerPosition,
+      )
+      .pipe(
+        Effect.map((entry) => SavedEntry({ entry })),
+        Effect.catch(() => Effect.succeed(FailedToSave())),
+      ),
 );
