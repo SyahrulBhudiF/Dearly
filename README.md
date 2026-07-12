@@ -4,17 +4,17 @@ A private diary for composing dated memories on a freeform canvas.
 
 ## Screenshots
 
-| Calendar                                   | Canvas                                 |
-| ------------------------------------------ | -------------------------------------- |
-| ![Calendar](docs/screenshots/calendar.png) | ![Canvas](docs/screenshots/canvas.png) |
+| Calendar                                     | Canvas                                   |
+| -------------------------------------------- | ---------------------------------------- |
+| ![Calendar](public/screenshots/calendar.png) | ![Canvas](public/screenshots/canvas.png) |
 
-| Image picker                                       | Stickers & emoji                                       |
-| -------------------------------------------------- | ------------------------------------------------------ |
-| ![Image picker](docs/screenshots/image-picker.png) | ![Sticker picker](docs/screenshots/sticker-picker.png) |
+| Image picker                                         | Stickers & emoji                                         |
+| ---------------------------------------------------- | -------------------------------------------------------- |
+| ![Image picker](public/screenshots/image-picker.png) | ![Sticker picker](public/screenshots/sticker-picker.png) |
 
-| Emoji picker                                       | Canvas element                                         |
-| -------------------------------------------------- | ------------------------------------------------------ |
-| ![Emoji picker](docs/screenshots/emoji-picker.png) | ![Canvas element](docs/screenshots/canvas-element.png) |
+| Emoji picker                                         | Canvas element                                           |
+| ---------------------------------------------------- | -------------------------------------------------------- |
+| ![Emoji picker](public/screenshots/emoji-picker.png) | ![Canvas element](public/screenshots/canvas-element.png) |
 
 ## Stack
 
