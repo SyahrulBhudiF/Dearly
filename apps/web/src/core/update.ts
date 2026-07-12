@@ -37,7 +37,16 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         const selectedDate = route.date;
         const month = selectedDate.slice(0, 7);
         return [
-          { ...model, route, selectedDate, month, entryText: "", savedText: "", saveState: "idle" },
+          {
+            ...model,
+            route,
+            selectedDate,
+            month,
+            entryText: "",
+            savedText: "",
+            localDraft: null,
+            saveState: "idle",
+          },
           [
             loadEntries({ month }),
             loadEntry({ date: selectedDate }),
@@ -54,17 +63,25 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       LoadedSession: ({ session }): UpdateResult => [{ ...model, session }, []],
       LoadedEntries: ({ entries }): UpdateResult => [{ ...model, entries, loadState: "idle" }, []],
       LoadedEntry: ({ entry }): UpdateResult => {
-        const text = entry === null ? "" : entryText(entry);
-        return [{ ...model, savedText: text, saveState: "idle" }, []];
+        const savedText = entry === null ? "" : entryText(entry);
+        return [
+          {
+            ...model,
+            savedText,
+            entryText: model.localDraft ?? savedText,
+            saveState: "idle",
+          },
+          [],
+        ];
       },
-      LoadedDraft: ({ text }): UpdateResult =>
-        text === null
-          ? [{ ...model, entryText: model.savedText }, []]
-          : [{ ...model, entryText: text }, []],
+      LoadedDraft: ({ text }): UpdateResult => [
+        { ...model, localDraft: text, entryText: text ?? model.savedText },
+        [],
+      ],
       StoredDraft: (): UpdateResult => [model, []],
       FailedToLoad: (): UpdateResult => [{ ...model, loadState: "failed" }, []],
       ChangedText: ({ text }): UpdateResult => [
-        { ...model, entryText: text, saveState: "idle" },
+        { ...model, entryText: text, localDraft: text, saveState: "idle" },
         [storeDraft({ date: model.selectedDate, text })],
       ],
       SaveRequested: (): UpdateResult => [
@@ -72,12 +89,12 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         [saveEntry({ date: model.selectedDate, text: model.entryText })],
       ],
       SavedEntry: ({ entry }): UpdateResult => [
-        { ...model, savedText: model.entryText, saveState: "idle" },
+        { ...model, savedText: model.entryText, localDraft: null, saveState: "idle" },
         [loadEntries({ month: entry.date.slice(0, 7) }), removeDraft({ date: model.selectedDate })],
       ],
       FailedToSave: (): UpdateResult => [{ ...model, saveState: "failed" }, []],
       DiscardedDraft: (): UpdateResult => [
-        { ...model, entryText: model.savedText, saveState: "idle" },
+        { ...model, entryText: model.savedText, localDraft: null, saveState: "idle" },
         [removeDraft({ date: model.selectedDate })],
       ],
     }),

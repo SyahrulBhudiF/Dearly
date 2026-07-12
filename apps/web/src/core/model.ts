@@ -15,6 +15,7 @@ export const Model = Schema.Struct({
   loadState: Schema.Literals(["idle", "loading", "failed"]),
   entryText: Schema.String,
   savedText: Schema.String,
+  localDraft: Schema.NullOr(Schema.String),
   saveState: Schema.Literals(["idle", "saving", "failed"]),
 });
 export type Model = Schema.Schema.Type<typeof Model>;
@@ -30,6 +31,7 @@ export const initialModel = (route: AppRoute): Model => {
     loadState: "idle",
     entryText: "",
     savedText: "",
+    localDraft: null,
     saveState: "idle",
   };
 };
