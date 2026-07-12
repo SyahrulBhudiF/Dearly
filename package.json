@@ -16,7 +16,7 @@
     "fmt:check": "oxfmt --check .",
     "prepare": "husky",
     "dev": "turbo run dev",
-    "deploy": "cd infra && bun run deploy",
+    "deploy": "bun run build && cd infra && bun run deploy",
     "destroy": "cd infra && bun run destroy"
   },
   "dependencies": {

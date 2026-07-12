@@ -33,6 +33,7 @@ const accessApplication = Cloudflare.Access.Application("Dearly", {
 
 export const Worker = Cloudflare.Worker("DearlyWorker", {
   main: "../apps/worker/src/index.ts",
+  assets: "../apps/web/dist",
   compatibility: { flags: ["nodejs_compat"] },
   env: {
     DB: Database,
