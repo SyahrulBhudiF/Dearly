@@ -1,12 +1,11 @@
 import { Button, Textarea } from "@foldkit/ui";
 import { Option } from "effect";
 import { Html } from "foldkit";
-import { ArrowDownLeft, ArrowUpRight, RotateCw, Trash2 } from "lucide";
+import { Grip, RotateCw, Trash2 } from "lucide";
 import type { CanvasElement } from "@dearly/domain";
 import { canvasElement as draggableCanvasElement } from "../../core/canvasDrag";
 import type { AppMessage } from "../../core/message";
 import {
-  ChangedCanvasElementLayer,
   DeleteCanvasElementRequested,
   StartedResize,
   RotatedCanvasElement,
@@ -111,21 +110,20 @@ const canvasControls = (h: HtmlFactory) =>
       h.Class("absolute -top-11 left-0 z-20 flex gap-1 border border-line bg-paper p-1"),
     ],
     [
-      controlButton(h, "Rotate", RotateCw, RotatedCanvasElement({ degrees: 15 })),
-      controlButton(
-        h,
-        "Bring forward",
-        ArrowUpRight,
-        ChangedCanvasElementLayer({ direction: "forward" }),
-      ),
-      controlButton(
-        h,
-        "Send backward",
-        ArrowDownLeft,
-        ChangedCanvasElementLayer({ direction: "backward" }),
-      ),
+      gripButton(h),
+      controlButton(h, "Rotate 15 degrees", RotateCw, RotatedCanvasElement({ degrees: 15 })),
       controlButton(h, "Delete", Trash2, DeleteCanvasElementRequested()),
     ],
+  );
+
+const gripButton = (h: HtmlFactory) =>
+  h.span(
+    [
+      h.DataAttribute("canvas-grab", "true"),
+      h.AriaLabel("Drag element"),
+      h.Class("grid size-8 cursor-grab place-items-center active:cursor-grabbing hover:bg-rose/35"),
+    ],
+    [icon(h, Grip, "Drag element")],
   );
 
 const controlButton = (

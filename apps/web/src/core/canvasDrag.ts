@@ -35,7 +35,9 @@ export const canvasElement = (
         const target = event.target;
         if (
           !(target instanceof Element) ||
-          target.closest("[data-canvas-editable], [data-canvas-controls], button") !== null
+          target.closest("[data-canvas-editable], button") !== null ||
+          (target.closest("[data-canvas-controls]") !== null &&
+            target.closest("[data-canvas-grab]") === null)
         )
           return;
         start = { ...position, clientX: event.clientX, clientY: event.clientY };
