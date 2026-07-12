@@ -1,5 +1,5 @@
 import { Match, Option } from "effect";
-import { FileDrop, Popover } from "@foldkit/ui";
+import { Dialog, FileDrop, Popover } from "@foldkit/ui";
 import type { CanvasElement, DiaryEntry } from "@dearly/domain";
 import { Command } from "foldkit";
 import {
@@ -13,7 +13,12 @@ import {
   storeDraft,
   uploadImage,
 } from "./command";
-import { ChangedRoute, GotStickerPopoverMessage, type AppMessage } from "./message";
+import {
+  ChangedRoute,
+  GotDeleteDialogMessage,
+  GotStickerPopoverMessage,
+  type AppMessage,
+} from "./message";
 import type { Model } from "./model";
 import { EntryRoute } from "./route";
 
@@ -50,6 +55,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             savedText: "",
             localDraft: null,
             elements: [],
+            selectedElementId: null,
+            deleteDialog: Dialog.init({ id: "delete-canvas-element" }),
             resizing: null,
             stickerPopover: Popover.init({ id: "sticker-picker" }),
             fileDrop: FileDrop.init({ id: "entry-media" }),
@@ -79,6 +86,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             savedText,
             entryText: model.localDraft ?? savedText,
             elements: entry === null ? [] : nonTextElements(entry),
+            selectedElementId: null,
             resizing: null,
             saveState: "idle",
           },
@@ -118,6 +126,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
               layer: model.elements.length,
             },
           ],
+          selectedElementId: null,
           stickerPopover: Popover.close(model.stickerPopover)[0],
         },
         [],
@@ -155,7 +164,64 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
               layer: model.elements.length,
             },
           ],
+          selectedElementId: null,
           uploadState: "idle",
+        },
+        [],
+      ],
+      SelectedCanvasElement: ({ id }): UpdateResult => [{ ...model, selectedElementId: id }, []],
+      DeleteCanvasElementRequested: (): UpdateResult => {
+        if (model.selectedElementId === null) return [model, []];
+        const [deleteDialog, commands] = Dialog.open(model.deleteDialog);
+        return [
+          { ...model, deleteDialog },
+          Command.mapMessages(commands, (dialogMessage) =>
+            GotDeleteDialogMessage({ message: dialogMessage }),
+          ),
+        ];
+      },
+      GotDeleteDialogMessage: ({ message: dialogMessage }): UpdateResult => {
+        const [deleteDialog, commands] = Dialog.update(model.deleteDialog, dialogMessage);
+        return [
+          { ...model, deleteDialog },
+          Command.mapMessages(commands, (childMessage) =>
+            GotDeleteDialogMessage({ message: childMessage }),
+          ),
+        ];
+      },
+      DeletedCanvasElement: (): UpdateResult => {
+        if (model.selectedElementId === null) return [model, []];
+        const [deleteDialog, commands] = Dialog.close(model.deleteDialog);
+        return [
+          {
+            ...model,
+            elements: model.elements.filter((element) => element.id !== model.selectedElementId),
+            selectedElementId: null,
+            deleteDialog,
+          },
+          Command.mapMessages(commands, (dialogMessage) =>
+            GotDeleteDialogMessage({ message: dialogMessage }),
+          ),
+        ];
+      },
+      RotatedCanvasElement: ({ degrees }): UpdateResult => [
+        {
+          ...model,
+          elements: transformSelectedElement(
+            model.elements,
+            model.selectedElementId,
+            (element) => ({
+              ...element,
+              rotation: (element.rotation + degrees) % 360,
+            }),
+          ),
+        },
+        [],
+      ],
+      ChangedCanvasElementLayer: ({ direction }): UpdateResult => [
+        {
+          ...model,
+          elements: changeLayer(model.elements, model.selectedElementId, direction),
         },
         [],
       ],
@@ -221,6 +287,36 @@ const resizeElement = (
   id: string,
   size: { readonly width: number; readonly height: number },
 ) => elements.map((element) => (element.id === id ? { ...element, ...size } : element));
+
+const transformSelectedElement = (
+  elements: ReadonlyArray<CanvasElement>,
+  selectedElementId: string | null,
+  transform: (element: CanvasElement) => CanvasElement,
+) =>
+  selectedElementId === null
+    ? elements
+    : elements.map((element) => (element.id === selectedElementId ? transform(element) : element));
+
+const changeLayer = (
+  elements: ReadonlyArray<CanvasElement>,
+  selectedElementId: string | null,
+  direction: "forward" | "backward",
+) => {
+  if (selectedElementId === null) return elements;
+  const selected = elements.find((element) => element.id === selectedElementId);
+  if (selected === undefined) return elements;
+  const adjacent = elements
+    .filter((element) =>
+      direction === "forward" ? element.layer > selected.layer : element.layer < selected.layer,
+    )
+    .sort((a, b) => (direction === "forward" ? a.layer - b.layer : b.layer - a.layer))[0];
+  if (adjacent === undefined) return elements;
+  return elements.map((element) => {
+    if (element.id === selected.id) return { ...element, layer: adjacent.layer };
+    if (element.id === adjacent.id) return { ...element, layer: selected.layer };
+    return element;
+  });
+};
 
 const entryText = (entry: DiaryEntry): string => {
   const element = entry.document.elements.find((value) => value.payload.kind === "text");

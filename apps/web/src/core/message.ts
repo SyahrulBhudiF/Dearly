@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { FileDrop, Popover } from "@foldkit/ui";
+import { Dialog, FileDrop, Popover } from "@foldkit/ui";
 import { DiaryEntry, EntryPreview, MediaObjectId, OwnerSession, Sticker } from "@dearly/domain";
 import { File } from "foldkit/file";
 import { Message } from "foldkit";
@@ -27,6 +27,16 @@ export const GotStickerPopoverMessage = Message.m("GotStickerPopoverMessage", {
 });
 export const LoadedStickers = Message.m("LoadedStickers", { stickers: Schema.Array(Sticker) });
 export const SelectedSticker = Message.m("SelectedSticker", { sticker: Sticker });
+export const SelectedCanvasElement = Message.m("SelectedCanvasElement", { id: Schema.String });
+export const DeleteCanvasElementRequested = Message.m("DeleteCanvasElementRequested");
+export const DeletedCanvasElement = Message.m("DeletedCanvasElement");
+export const RotatedCanvasElement = Message.m("RotatedCanvasElement", { degrees: Schema.Number });
+export const ChangedCanvasElementLayer = Message.m("ChangedCanvasElementLayer", {
+  direction: Schema.Literals(["forward", "backward"]),
+});
+export const GotDeleteDialogMessage = Message.m("GotDeleteDialogMessage", {
+  message: Dialog.Message,
+});
 export const MovedCanvasElement = Message.m("MovedCanvasElement", {
   id: Schema.String,
   x: Schema.Number,
@@ -67,6 +77,12 @@ export const AppMessage = Schema.Union([
   GotStickerPopoverMessage,
   LoadedStickers,
   SelectedSticker,
+  SelectedCanvasElement,
+  DeleteCanvasElementRequested,
+  DeletedCanvasElement,
+  RotatedCanvasElement,
+  ChangedCanvasElementLayer,
+  GotDeleteDialogMessage,
   MovedCanvasElement,
   StartedResize,
   ResizedCanvasElement,

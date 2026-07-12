@@ -38,7 +38,15 @@ export const entryPage = (model: Model): Html.Document => {
               [],
               [
                 entryHeader(h, model.selectedDate, model.saveState),
-                canvasShell(h, model.entryText, model.fileDrop, model.elements, model.uploadState),
+                canvasShell(
+                  h,
+                  model.entryText,
+                  model.fileDrop,
+                  model.elements,
+                  model.selectedElementId,
+                  model.deleteDialog,
+                  model.uploadState,
+                ),
               ],
             ),
           ],

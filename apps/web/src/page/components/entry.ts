@@ -1,19 +1,25 @@
 import { Html } from "foldkit";
-import { Button, FileDrop, Popover, Textarea } from "@foldkit/ui";
-import { ArrowLeft, ArrowUpRight, Sparkles, Type } from "lucide";
+import { Button, Dialog, FileDrop, Popover, Textarea } from "@foldkit/ui";
+import { ArrowLeft, ArrowUpRight, RotateCw, Sparkles, Trash2, Type } from "lucide";
 import { Option } from "effect";
 import type { CanvasElement, Sticker } from "@dearly/domain";
 import { canvasDropZone, canvasElement } from "../../core/canvasDrag";
 import type { AppMessage } from "../../core/message";
 import {
   ChangedRoute,
+  ChangedCanvasElementLayer,
   ChangedText,
+  DeletedCanvasElement,
+  DeleteCanvasElementRequested,
   DiscardedDraft,
   FinishedResize,
+  GotDeleteDialogMessage,
   GotFileDropMessage,
   GotStickerPopoverMessage,
   ResizedCanvasElement,
+  RotatedCanvasElement,
   SaveRequested,
+  SelectedCanvasElement,
   StartedResize,
   SelectedSticker,
 } from "../../core/message";
@@ -157,6 +163,8 @@ export const canvasShell = (
   text: string,
   fileDrop: FileDrop.Model,
   elements: ReadonlyArray<CanvasElement>,
+  selectedElementId: string | null,
+  deleteDialog: Dialog.Model,
   uploadState: "idle" | "uploading" | "failed",
 ) =>
   h.div(
@@ -203,7 +211,10 @@ export const canvasShell = (
             ),
         },
       }),
-      ...[...elements].sort((a, b) => a.layer - b.layer).map((element) => canvasMedia(h, element)),
+      ...[...elements]
+        .sort((a, b) => a.layer - b.layer)
+        .map((element) => canvasMedia(h, element, selectedElementId)),
+      deleteCanvasElementDialog(h, deleteDialog),
       uploadState === "uploading"
         ? h.p(
             [h.Class("relative mb-4 font-note text-[10px] text-muted uppercase")],
@@ -236,10 +247,11 @@ export const canvasShell = (
     ],
   );
 
-const canvasMedia = (h: HtmlFactory, element: CanvasElement) => {
+const canvasMedia = (h: HtmlFactory, element: CanvasElement, selectedElementId: string | null) => {
   if (element.payload.kind === "text") return null;
   const alt =
     element.payload.kind === "image" ? (element.payload.alt ?? "Entry image") : "Entry sticker";
+  const isSelected = element.id === selectedElementId;
   return h.keyed("div")(
     element.id,
     [
@@ -255,7 +267,10 @@ const canvasMedia = (h: HtmlFactory, element: CanvasElement) => {
         height: `${element.height}px`,
         transform: `rotate(${element.rotation}deg)`,
       }),
-      h.Class("cursor-move touch-none"),
+      h.OnClick(SelectedCanvasElement({ id: element.id })),
+      h.Class(
+        `cursor-move touch-none ${isSelected ? "ring-2 ring-wine ring-offset-2 ring-offset-canvas" : ""}`,
+      ),
     ],
     [
       h.img([
@@ -263,6 +278,7 @@ const canvasMedia = (h: HtmlFactory, element: CanvasElement) => {
         h.Alt(alt),
         h.Class("size-full object-contain"),
       ]),
+      isSelected ? canvasControls(h) : null,
       Button.view<AppMessage>({
         toView: ({ button }) =>
           h.button(
@@ -290,6 +306,105 @@ const canvasMedia = (h: HtmlFactory, element: CanvasElement) => {
     ],
   );
 };
+
+const canvasControls = (h: HtmlFactory) =>
+  h.div(
+    [h.Class("absolute -top-11 left-0 flex gap-1 border border-line bg-paper p-1")],
+    [
+      controlButton(h, "Rotate", RotateCw, RotatedCanvasElement({ degrees: 15 })),
+      controlButton(
+        h,
+        "Bring forward",
+        ArrowUpRight,
+        ChangedCanvasElementLayer({ direction: "forward" }),
+      ),
+      controlButton(h, "Delete", Trash2, DeleteCanvasElementRequested()),
+    ],
+  );
+
+const controlButton = (
+  h: HtmlFactory,
+  label: string,
+  symbol: Parameters<typeof icon>[1],
+  onClick: AppMessage,
+) =>
+  Button.view<AppMessage>({
+    onClick,
+    toView: ({ button }) =>
+      h.button(
+        [...button, h.AriaLabel(label), h.Class("grid size-8 place-items-center hover:bg-rose/35")],
+        [icon(h, symbol, label)],
+      ),
+  });
+
+const deleteCanvasElementDialog = (h: HtmlFactory, deleteDialog: Dialog.Model) =>
+  h.submodel({
+    slotId: "delete-canvas-element",
+    model: deleteDialog,
+    view: Dialog.view,
+    toParentMessage: (message) => GotDeleteDialogMessage({ message }),
+    viewInputs: {
+      toView: ({
+        dialog,
+        backdrop,
+        panel,
+        title,
+        description,
+        closeButton,
+        initialFocus,
+        isVisible,
+      }) =>
+        h.dialog(
+          [...dialog],
+          [
+            isVisible
+              ? h.div(
+                  [],
+                  [
+                    h.div([...backdrop, h.Class("fixed inset-0 bg-ink/30")], []),
+                    h.div(
+                      [
+                        ...panel,
+                        h.Class(
+                          "fixed top-1/2 left-1/2 w-[min(90vw,24rem)] -translate-x-1/2 -translate-y-1/2 border border-line bg-paper p-6",
+                        ),
+                      ],
+                      [
+                        h.h2([...title, h.Class("font-display text-2xl")], ["Delete element?"]),
+                        h.p(
+                          [...description, h.Class("mt-2 text-sm text-muted")],
+                          ["This cannot be undone."],
+                        ),
+                        h.div(
+                          [h.Class("mt-6 flex justify-end gap-3")],
+                          [
+                            h.button(
+                              [...closeButton, h.Class("px-3 py-2 text-sm hover:text-wine")],
+                              ["Cancel"],
+                            ),
+                            Button.view<AppMessage>({
+                              onClick: DeletedCanvasElement(),
+                              toView: ({ button }) =>
+                                h.button(
+                                  [
+                                    ...button,
+                                    ...initialFocus,
+                                    h.Class("bg-wine px-3 py-2 text-sm text-paper"),
+                                  ],
+                                  ["Delete"],
+                                ),
+                            }),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : null,
+          ],
+        ),
+    },
+  });
 
 const toolButton = (h: HtmlFactory, label: string, content: ReturnType<typeof icon>) =>
   Button.view<AppMessage>({

@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { FileDrop, Popover } from "@foldkit/ui";
+import { Dialog, FileDrop, Popover } from "@foldkit/ui";
 import { CalendarDate, CanvasElement, EntryPreview, OwnerSession, Sticker } from "@dearly/domain";
 import { today } from "../libs/date";
 import { CalendarRoute, EntryRoute, NotFoundRoute, type AppRoute } from "./route";
@@ -18,6 +18,8 @@ export const Model = Schema.Struct({
   savedText: Schema.String,
   localDraft: Schema.NullOr(Schema.String),
   elements: Schema.Array(CanvasElement),
+  selectedElementId: Schema.NullOr(Schema.String),
+  deleteDialog: Dialog.Model,
   stickers: Schema.Array(Sticker),
   resizing: Schema.NullOr(
     Schema.Struct({
@@ -48,6 +50,8 @@ export const initialModel = (route: AppRoute): Model => {
     savedText: "",
     localDraft: null,
     elements: [],
+    selectedElementId: null,
+    deleteDialog: Dialog.init({ id: "delete-canvas-element" }),
     stickers: [],
     resizing: null,
     stickerPopover: Popover.init({ id: "sticker-picker" }),
