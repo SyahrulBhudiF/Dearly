@@ -26,6 +26,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "latest",
     "@effect/vitest": ">=4.0.0-beta.97",
+    "@foldkit/oxlint-plugin": "^0.3.0",
     "alchemy": "^2.0.0-beta.61",
     "husky": "^9.1.7",
     "lint-staged": "^16.0.0",

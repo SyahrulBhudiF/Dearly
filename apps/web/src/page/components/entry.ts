@@ -1,5 +1,6 @@
 import { Html } from "foldkit";
 import { Button, FileDrop, Textarea } from "@foldkit/ui";
+import { ArrowLeft, ArrowUpRight, Sparkles, Type } from "lucide";
 import { Option } from "effect";
 import { canvasDropZone, canvasElement } from "../../core/canvasDrag";
 import type { Sticker } from "@dearly/domain";
@@ -18,6 +19,7 @@ import {
 } from "../../core/message";
 import { CalendarRoute } from "../../core/route";
 import { dateLabel, weekdayLabel } from "../../libs/date";
+import { icon } from "./icon";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
@@ -82,7 +84,7 @@ export const toolRail = (
   h.nav(
     [h.Class("flex gap-2 lg:flex-col")],
     [
-      toolButton(h, "Text", "T"),
+      toolButton(h, "Text", icon(h, Type, "Text")),
       Button.view<AppMessage>({
         onClick: ToggledStickerPicker(),
         toView: ({ button }) =>
@@ -95,7 +97,7 @@ export const toolRail = (
                 "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
               ),
             ],
-            ["✦"],
+            [icon(h, Sparkles, "Sticker")],
           ),
       }),
       stickerPickerOpen
@@ -127,7 +129,7 @@ export const toolRail = (
             ),
           )
         : null,
-      toolButton(h, "Move", "↗"),
+      toolButton(h, "Move", icon(h, ArrowUpRight, "Move")),
     ],
   );
 
@@ -274,7 +276,7 @@ const canvasImage = (
     ],
   );
 
-const toolButton = (h: HtmlFactory, label: string, content: string) =>
+const toolButton = (h: HtmlFactory, label: string, content: ReturnType<typeof icon>) =>
   Button.view<AppMessage>({
     toView: ({ button }) =>
       h.button(
@@ -298,6 +300,6 @@ export const calendarLink = (h: HtmlFactory) =>
           ...button,
           h.Class("font-note text-[11px] tracking-[.1em] text-muted hover:text-wine uppercase"),
         ],
-        ["← Calendar"],
+        [icon(h, ArrowLeft, "Calendar"), "Calendar"],
       ),
   });
