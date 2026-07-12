@@ -29,6 +29,14 @@ export const Model = Schema.Struct({
   elements: Schema.Array(CanvasElement),
   selectedElementId: Schema.NullOr(Schema.String),
   deleteDialog: Dialog.Model,
+  uploadDialog: Dialog.Model,
+  pendingUpload: Schema.NullOr(
+    Schema.Struct({
+      file: Schema.Any,
+      kind: Schema.Literals(["image", "sticker"]),
+      title: Schema.String,
+    }),
+  ),
   stickers: Schema.Array(Sticker),
   images: Schema.Array(MediaObject),
   imagePopover: Popover.Model,
@@ -71,6 +79,8 @@ export const initialModel = (route: AppRoute): Model => {
     elements: [],
     selectedElementId: null,
     deleteDialog: Dialog.init({ id: "delete-canvas-element" }),
+    uploadDialog: Dialog.init({ id: "upload-title" }),
+    pendingUpload: null,
     stickers: [],
     images: [],
     imagePopover: Popover.init({ id: "image-picker" }),

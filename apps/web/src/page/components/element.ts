@@ -4,7 +4,7 @@ import { Grip, Trash2 } from "lucide";
 import type { CanvasElement } from "@dearly/domain";
 import { canvasElement as draggableCanvasElement } from "../../core/canvasDrag";
 import type { AppMessage } from "../../core/message";
-import { ChangedImageTitle, ChangedText, DeleteCanvasElementRequested } from "../../core/message";
+import { ChangedText, DeleteCanvasElementRequested } from "../../core/message";
 import { icon } from "./icon";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
@@ -42,7 +42,9 @@ export const CanvasItem = (
       h.DataAttribute("canvas-width", String(element.width)),
       h.DataAttribute("canvas-height", String(element.height)),
       h.DataAttribute("canvas-rotation", String(element.rotation)),
-      h.Class(`touch-none ${isSelected ? "z-10 outline-2 -outline-offset-2 outline-wine" : ""}`),
+      h.Class(
+        `relative z-10 touch-none ${isSelected ? "outline-2 -outline-offset-2 outline-wine" : ""}`,
+      ),
     ],
     [
       isText
@@ -78,19 +80,6 @@ export const CanvasItem = (
                     h.Alt(alt),
                     h.Class("size-full object-contain"),
                   ]),
-              element.payload.kind === "image"
-                ? h.input([
-                    h.Type("text"),
-                    h.Value(element.payload.alt ?? ""),
-                    h.Placeholder("Image title"),
-                    h.AriaLabel("Image title"),
-                    h.OnInput((title) => ChangedImageTitle({ id: element.id, title })),
-                    h.DataAttribute("canvas-editable", "true"),
-                    h.Class(
-                      "absolute right-0 bottom-0 left-0 border-t border-line bg-paper/90 px-2 py-1 font-note text-xs text-ink placeholder:text-muted focus:outline-none",
-                    ),
-                  ])
-                : null,
             ],
           ),
       ...(isSelected ? canvasControls(h, alt) : []),

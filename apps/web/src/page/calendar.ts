@@ -2,6 +2,7 @@ import { Html } from "foldkit";
 import { monthDays } from "../libs/date";
 import {
   ChangedMonth,
+  ClosedPicker,
   PreviewedDate,
   SelectedDate,
   ToggledPicker,
@@ -16,6 +17,7 @@ export const calendarPage = (model: Model): Html.Document => {
     | ReturnType<typeof SelectedDate>
     | ReturnType<typeof PreviewedDate>
     | ReturnType<typeof ToggledPicker>
+    | ReturnType<typeof ClosedPicker>
     | ReturnType<typeof PickedYear>
     | ReturnType<typeof WentToday>
     | ReturnType<typeof ChangedMonth>

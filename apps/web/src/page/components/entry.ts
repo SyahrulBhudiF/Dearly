@@ -1,15 +1,16 @@
+import { Option } from "effect";
 import { Html } from "foldkit";
 import { Button, Dialog, FileDrop, Popover, VirtualList } from "@foldkit/ui";
 import EmojiConvertor from "emoji-js";
 import { ImageUp, Sparkles, Type } from "lucide";
 import type { CanvasElement, MediaObject, Sticker } from "@dearly/domain";
-import { canvasDropZone } from "../../core/canvasDrag";
 import type { AppMessage } from "../../core/message";
 import {
   AddedTextCanvasElement,
   ChangedEmojiSearch,
   ChangedImageSearch,
   ChangedStickerSearch,
+  DeselectedCanvasElement,
   GotEmojiListMessage,
   GotFileDropMessage,
   GotImagePopoverMessage,
@@ -23,6 +24,7 @@ import {
 import { icon } from "./icon";
 import { CanvasItem } from "./element";
 import { DeleteDialog } from "./dialog";
+import { UploadDialog } from "./uploadDialog";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
@@ -73,9 +75,7 @@ const emojis = Object.values(emoji.data)
       item.value !== undefined && item.name !== undefined,
   )
   .sort(
-    (left, right) =>
-      Number(faceEmojiNames.has(right.name)) -
-      Number(faceEmojiNames.has(left.name)),
+    (left, right) => Number(faceEmojiNames.has(right.name)) - Number(faceEmojiNames.has(left.name)),
   );
 
 export const toolRail = (
@@ -134,18 +134,10 @@ export const toolRail = (
                             stickerTabs(h, stickerTab),
                             stickerTab === "stickers"
                               ? h.div(
+                                  [h.Class("mt-3 grid grid-cols-4 justify-items-center gap-2")],
                                   [
-                                    h.Class(
-                                      "mt-3 grid grid-cols-4 justify-items-center gap-2",
-                                    ),
-                                  ],
-                                  [
-                                    searchInput(
-                                      h,
-                                      "Search stickers",
-                                      stickerSearch,
-                                      (value) =>
-                                        ChangedStickerSearch({ value }),
+                                    searchInput(h, "Search stickers", stickerSearch, (value) =>
+                                      ChangedStickerSearch({ value }),
                                     ),
                                     h.submodel({
                                       slotId: "sticker-media-upload",
@@ -170,16 +162,9 @@ export const toolRail = (
                                               ),
                                             ],
                                             [
-                                              icon(
-                                                h,
-                                                ImageUp,
-                                                "Upload sticker",
-                                              ),
+                                              icon(h, ImageUp, "Upload sticker"),
                                               "Upload sticker",
-                                              h.input([
-                                                ...input,
-                                                h.Class("sr-only"),
-                                              ]),
+                                              h.input([...input, h.Class("sr-only")]),
                                             ],
                                           ),
                                       },
@@ -220,22 +205,14 @@ const stickerTabs = (h: HtmlFactory, selectedTab: "stickers" | "emoji") =>
     ),
   );
 
-const stickerItems = (
-  h: HtmlFactory,
-  stickers: ReadonlyArray<Sticker>,
-  search: string,
-) => {
+const stickerItems = (h: HtmlFactory, stickers: ReadonlyArray<Sticker>, search: string) => {
   const matchingStickers = stickers.filter((sticker) =>
     sticker.label.toLowerCase().includes(search.toLowerCase()),
   );
   return matchingStickers.length === 0
     ? [
         h.p(
-          [
-            h.Class(
-              "col-span-full p-4 font-note text-xs text-muted-foreground",
-            ),
-          ],
+          [h.Class("col-span-full p-4 font-note text-xs text-muted-foreground")],
           ["No stickers yet."],
         ),
       ]
@@ -263,24 +240,15 @@ const stickerItems = (
       );
 };
 
-const emojiPicker = (
-  h: HtmlFactory,
-  search: string,
-  emojiList: VirtualList.Model,
-) => {
-  const filtered = emojis.filter((item) =>
-    item.name.includes(search.toLowerCase()),
-  );
-  const rows = Array.from(
-    { length: Math.ceil(filtered.length / 4) },
-    (_, index) => filtered.slice(index * 4, index * 4 + 4),
+const emojiPicker = (h: HtmlFactory, search: string, emojiList: VirtualList.Model) => {
+  const filtered = emojis.filter((item) => item.name.includes(search.toLowerCase()));
+  const rows = Array.from({ length: Math.ceil(filtered.length / 4) }, (_, index) =>
+    filtered.slice(index * 4, index * 4 + 4),
   );
   return h.div(
     [h.Class("mt-3")],
     [
-      searchInput(h, "Search emoji", search, (value) =>
-        ChangedEmojiSearch({ value }),
-      ),
+      searchInput(h, "Search emoji", search, (value) => ChangedEmojiSearch({ value })),
       h.submodel({
         slotId: "emoji-picker-list",
         model: emojiList,
@@ -382,15 +350,9 @@ const imagePicker = (
                           slotId: "entry-media-upload",
                           model: fileDrop,
                           view: FileDrop.view,
-                          toParentMessage: (message) =>
-                            GotFileDropMessage({ message }),
+                          toParentMessage: (message) => GotFileDropMessage({ message }),
                           viewInputs: {
-                            accept: [
-                              "image/jpeg",
-                              "image/png",
-                              "image/webp",
-                              "image/gif",
-                            ],
+                            accept: ["image/jpeg", "image/png", "image/webp", "image/gif"],
                             multiple: true,
                             toView: ({ root, input }) =>
                               h.label(
@@ -409,29 +371,17 @@ const imagePicker = (
                           },
                         }),
                         images.filter((image) =>
-                          image.name
-                            .toLowerCase()
-                            .includes(search.toLowerCase()),
+                          image.name.toLowerCase().includes(search.toLowerCase()),
                         ).length === 0
                           ? h.p(
-                              [
-                                h.Class(
-                                  "py-5 text-center font-note text-xs text-muted-foreground",
-                                ),
-                              ],
+                              [h.Class("py-5 text-center font-note text-xs text-muted-foreground")],
                               ["No uploaded images."],
                             )
                           : h.div(
-                              [
-                                h.Class(
-                                  "grid max-h-64 grid-cols-3 gap-2 overflow-y-auto",
-                                ),
-                              ],
+                              [h.Class("grid max-h-64 grid-cols-3 gap-2 overflow-y-auto")],
                               images
                                 .filter((image) =>
-                                  image.name
-                                    .toLowerCase()
-                                    .includes(search.toLowerCase()),
+                                  image.name.toLowerCase().includes(search.toLowerCase()),
                                 )
                                 .map((image) =>
                                   Button.view<AppMessage>({
@@ -474,6 +424,7 @@ export const canvasShell = (
   elements: ReadonlyArray<CanvasElement>,
   selectedElementId: string | null,
   deleteDialog: Dialog.Model,
+  uploadDialogModel: import("../../core/model").Model,
   uploadState: "idle" | "uploading" | "failed",
 ) =>
   h.div(
@@ -484,15 +435,20 @@ export const canvasShell = (
     ],
     [
       h.div(
-        [
-          h.OnMount({ name: "canvas-drop-zone", f: canvasDropZone }),
-          h.Class("relative h-[760px] w-[1080px] touch-pan-x bg-canvas overflow-hidden"),
-        ],
+        [h.Class("relative h-[760px] w-[1080px] touch-pan-x bg-canvas overflow-hidden")],
         [
           h.div(
             [
+              h.DataAttribute("canvas-background", "true"),
+              h.OnPointerDown(() => Option.some(DeselectedCanvasElement())),
+              h.Class("absolute inset-0 z-0"),
+            ],
+            [],
+          ),
+          h.div(
+            [
               h.Class(
-                "pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(var(--color-line)_1px,transparent_1px),linear-gradient(90deg,var(--color-line)_1px,transparent_1px)] [background-size:28px_28px]",
+                "pointer-events-none absolute inset-0 z-0 opacity-40 [background-image:linear-gradient(var(--color-line)_1px,transparent_1px),linear-gradient(90deg,var(--color-line)_1px,transparent_1px)] [background-size:28px_28px]",
               ),
             ],
             [],
@@ -501,22 +457,15 @@ export const canvasShell = (
             .sort((a, b) => a.layer - b.layer)
             .map((element) => CanvasItem(h, element, selectedElementId)),
           DeleteDialog(h, deleteDialog),
+          UploadDialog(h, uploadDialogModel),
           uploadState === "uploading"
             ? h.p(
-                [
-                  h.Class(
-                    "relative mb-4 font-note text-[10px] text-muted uppercase",
-                  ),
-                ],
+                [h.Class("relative mb-4 font-note text-[10px] text-muted uppercase")],
                 ["Uploading image…"],
               )
             : uploadState === "failed"
               ? h.p(
-                  [
-                    h.Class(
-                      "relative mb-4 font-note text-[10px] text-wine uppercase",
-                    ),
-                  ],
+                  [h.Class("relative mb-4 font-note text-[10px] text-wine uppercase")],
                   ["Image upload failed"],
                 )
               : null,

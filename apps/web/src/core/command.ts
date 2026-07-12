@@ -43,25 +43,25 @@ export const loadImages = Command.define(
 
 export const uploadImage = Command.define(
   "uploadImage",
-  { file: Schema.Any },
+  { file: Schema.Any, title: Schema.String },
   UploadedImage,
   FailedToUploadImage,
-)(({ file }) =>
+)(({ file, title }) =>
   rpc.uploadImage(file as File).pipe(
-    Effect.map((mediaObjectId) => UploadedImage({ mediaObjectId })),
+    Effect.map((mediaObjectId) => UploadedImage({ mediaObjectId, title })),
     Effect.catch(() => Effect.succeed(FailedToUploadImage())),
   ),
 );
 
 export const uploadSticker = Command.define(
   "uploadSticker",
-  { file: Schema.Any },
+  { file: Schema.Any, title: Schema.String },
   UploadedSticker,
   FailedToUploadImage,
-)(({ file }) => {
+)(({ file, title }) => {
   const image = file as File;
   return rpc.uploadImage(image).pipe(
-    Effect.flatMap((mediaObjectId) => rpc.createSticker(mediaObjectId, image.name)),
+    Effect.flatMap((mediaObjectId) => rpc.createSticker(mediaObjectId, title)),
     Effect.map((sticker) => UploadedSticker({ sticker })),
     Effect.catch(() => Effect.succeed(FailedToUploadImage())),
   );

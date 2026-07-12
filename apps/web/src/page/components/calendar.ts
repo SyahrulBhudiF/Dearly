@@ -3,8 +3,10 @@ import { Html } from "foldkit";
 import { ArrowLeft, ArrowRight, ChevronDown } from "lucide";
 import { Button } from "@foldkit/ui";
 import { monthDays, monthLabel, nextMonth, previousMonth, today } from "../../libs/date";
+import { miniCalendarPicker } from "../../core/miniCalendarPicker";
 import {
   ChangedMonth,
+  ClosedPicker,
   PreviewedDate,
   SelectedDate,
   ToggledPicker,
@@ -14,6 +16,7 @@ import {
 import { icon } from "./icon";
 
 type Message =
+  | ReturnType<typeof ClosedPicker>
   | ReturnType<typeof SelectedDate>
   | ReturnType<typeof PreviewedDate>
   | ReturnType<typeof ToggledPicker>
@@ -79,7 +82,11 @@ export const miniCalendar = (
         [h.Class("rounded-[var(--radius)] border border-line bg-card p-4")],
         [
           h.div(
-            [h.Class("relative")],
+            [
+              h.OnMount({ name: "mini-calendar-picker", f: miniCalendarPicker }),
+              h.DataAttribute("mini-calendar-picker", "true"),
+              h.Class("relative"),
+            ],
             [
               Button.view<Message>({
                 onClick: ToggledPicker(),

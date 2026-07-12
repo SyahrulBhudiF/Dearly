@@ -1,12 +1,7 @@
 import { Effect, Queue, Stream } from "effect";
 import type { CanvasElement } from "@dearly/domain";
 import type { AppMessage } from "./message";
-import {
-  DeselectedCanvasElement,
-  MovedCanvasElement,
-  SelectedCanvasElement,
-  TransformedCanvasElement,
-} from "./message";
+import { MovedCanvasElement, SelectedCanvasElement, TransformedCanvasElement } from "./message";
 
 type Handle =
   | "north-west"
@@ -36,31 +31,6 @@ const current = (
   height: Number(node.getAttribute("data-canvas-height")),
   rotation: Number(node.getAttribute("data-canvas-rotation")),
 });
-
-export const canvasDropZone = (element: Element): Stream.Stream<AppMessage> =>
-  Stream.unwrap(
-    Effect.gen(function* () {
-      const messages = yield* Queue.bounded<AppMessage>(16);
-      const deselect = (event: Event) => {
-        const target = event.target;
-        if (
-          target instanceof Element &&
-          target.closest("[data-canvas-element], [data-canvas-dialog]") === null
-        ) {
-          Queue.offerUnsafe(messages, DeselectedCanvasElement());
-        }
-      };
-      element.addEventListener("pointerdown", deselect);
-      return Stream.fromQueue(messages).pipe(
-        Stream.ensuring(
-          Effect.sync(() => {
-            element.removeEventListener("pointerdown", deselect);
-            Queue.shutdown(messages);
-          }),
-        ),
-      );
-    }),
-  );
 
 export const canvasElement = (element: CanvasElement, node: Element): Stream.Stream<AppMessage> =>
   Stream.unwrap(

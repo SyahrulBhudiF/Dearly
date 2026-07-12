@@ -88,6 +88,13 @@ export const saveEntry = (date: string, text: string, elements: ReadonlyArray<Ca
         preview: {
           date: date as never,
           snippet: text.trim().slice(0, 180) || undefined,
+          thumbnailMediaObjectId: elements.find(
+            (
+              element,
+            ): element is (typeof elements)[number] & {
+              payload: { readonly kind: "image"; readonly mediaObjectId: string };
+            } => element.payload.kind === "image",
+          )?.payload.mediaObjectId as never,
           hasSavedEntry: true,
           hasDraft: false,
         },

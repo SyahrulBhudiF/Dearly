@@ -16,6 +16,7 @@ export const ChangedRoute = Message.m("ChangedRoute", { route: AppRoute });
 export const SelectedDate = Message.m("SelectedDate", { date: Schema.String });
 export const PreviewedDate = Message.m("PreviewedDate", { date: Schema.String });
 export const ToggledPicker = Message.m("ToggledPicker");
+export const ClosedPicker = Message.m("ClosedPicker");
 export const PickedYear = Message.m("PickedYear", { year: Schema.Number });
 export const ChangedMonth = Message.m("ChangedMonth", { month: Schema.String });
 export const WentToday = Message.m("WentToday");
@@ -39,7 +40,10 @@ export const LoadedDraft = Message.m("LoadedDraft", { text: Schema.NullOr(Schema
 export const StoredDraft = Message.m("StoredDraft");
 export const AddedTextCanvasElement = Message.m("AddedTextCanvasElement");
 export const SelectedImage = Message.m("SelectedImage", { file: File });
-export const UploadedImage = Message.m("UploadedImage", { mediaObjectId: MediaObjectId });
+export const UploadedImage = Message.m("UploadedImage", {
+  mediaObjectId: MediaObjectId,
+  title: Schema.String,
+});
 export const FailedToUploadImage = Message.m("FailedToUploadImage");
 export const UploadedSticker = Message.m("UploadedSticker", { sticker: Sticker });
 export const GotStickerFileDropMessage = Message.m("GotStickerFileDropMessage", {
@@ -86,6 +90,15 @@ export const ChangedCanvasElementLayer = Message.m("ChangedCanvasElementLayer", 
 export const GotDeleteDialogMessage = Message.m("GotDeleteDialogMessage", {
   message: Dialog.Message,
 });
+export const GotUploadDialogMessage = Message.m("GotUploadDialogMessage", {
+  message: Dialog.Message,
+});
+export const RequestedUpload = Message.m("RequestedUpload", {
+  file: Schema.Any,
+  kind: Schema.Literals(["image", "sticker"]),
+});
+export const ChangedUploadTitle = Message.m("ChangedUploadTitle", { title: Schema.String });
+export const ConfirmedUpload = Message.m("ConfirmedUpload");
 export const MovedCanvasElement = Message.m("MovedCanvasElement", {
   id: Schema.String,
   x: Schema.Number,
@@ -110,6 +123,7 @@ export const AppMessage = Schema.Union([
   SelectedDate,
   PreviewedDate,
   ToggledPicker,
+  ClosedPicker,
   PickedYear,
   ChangedMonth,
   WentToday,
@@ -151,6 +165,10 @@ export const AppMessage = Schema.Union([
   RotatedCanvasElement,
   ChangedCanvasElementLayer,
   GotDeleteDialogMessage,
+  GotUploadDialogMessage,
+  RequestedUpload,
+  ChangedUploadTitle,
+  ConfirmedUpload,
   MovedCanvasElement,
   StartedResize,
   ResizedCanvasElement,

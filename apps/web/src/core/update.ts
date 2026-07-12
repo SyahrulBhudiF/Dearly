@@ -1,4 +1,4 @@
-import { Match, Option } from "effect";
+import { Effect, Match, Option } from "effect";
 import { Dialog, FileDrop, Popover, VirtualList } from "@foldkit/ui";
 import type { DiaryEntry } from "@dearly/domain";
 import { Command } from "foldkit";
@@ -18,6 +18,8 @@ import {
 import {
   ChangedRoute,
   GotDeleteDialogMessage,
+  GotUploadDialogMessage,
+  RequestedUpload,
   GotEmojiListMessage,
   GotImagePopoverMessage,
   GotStickerPopoverMessage,
@@ -72,6 +74,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             elements: [],
             selectedElementId: null,
             deleteDialog: Dialog.init({ id: "delete-canvas-element" }),
+            uploadDialog: Dialog.init({ id: "upload-title" }),
+            pendingUpload: null,
             resizing: null,
             stickerPopover: Popover.init({ id: "sticker-picker" }),
             stickerFileDrop: FileDrop.init({ id: "sticker-media" }),
@@ -98,6 +102,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         },
         [],
       ],
+      ClosedPicker: (): UpdateResult => [{ ...model, miniCalendarPickerOpen: false }, []],
       PickedYear: ({ year }): UpdateResult => [{ ...model, miniCalendarPickerYear: year }, []],
       ChangedMonth: ({ month }): UpdateResult => [
         { ...model, month, loadState: "loading", miniCalendarPickerOpen: false },
@@ -247,6 +252,47 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         { ...model, stickers: [...model.stickers, sticker], uploadState: "idle" },
         [],
       ],
+      GotUploadDialogMessage: ({ message: dialogMessage }): UpdateResult => {
+        const [uploadDialog, commands] = Dialog.update(model.uploadDialog, dialogMessage);
+        return [
+          { ...model, uploadDialog },
+          Command.mapMessages(commands, (childMessage) =>
+            GotUploadDialogMessage({ message: childMessage }),
+          ),
+        ];
+      },
+      RequestedUpload: ({ file, kind }): UpdateResult => {
+        const [uploadDialog, commands] = Dialog.open(model.uploadDialog);
+        return [
+          { ...model, uploadDialog, pendingUpload: { file, kind, title: (file as File).name } },
+          Command.mapMessages(commands, (childMessage) =>
+            GotUploadDialogMessage({ message: childMessage }),
+          ),
+        ];
+      },
+      ChangedUploadTitle: ({ title }): UpdateResult => [
+        {
+          ...model,
+          pendingUpload: model.pendingUpload === null ? null : { ...model.pendingUpload, title },
+        },
+        [],
+      ],
+      ConfirmedUpload: (): UpdateResult => {
+        if (model.pendingUpload === null) return [model, []];
+        const pendingUpload = model.pendingUpload;
+        const [uploadDialog, commands] = Dialog.close(model.uploadDialog);
+        return [
+          { ...model, uploadDialog, pendingUpload: null, uploadState: "uploading" },
+          [
+            ...Command.mapMessages(commands, (childMessage) =>
+              GotUploadDialogMessage({ message: childMessage }),
+            ),
+            pendingUpload.kind === "image"
+              ? uploadImage({ file: pendingUpload.file, title: pendingUpload.title })
+              : uploadSticker({ file: pendingUpload.file, title: pendingUpload.title }),
+          ],
+        ];
+      },
       GotStickerFileDropMessage: ({ message: fileDropMessage }): UpdateResult => {
         const [stickerFileDrop, _commands, outMessage] = FileDrop.update(
           model.stickerFileDrop,
@@ -257,8 +303,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
           onSome: (out) =>
             out._tag === "ReceivedFiles"
               ? [
-                  { ...model, stickerFileDrop, uploadState: "uploading" },
-                  out.files.map((file) => uploadSticker({ file })),
+                  { ...model, stickerFileDrop },
+                  out.files.map((file) => requestUpload({ file, kind: "sticker" })),
                 ]
               : [{ ...model, stickerFileDrop }, []],
         });
@@ -270,8 +316,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
           onSome: (out) =>
             out._tag === "ReceivedFiles"
               ? [
-                  { ...model, fileDrop, uploadState: "uploading" },
-                  out.files.map((file) => uploadImage({ file })),
+                  { ...model, fileDrop },
+                  out.files.map((file) => requestUpload({ file, kind: "image" })),
                 ]
               : [{ ...model, fileDrop }, []],
         });
@@ -298,14 +344,12 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
           [],
         ];
       },
-      SelectedImage: ({ file }): UpdateResult => [
-        { ...model, uploadState: "uploading" },
-        [uploadImage({ file })],
-      ],
-      UploadedImage: ({ mediaObjectId }): UpdateResult => [
+      SelectedImage: ({ file }): UpdateResult =>
+        update(model, RequestedUpload({ file, kind: "image" })),
+      UploadedImage: ({ mediaObjectId, title }): UpdateResult => [
         {
           ...model,
-          elements: [...model.elements, imageElement(model, mediaObjectId)],
+          elements: [...model.elements, imageElement(model, mediaObjectId, title)],
           selectedElementId: null,
           images: model.images,
           uploadState: "idle",
@@ -431,9 +475,19 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
     }),
   );
 
-const imageElement = (model: Model, mediaObjectId: string) => ({
+const requestUpload = (args: { readonly file: unknown; readonly kind: "image" | "sticker" }) => ({
+  name: "requestUpload",
+  args,
+  effect: Effect.succeed(RequestedUpload(args)),
+});
+
+const imageElement = (model: Model, mediaObjectId: string, title = "") => ({
   id: crypto.randomUUID() as never,
-  payload: { kind: "image" as const, mediaObjectId: mediaObjectId as never },
+  payload: {
+    kind: "image" as const,
+    mediaObjectId: mediaObjectId as never,
+    ...(title === "" ? {} : { alt: title }),
+  },
   x: 80,
   y: 80,
   width: 480,
