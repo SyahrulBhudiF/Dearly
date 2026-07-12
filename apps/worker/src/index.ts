@@ -4,7 +4,6 @@ import { handleRequestEffect } from "./router";
 import type { DearlyEnv } from "./types";
 
 export { handleRequestEffect };
-export type { DearlyEnv };
 
 export const handleRequest = (request: Request, env: DearlyEnv): Promise<Response> =>
   Effect.runPromise(
@@ -17,5 +16,5 @@ export const handleRequest = (request: Request, env: DearlyEnv): Promise<Respons
   );
 
 export default {
-  fetch: handleRequest,
+  fetch: (request: Request, env: unknown) => handleRequest(request, env as DearlyEnv),
 };

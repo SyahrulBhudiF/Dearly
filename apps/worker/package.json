@@ -7,14 +7,13 @@
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "dev": "bun --watch src/index.ts",
-    "deploy": "bun ../../infra/alchemy.run.ts"
+    "dev": "bun --watch src/index.ts"
   },
   "dependencies": {
     "@dearly/domain": "workspace:*",
     "@dearly/rpc": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "effect": "4.0.0-beta.88"
+    "effect": ">=4.0.0-beta.97"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.10"

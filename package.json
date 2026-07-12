@@ -15,16 +15,18 @@
     "fmt:check": "oxfmt --check .",
     "prepare": "husky",
     "dev": "turbo run dev",
-    "deploy": "turbo run deploy"
+    "deploy": "bun alchemy deploy",
+    "destroy": "bun alchemy destroy"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-beta.88",
-    "effect": "4.0.0-beta.88",
+    "@effect/platform-browser": ">=4.0.0-beta.97",
+    "effect": ">=4.0.0-beta.97",
     "foldkit": "^0.127.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "latest",
-    "@effect/vitest": "4.0.0-beta.88",
+    "@effect/vitest": ">=4.0.0-beta.97",
+    "alchemy": "^2.0.0-beta.61",
     "husky": "^9.1.7",
     "lint-staged": "^16.0.0",
     "oxfmt": "^0.58.0",
