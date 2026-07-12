@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [tailwindcss(), foldkit()],
   server: {
     proxy: {
-      "/rpc": "http://localhost:8787",
-      "/media": "http://localhost:8787",
+      "/rpc": "http://localhost:3000",
+      "/media": "http://localhost:3000",
     },
   },
 });

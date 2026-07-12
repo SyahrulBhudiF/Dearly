@@ -14,12 +14,19 @@ import { AppRoute } from "./route";
 
 export const ChangedRoute = Message.m("ChangedRoute", { route: AppRoute });
 export const SelectedDate = Message.m("SelectedDate", { date: Schema.String });
+export const PreviewedDate = Message.m("PreviewedDate", { date: Schema.String });
+export const ToggledPicker = Message.m("ToggledPicker");
+export const PickedYear = Message.m("PickedYear", { year: Schema.Number });
 export const ChangedMonth = Message.m("ChangedMonth", { month: Schema.String });
+export const WentToday = Message.m("WentToday");
 export const LoadedSession = Message.m("LoadedSession", { session: Schema.NullOr(OwnerSession) });
 export const LoadedEntries = Message.m("LoadedEntries", { entries: Schema.Array(EntryPreview) });
 export const LoadedEntry = Message.m("LoadedEntry", { entry: Schema.NullOr(DiaryEntry) });
 export const FailedToLoad = Message.m("FailedToLoad");
-export const ChangedText = Message.m("ChangedText", { text: Schema.String });
+export const ChangedText = Message.m("ChangedText", {
+  id: Schema.String,
+  text: Schema.String,
+});
 export const ChangedImageTitle = Message.m("ChangedImageTitle", {
   id: Schema.String,
   title: Schema.String,
@@ -101,7 +108,11 @@ export const GotFileDropMessage = Message.m("GotFileDropMessage", { message: Fil
 export const AppMessage = Schema.Union([
   ChangedRoute,
   SelectedDate,
+  PreviewedDate,
+  ToggledPicker,
+  PickedYear,
   ChangedMonth,
+  WentToday,
   LoadedSession,
   LoadedEntries,
   LoadedEntry,

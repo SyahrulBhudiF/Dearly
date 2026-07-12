@@ -23,6 +23,7 @@ export default Alchemy.Stack(
     state: Cloudflare.state(),
   },
   Effect.gen(function* () {
+    const domain = yield* DEARLY_DOMAIN;
     const accessPolicy = yield* Cloudflare.Access.Policy("DearlyOwner", {
       name: "Dearly owner",
       decision: "allow",
@@ -32,7 +33,7 @@ export default Alchemy.Stack(
     });
     const accessApplication = yield* Cloudflare.Access.Application("Dearly", {
       type: "self_hosted",
-      domain: yield* DEARLY_DOMAIN,
+      domain,
       policies: [accessPolicy.policyId],
       sessionDuration: "24h",
     });
@@ -40,6 +41,7 @@ export default Alchemy.Stack(
       main: "../apps/worker/src/index.ts",
       assets: "../apps/web/dist",
       compatibility: { flags: ["nodejs_compat"] },
+      domain,
       env: {
         DB: Database,
         MEDIA: Bucket,

@@ -1,47 +1,33 @@
 # Dearly
 
-A private personal diary. Compose dated memories from text, images, and stickers on a freeform canvas.
+A private diary for composing dated memories on a freeform canvas.
 
-## Tech Stack
+## Screenshots
 
-- **Runtime**: Cloudflare Workers (free tier)
-- **Language**: TypeScript (strict, ESM)
-- **Framework**: Effect-TS for typed RPC, schemas, and error handling
-- **Database**: Cloudflare D1 (SQLite)
-- **Storage**: Cloudflare R2 (private media)
-- **Auth**: Consumer OAuth (Google, GitHub)
-- **Build**: Bun + TurboRepo
-- **Frontend**: Foldkit + Vite
+| Calendar | Canvas |
+| --- | --- |
+| ![Calendar](docs/screenshots/calendar.png) | ![Canvas](docs/screenshots/canvas.png) |
 
-## Getting Started
+| Image picker | Stickers & emoji |
+| --- | --- |
+| ![Image picker](docs/screenshots/image-picker.png) | ![Sticker picker](docs/screenshots/sticker-picker.png) |
+
+| Emoji picker | Canvas element |
+| --- | --- |
+| ![Emoji picker](docs/screenshots/emoji-picker.png) | ![Canvas element](docs/screenshots/canvas-element.png) |
+
+## Stack
+
+Cloudflare Workers, D1, R2, Effect, Foldkit, TypeScript, Bun, and Turbo.
+
+## Local development
 
 ```bash
 bun install
-bun run build
-bun run test
-```
-
-## Development
-
-```bash
-cd apps/worker
 bun run dev
 ```
 
-## Project Structure
-
+```bash
+bun run check
+bun run test
 ```
-apps/
-  worker/       → Cloudflare Worker (API, auth, media, static assets)
-packages/
-  domain/       → Effect Schema types, branded IDs, tagged errors
-  rpc/          → Shared RPC procedure definitions
-docs/
-  context.md    → Domain language glossary
-  plan.md       → Implementation plan
-  adr/          → Architecture Decision Records
-```
-
-## License
-
-Private — not open source.

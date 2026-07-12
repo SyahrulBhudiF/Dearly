@@ -34,6 +34,7 @@ import {
 } from "./elements";
 import type { Model } from "./model";
 import { EntryRoute } from "./route";
+import { today } from "../libs/date";
 
 type UpdateResult = readonly [Model, ReadonlyArray<Command.Command<AppMessage>>];
 
@@ -88,10 +89,28 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       },
       SelectedDate: ({ date }): UpdateResult =>
         update(model, ChangedRoute({ route: EntryRoute({ date: date as never }) })),
+      PreviewedDate: ({ date }): UpdateResult => [{ ...model, selectedDate: date }, []],
+      ToggledPicker: (): UpdateResult => [
+        {
+          ...model,
+          miniCalendarPickerOpen: !model.miniCalendarPickerOpen,
+          miniCalendarPickerYear: Number(model.month.slice(0, 4)),
+        },
+        [],
+      ],
+      PickedYear: ({ year }): UpdateResult => [{ ...model, miniCalendarPickerYear: year }, []],
       ChangedMonth: ({ month }): UpdateResult => [
-        { ...model, month, loadState: "loading" },
+        { ...model, month, loadState: "loading", miniCalendarPickerOpen: false },
         [loadEntries({ month })],
       ],
+      WentToday: (): UpdateResult => {
+        const date = today();
+        const month = date.slice(0, 7);
+        return [
+          { ...model, selectedDate: date, month, loadState: "loading" },
+          [loadEntries({ month })],
+        ];
+      },
       LoadedSession: ({ session }): UpdateResult => [{ ...model, session }, []],
       LoadedEntries: ({ entries }): UpdateResult => [{ ...model, entries, loadState: "idle" }, []],
       LoadedEntry: ({ entry }): UpdateResult => {
@@ -143,10 +162,27 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         ];
       },
       LoadedStickers: ({ stickers }): UpdateResult => [{ ...model, stickers }, []],
-      SelectedStickerTab: ({ tab }): UpdateResult => [{ ...model, stickerTab: tab }, []],
+      SelectedStickerTab: ({ tab }): UpdateResult => [
+        {
+          ...model,
+          stickerTab: tab,
+          emojiList:
+            tab === "emoji"
+              ? VirtualList.init({ id: "emoji-picker-list", rowHeightPx: 52 })
+              : model.emojiList,
+        },
+        [],
+      ],
       ChangedImageSearch: ({ value }): UpdateResult => [{ ...model, imageSearch: value }, []],
       ChangedStickerSearch: ({ value }): UpdateResult => [{ ...model, stickerSearch: value }, []],
-      ChangedEmojiSearch: ({ value }): UpdateResult => [{ ...model, emojiSearch: value }, []],
+      ChangedEmojiSearch: ({ value }): UpdateResult => [
+        {
+          ...model,
+          emojiSearch: value,
+          emojiList: VirtualList.init({ id: "emoji-picker-list", rowHeightPx: 52 }),
+        },
+        [],
+      ],
       GotEmojiListMessage: ({ message: listMessage }): UpdateResult => {
         const [emojiList, commands] = VirtualList.update(model.emojiList, listMessage);
         return [
@@ -364,11 +400,10 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       FinishedResize: (): UpdateResult => [{ ...model, resizing: null }, []],
       FailedToUploadImage: (): UpdateResult => [{ ...model, uploadState: "failed" }, []],
       FailedToLoad: (): UpdateResult => [{ ...model, loadState: "failed" }, []],
-      ChangedText: ({ text }): UpdateResult => [
+      ChangedText: ({ id, text }): UpdateResult => [
         {
           ...model,
-          entryText: text,
-          elements: setText(model.elements, text),
+          elements: setText(model.elements, id, text),
           localDraft: text,
           saveState: "idle",
         },

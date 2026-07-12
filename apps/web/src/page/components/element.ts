@@ -13,7 +13,6 @@ export const CanvasItem = (
   h: HtmlFactory,
   element: CanvasElement,
   selectedElementId: string | null,
-  text: string,
 ) => {
   const isText = element.payload.kind === "text";
   const alt = isText
@@ -49,10 +48,10 @@ export const CanvasItem = (
       isText
         ? Textarea.view({
             id: `entry-text-${element.id}`,
-            value: text,
+            value: textValue(element),
             rows: 6,
             placeholder: "What deserves a place on this page?",
-            onInput: (value) => ChangedText({ text: value }),
+            onInput: (value) => ChangedText({ id: element.id, text: value }),
             toView: ({ textarea }) =>
               h.textarea(
                 [
@@ -97,6 +96,16 @@ export const CanvasItem = (
       ...(isSelected ? canvasControls(h, alt) : []),
     ],
   );
+};
+
+const textValue = (element: CanvasElement) => {
+  if (element.payload.kind !== "text") return "";
+  const paragraph = element.payload.document.content?.[0];
+  const content = paragraph?.["content"];
+  const value = Array.isArray(content) && content[0];
+  return typeof value === "object" && value !== null && typeof value["text"] === "string"
+    ? value["text"]
+    : "";
 };
 
 const canvasControls = (h: HtmlFactory, alt: string) => [

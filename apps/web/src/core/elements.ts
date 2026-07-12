@@ -53,14 +53,12 @@ export const textElement = (text: string): CanvasElement => ({
   layer: 0,
 });
 
-export const setText = (elements: ReadonlyArray<CanvasElement>, text: string) => {
-  const existing = elements.find((element) => element.payload.kind === "text");
-  return existing === undefined
-    ? [...elements, { ...textElement(text), layer: nextLayer(elements) }]
-    : elements.map((element) =>
-        element.id === existing.id ? { ...element, payload: textPayload(text) } : element,
-      );
-};
+export const setText = (elements: ReadonlyArray<CanvasElement>, id: string, text: string) =>
+  elements.map((element) =>
+    element.id === id && element.payload.kind === "text"
+      ? { ...element, payload: textPayload(text) }
+      : element,
+  );
 
 export const nextLayer = (elements: ReadonlyArray<CanvasElement>) =>
   elements.reduce((layer, element) => Math.max(layer, element.layer), -1) + 1;
