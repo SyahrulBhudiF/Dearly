@@ -19,7 +19,9 @@ const DEARLY_DOMAIN = Config.string("DEARLY_DOMAIN");
 const accessPolicy = Cloudflare.Access.Policy("DearlyOwner", {
   name: "Dearly owner",
   decision: "allow",
-  include: ACCESS_OWNER_EMAILS.map((email) => ({ email: { email } })),
+  include: ACCESS_OWNER_EMAILS.pipe(
+    Config.map((emails) => emails.map((email) => ({ email: { email } }))),
+  ),
 });
 
 const accessApplication = Cloudflare.Access.Application("Dearly", {

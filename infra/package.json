@@ -1,0 +1,17 @@
+{
+  "name": "@dearly/infra",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "alchemy deploy",
+    "destroy": "alchemy destroy"
+  },
+  "dependencies": {
+    "@effect/platform-node": "4.0.0-beta.93",
+    "effect": "4.0.0-beta.93"
+  },
+  "devDependencies": {
+    "@effect/platform-bun": "4.0.0-beta.93",
+    "alchemy": "2.0.0-beta.61"
+  }
+}

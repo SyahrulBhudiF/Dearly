@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "infra"
   ],
   "type": "module",
   "scripts": {
@@ -15,8 +16,8 @@
     "fmt:check": "oxfmt --check .",
     "prepare": "husky",
     "dev": "turbo run dev",
-    "deploy": "bun alchemy deploy",
-    "destroy": "bun alchemy destroy"
+    "deploy": "cd infra && bun run deploy",
+    "destroy": "cd infra && bun run destroy"
   },
   "dependencies": {
     "@effect/platform-browser": ">=4.0.0-beta.97",
