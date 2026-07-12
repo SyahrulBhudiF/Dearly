@@ -12,10 +12,16 @@ test("uploaded media becomes independently movable canvas elements", () => {
     update,
     Story.with(model),
     Story.message(
-      UploadedImage({ mediaObjectId: "00000000-0000-4000-8000-000000000001" as never }),
+      UploadedImage({
+        mediaObjectId: "00000000-0000-4000-8000-000000000001" as never,
+        title: "First image",
+      }),
     ),
     Story.message(
-      UploadedImage({ mediaObjectId: "00000000-0000-4000-8000-000000000002" as never }),
+      UploadedImage({
+        mediaObjectId: "00000000-0000-4000-8000-000000000002" as never,
+        title: "Second image",
+      }),
     ),
     Story.model((next) => {
       expect(next.elements).toHaveLength(2);
