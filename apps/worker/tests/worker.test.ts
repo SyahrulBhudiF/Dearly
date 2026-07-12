@@ -1,7 +1,21 @@
 import { describe, expect, it } from "@effect/vitest";
 import { handleRequest } from "../src/index";
 
-const request = (path: string) => new Request(`https://dearly.test${path}`);
+const request = (path: string, init?: RequestInit) =>
+  new Request(`https://dearly.test${path}`, init);
+
+const dbWithSession = () =>
+  ({
+    prepare: () => ({
+      bind: () => ({
+        first: async () => ({
+          ownerId: "00000000-0000-4000-8000-000000000001",
+          email: "owner@dearly.test",
+          displayName: "Owner",
+        }),
+      }),
+    }),
+  }) as unknown as D1Database;
 
 describe("worker routes", () => {
   it("returns health JSON", async () => {
@@ -11,13 +25,34 @@ describe("worker routes", () => {
     expect(await response.json()).toEqual({ ok: true });
   });
 
-  it("keeps rpc routes as explicit stubs", async () => {
-    const response = await handleRequest(request("/rpc"), {});
+  it("returns null session when no session cookie exists", async () => {
+    const response = await handleRequest(request("/rpc/getSession"), { DB: dbWithSession() });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toBe(null);
+  });
+
+  it("returns owner session from D1 when session cookie is valid", async () => {
+    const response = await handleRequest(
+      request("/rpc/getSession", { headers: { cookie: "dearly_session=session-1" } }),
+      { DB: dbWithSession() },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      ownerId: "00000000-0000-4000-8000-000000000001",
+      email: "owner@dearly.test",
+      displayName: "Owner",
+    });
+  });
+
+  it("keeps unwired rpc procedures as explicit stubs", async () => {
+    const response = await handleRequest(request("/rpc/listMonthEntries"), {});
 
     expect(response.status).toBe(501);
     expect(await response.json()).toEqual({
       error: "NotImplemented",
-      message: "Effect RPC transport is not wired yet",
+      message: "RPC procedure is not wired yet: listMonthEntries",
     });
   });
 

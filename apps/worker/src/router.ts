@@ -24,7 +24,7 @@ const route = (request: Request, context: WorkerContext): WorkerEffect<Response>
   }
 
   if (url.pathname.startsWith("/rpc")) {
-    return rpc(context);
+    return rpc(request, context);
   }
 
   if (url.pathname.startsWith("/media")) {
