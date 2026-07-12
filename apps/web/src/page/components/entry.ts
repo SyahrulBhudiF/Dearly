@@ -1,5 +1,5 @@
 import { Html } from "foldkit";
-import { FileDrop } from "@foldkit/ui";
+import { Button, FileDrop, Textarea } from "@foldkit/ui";
 import { Option } from "effect";
 import { canvasDropZone, canvasElement } from "../../core/canvasDrag";
 import type { Sticker } from "@dearly/domain";
@@ -42,25 +42,33 @@ export const entryHeader = (
       h.div(
         [h.Class("flex items-center gap-3")],
         [
-          h.button(
-            [
-              h.OnClick(DiscardedDraft()),
-              h.Class(
-                "font-note text-[10px] tracking-[.12em] text-muted hover:text-wine uppercase",
+          Button.view<AppMessage>({
+            onClick: DiscardedDraft(),
+            toView: ({ button }) =>
+              h.button(
+                [
+                  ...button,
+                  h.Class(
+                    "font-note text-[10px] tracking-[.12em] text-muted hover:text-wine uppercase",
+                  ),
+                ],
+                ["Discard"],
               ),
-            ],
-            ["Discard"],
-          ),
-          h.button(
-            [
-              h.OnClick(SaveRequested()),
-              h.Disabled(saveState === "saving"),
-              h.Class(
-                "border border-ink bg-ink px-4 py-2 font-note text-[10px] tracking-[.14em] text-paper hover:bg-wine disabled:cursor-wait disabled:bg-muted uppercase",
+          }),
+          Button.view<AppMessage>({
+            onClick: SaveRequested(),
+            isDisabled: saveState === "saving",
+            toView: ({ button }) =>
+              h.button(
+                [
+                  ...button,
+                  h.Class(
+                    "border border-ink bg-ink px-4 py-2 font-note text-[10px] tracking-[.14em] text-paper hover:bg-wine disabled:cursor-wait disabled:bg-muted uppercase",
+                  ),
+                ],
+                [saveState === "saving" ? "Saving…" : "Save entry"],
               ),
-            ],
-            [saveState === "saving" ? "Saving…" : "Save entry"],
-          ),
+          }),
         ],
       ),
     ],
@@ -74,26 +82,22 @@ export const toolRail = (
   h.nav(
     [h.Class("flex gap-2 lg:flex-col")],
     [
-      h.button(
-        [
-          h.AriaLabel("Text"),
-          h.Class(
-            "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
+      toolButton(h, "Text", "T"),
+      Button.view<AppMessage>({
+        onClick: ToggledStickerPicker(),
+        toView: ({ button }) =>
+          h.button(
+            [
+              ...button,
+              h.AriaLabel("Sticker"),
+              h.AriaExpanded(stickerPickerOpen),
+              h.Class(
+                "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
+              ),
+            ],
+            ["✦"],
           ),
-        ],
-        ["T"],
-      ),
-      h.button(
-        [
-          h.OnClick(ToggledStickerPicker()),
-          h.AriaLabel("Sticker"),
-          h.AriaExpanded(stickerPickerOpen),
-          h.Class(
-            "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
-          ),
-        ],
-        ["✦"],
-      ),
+      }),
       stickerPickerOpen
         ? h.div(
             [
@@ -102,32 +106,28 @@ export const toolRail = (
               ),
             ],
             stickers.map((sticker) =>
-              h.button(
-                [
-                  h.OnClick(SelectedSticker({ sticker })),
-                  h.AriaLabel(`Add ${sticker.label}`),
-                  h.Class("size-11 overflow-hidden border border-line hover:border-wine"),
-                ],
-                [
-                  h.img([
-                    h.Src(`/media/${sticker.mediaObjectId}`),
-                    h.Alt(sticker.label),
-                    h.Class("size-full object-cover"),
-                  ]),
-                ],
-              ),
+              Button.view<AppMessage>({
+                onClick: SelectedSticker({ sticker }),
+                toView: ({ button }) =>
+                  h.button(
+                    [
+                      ...button,
+                      h.AriaLabel(`Add ${sticker.label}`),
+                      h.Class("size-11 overflow-hidden border border-line hover:border-wine"),
+                    ],
+                    [
+                      h.img([
+                        h.Src(`/media/${sticker.mediaObjectId}`),
+                        h.Alt(sticker.label),
+                        h.Class("size-full object-cover"),
+                      ]),
+                    ],
+                  ),
+              }),
             ),
           )
         : null,
-      h.button(
-        [
-          h.AriaLabel("Move"),
-          h.Class(
-            "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
-          ),
-        ],
-        ["↗"],
-      ),
+      toolButton(h, "Move", "↗"),
     ],
   );
 
@@ -212,19 +212,24 @@ export const canvasShell = (
               ["Image upload failed"],
             )
           : null,
-      h.textarea(
-        [
-          h.OnInput((value) => ChangedText({ text: value })),
-          h.Value(text),
-          h.Placeholder("What deserves a place on this page?"),
-          h.Rows(14),
-          h.Class(
-            "relative block w-full max-w-xl resize-none bg-transparent font-display text-2xl leading-tight placeholder:text-muted/70 focus:outline-none sm:text-3xl",
+      Textarea.view({
+        id: "entry-text",
+        value: text,
+        rows: 14,
+        placeholder: "What deserves a place on this page?",
+        onInput: (value) => ChangedText({ text: value }),
+        toView: ({ textarea }) =>
+          h.textarea(
+            [
+              ...textarea,
+              h.Class(
+                "relative block w-full max-w-xl resize-none bg-transparent font-display text-2xl leading-tight placeholder:text-muted/70 focus:outline-none sm:text-3xl",
+              ),
+              h.AriaLabel("Diary entry"),
+            ],
+            [],
           ),
-          h.AriaLabel("Diary entry"),
-        ],
-        [],
-      ),
+      }),
     ],
   );
 
@@ -250,24 +255,49 @@ const canvasImage = (
     ],
     [
       h.img([h.Src(`/media/${mediaObjectId}`), h.Alt(alt), h.Class("size-full object-contain")]),
-      h.button(
-        [
-          h.OnPointerDown((_pointerType, _button, screenX, screenY) =>
-            Option.some(StartedResize({ id, screenX, screenY, ...size })),
+      Button.view<AppMessage>({
+        toView: ({ button }) =>
+          h.button(
+            [
+              ...button,
+              h.OnPointerDown((_pointerType, _button, screenX, screenY) =>
+                Option.some(StartedResize({ id, screenX, screenY, ...size })),
+              ),
+              h.AriaLabel(`Resize ${alt}`),
+              h.Class(
+                "absolute right-0 bottom-0 size-5 cursor-nwse-resize border border-ink bg-paper",
+              ),
+            ],
+            [],
           ),
-          h.AriaLabel(`Resize ${alt}`),
-          h.Class("absolute right-0 bottom-0 size-5 cursor-nwse-resize border border-ink bg-paper"),
-        ],
-        [],
-      ),
+      }),
     ],
   );
 
+const toolButton = (h: HtmlFactory, label: string, content: string) =>
+  Button.view<AppMessage>({
+    toView: ({ button }) =>
+      h.button(
+        [
+          ...button,
+          h.AriaLabel(label),
+          h.Class(
+            "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
+          ),
+        ],
+        [content],
+      ),
+  });
+
 export const calendarLink = (h: HtmlFactory) =>
-  h.button(
-    [
-      h.OnClick(ChangedRoute({ route: CalendarRoute() })),
-      h.Class("font-note text-[11px] tracking-[.1em] text-muted hover:text-wine uppercase"),
-    ],
-    ["← Calendar"],
-  );
+  Button.view<AppMessage>({
+    onClick: ChangedRoute({ route: CalendarRoute() }),
+    toView: ({ button }) =>
+      h.button(
+        [
+          ...button,
+          h.Class("font-note text-[11px] tracking-[.1em] text-muted hover:text-wine uppercase"),
+        ],
+        ["← Calendar"],
+      ),
+  });
