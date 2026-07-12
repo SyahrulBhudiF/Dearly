@@ -5,11 +5,12 @@ import {
   MediaObjectId,
   type OwnerSession,
   SaveEntryPayload,
+  StickerId,
   Unauthorized,
 } from "@dearly/domain";
 import { Effect, Option, Schema } from "effect";
 import { json, notImplemented, type WorkerEffect } from "./libs/http";
-import { getEntryByDate, listMonthEntries, saveEntry } from "./modules/entry";
+import { discardServerEntry, getEntryByDate, listMonthEntries, saveEntry } from "./modules/entry";
 import {
   allowedMediaMimeTypes,
   createMediaUpload,
@@ -17,6 +18,7 @@ import {
   maxMediaBytes,
 } from "./modules/media";
 import { getSession } from "./modules/session";
+import { createSticker, deleteStickerFromPicker, listStickers } from "./modules/sticker";
 import type { WorkerContext } from "./types";
 
 export const rpc = (request: Request, context: WorkerContext): WorkerEffect<Response> => {
@@ -87,6 +89,21 @@ export const rpc = (request: Request, context: WorkerContext): WorkerEffect<Resp
         ),
       );
 
+    case "discardServerEntry":
+      return withOwner(context, (owner) =>
+        readJson(request).pipe(
+          Effect.flatMap((body) =>
+            Option.match(Schema.decodeUnknownOption(Schema.Struct({ date: CalendarDate }))(body), {
+              onNone: badPayload,
+              onSome: ({ date }) =>
+                discardServerEntry(context, owner, date).pipe(
+                  Effect.flatMap(() => json(200, null)),
+                ),
+            }),
+          ),
+        ),
+      );
+
     case "createMediaUpload":
       return withOwner(context, (owner) =>
         readJson(request).pipe(
@@ -119,6 +136,49 @@ export const rpc = (request: Request, context: WorkerContext): WorkerEffect<Resp
                         onSome: (media) => json(200, media),
                       }),
                     ),
+                  ),
+              },
+            ),
+          ),
+        ),
+      );
+
+    case "listStickers":
+      return withOwner(context, (owner) =>
+        listStickers(context, owner).pipe(Effect.flatMap((stickers) => json(200, stickers))),
+      );
+
+    case "createSticker":
+      return withOwner(context, (owner) =>
+        readJson(request).pipe(
+          Effect.flatMap((body) =>
+            Option.match(
+              Schema.decodeUnknownOption(
+                Schema.Struct({ mediaObjectId: MediaObjectId, label: Schema.String }),
+              )(body),
+              {
+                onNone: badPayload,
+                onSome: ({ mediaObjectId, label }) =>
+                  createSticker(context, owner, mediaObjectId, label).pipe(
+                    Effect.flatMap((sticker) => json(200, sticker)),
+                  ),
+              },
+            ),
+          ),
+        ),
+      );
+
+    case "deleteStickerFromPicker":
+      return withOwner(context, (owner) =>
+        readJson(request).pipe(
+          Effect.flatMap((body) =>
+            Option.match(
+              Schema.decodeUnknownOption(Schema.Struct({ stickerId: StickerId }))(body),
+              {
+                onNone: badPayload,
+                onSome: ({ stickerId }) =>
+                  deleteStickerFromPicker(context, owner, stickerId).pipe(
+                    Effect.flatMap(() => json(200, null)),
                   ),
               },
             ),

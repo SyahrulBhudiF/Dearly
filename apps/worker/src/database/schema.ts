@@ -55,6 +55,22 @@ export const mediaObjects = sqliteTable(
   (table) => [index("media_objects_owner_id_idx").on(table.ownerId)],
 );
 
+export const stickers = sqliteTable(
+  "stickers",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => owners.id, { onDelete: "cascade" }),
+    mediaObjectId: text("media_object_id")
+      .notNull()
+      .references(() => mediaObjects.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("stickers_owner_id_idx").on(table.ownerId)],
+);
+
 export const diaryEntries = sqliteTable(
   "diary_entries",
   {

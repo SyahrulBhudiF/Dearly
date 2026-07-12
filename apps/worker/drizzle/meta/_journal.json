@@ -15,6 +15,13 @@
       "when": 1783840461126,
       "tag": "0001_cloudy_omega_red",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783841948270,
+      "tag": "0002_square_human_fly",
+      "breakpoints": true
     }
   ]
 }

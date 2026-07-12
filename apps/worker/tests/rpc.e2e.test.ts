@@ -9,6 +9,7 @@ import {
   ownerId,
   request,
   savePayload,
+  stickerId,
 } from "./fakes";
 
 describe("RPC e2e", () => {
@@ -91,6 +92,36 @@ describe("RPC e2e", () => {
     expect(bad.status).toBe(400);
   });
 
+  it("discardServerEntry: positive and negative", async () => {
+    const db = fakeDb();
+    await handleRequest(request("/rpc/saveEntry", jsonPost(savePayload)), { DB: db });
+
+    const ok = await handleRequest(
+      request("/rpc/discardServerEntry", jsonPost({ date: "2026-07-12" })),
+      { DB: db },
+    );
+    const missingAfterDelete = await handleRequest(
+      request("/rpc/getEntryByDate", jsonPost({ date: "2026-07-12" })),
+      { DB: db },
+    );
+    const unauthorized = await handleRequest(
+      request("/rpc/discardServerEntry", {
+        method: "POST",
+        body: JSON.stringify({ date: "2026-07-12" }),
+      }),
+      { DB: fakeDb() },
+    );
+    const bad = await handleRequest(request("/rpc/discardServerEntry", jsonPost({ date: "bad" })), {
+      DB: fakeDb(),
+    });
+
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toBe(null);
+    expect(missingAfterDelete.status).toBe(404);
+    expect(unauthorized.status).toBe(401);
+    expect(bad.status).toBe(400);
+  });
+
   it("createMediaUpload: positive and negative", async () => {
     const ok = await handleRequest(
       request(
@@ -149,6 +180,66 @@ describe("RPC e2e", () => {
     expect(ok.status).toBe(200);
     expect(await ok.json()).toMatchObject({ id: mediaId, ownerId, mimeType: "image/png" });
     expect(missing.status).toBe(404);
+    expect(bad.status).toBe(400);
+  });
+
+  it("listStickers: positive and negative", async () => {
+    const ok = await handleRequest(request("/rpc/listStickers", authed), { DB: fakeDb() });
+    const unauthorized = await handleRequest(request("/rpc/listStickers"), { DB: fakeDb() });
+
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toMatchObject([
+      { id: stickerId, ownerId, mediaObjectId: mediaId, label: "heart" },
+    ]);
+    expect(unauthorized.status).toBe(401);
+  });
+
+  it("createSticker: positive and negative", async () => {
+    const ok = await handleRequest(
+      request("/rpc/createSticker", jsonPost({ mediaObjectId: mediaId, label: "wow" })),
+      { DB: fakeDb() },
+    );
+    const unauthorized = await handleRequest(
+      request("/rpc/createSticker", {
+        method: "POST",
+        body: JSON.stringify({ mediaObjectId: mediaId, label: "wow" }),
+      }),
+      { DB: fakeDb() },
+    );
+    const bad = await handleRequest(
+      request("/rpc/createSticker", jsonPost({ mediaObjectId: "nope", label: "wow" })),
+      { DB: fakeDb() },
+    );
+
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toMatchObject({ ownerId, mediaObjectId: mediaId, label: "wow" });
+    expect(unauthorized.status).toBe(401);
+    expect(bad.status).toBe(400);
+  });
+
+  it("deleteStickerFromPicker: positive and negative", async () => {
+    const db = fakeDb();
+    const ok = await handleRequest(
+      request("/rpc/deleteStickerFromPicker", jsonPost({ stickerId })),
+      { DB: db },
+    );
+    const empty = await handleRequest(request("/rpc/listStickers", authed), { DB: db });
+    const unauthorized = await handleRequest(
+      request("/rpc/deleteStickerFromPicker", {
+        method: "POST",
+        body: JSON.stringify({ stickerId }),
+      }),
+      { DB: fakeDb() },
+    );
+    const bad = await handleRequest(
+      request("/rpc/deleteStickerFromPicker", jsonPost({ stickerId: "nope" })),
+      { DB: fakeDb() },
+    );
+
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toBe(null);
+    expect(await empty.json()).toEqual([]);
+    expect(unauthorized.status).toBe(401);
     expect(bad.status).toBe(400);
   });
 });

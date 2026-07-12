@@ -60,6 +60,23 @@ export const getEntryByDate = (
   ).pipe(Effect.map((rows) => (rows.length === 0 ? Option.none() : toEntry(rows[0]!))));
 };
 
+export const discardServerEntry = (
+  context: WorkerContext,
+  owner: OwnerSession,
+  date: CalendarDate,
+): WorkerEffect<void> => {
+  const db = getDb(context);
+  if (db === undefined) {
+    return Effect.void;
+  }
+
+  return Effect.promise(() =>
+    db
+      .delete(diaryEntries)
+      .where(and(eq(diaryEntries.ownerId, owner.ownerId), eq(diaryEntries.entryDate, date))),
+  ).pipe(Effect.asVoid);
+};
+
 export const saveEntry = (
   context: WorkerContext,
   owner: OwnerSession,

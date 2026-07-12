@@ -1,6 +1,11 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
-import { getEntryByDate, listMonthEntries, saveEntry } from "../../src/modules/entry";
+import {
+  discardServerEntry,
+  getEntryByDate,
+  listMonthEntries,
+  saveEntry,
+} from "../../src/modules/entry";
 import { context, document, ownerId, savePayload } from "../fakes";
 
 const owner = { ownerId, email: "owner@dearly.test", displayName: "Owner" } as never;
@@ -24,6 +29,16 @@ describe("entry module", () => {
     const entry = await Effect.runPromise(getEntryByDate(ctx, owner, "2026-07-12" as never));
 
     expect(Option.getOrThrow(entry)).toMatchObject({ ownerId, date: "2026-07-12", document });
+  });
+
+  it("discards server entry", async () => {
+    const ctx = context();
+
+    await Effect.runPromise(saveEntry(ctx, owner, savePayload as never));
+    await Effect.runPromise(discardServerEntry(ctx, owner, "2026-07-12" as never));
+    const entry = await Effect.runPromise(getEntryByDate(ctx, owner, "2026-07-12" as never));
+
+    expect(Option.isNone(entry)).toBe(true);
   });
 
   it("returns none for missing entry", async () => {
