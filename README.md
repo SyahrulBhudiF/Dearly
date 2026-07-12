@@ -4,16 +4,16 @@ A private diary for composing dated memories on a freeform canvas.
 
 ## Screenshots
 
-| Calendar | Canvas |
-| --- | --- |
+| Calendar                                   | Canvas                                 |
+| ------------------------------------------ | -------------------------------------- |
 | ![Calendar](docs/screenshots/calendar.png) | ![Canvas](docs/screenshots/canvas.png) |
 
-| Image picker | Stickers & emoji |
-| --- | --- |
+| Image picker                                       | Stickers & emoji                                       |
+| -------------------------------------------------- | ------------------------------------------------------ |
 | ![Image picker](docs/screenshots/image-picker.png) | ![Sticker picker](docs/screenshots/sticker-picker.png) |
 
-| Emoji picker | Canvas element |
-| --- | --- |
+| Emoji picker                                       | Canvas element                                         |
+| -------------------------------------------------- | ------------------------------------------------------ |
 | ![Emoji picker](docs/screenshots/emoji-picker.png) | ![Canvas element](docs/screenshots/canvas-element.png) |
 
 ## Stack
