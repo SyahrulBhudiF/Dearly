@@ -1,7 +1,9 @@
 import { Html } from "foldkit";
 import type { AppMessage } from "../core/message";
 import type { Model } from "../core/model";
-import { calendarLink, canvasShell, entryHeader, toolRail } from "./components/entry";
+import { CalendarLink } from "./components/link";
+import { EntryHeader } from "./components/header";
+import { canvasShell, toolRail } from "./components/entry";
 
 export const entryPage = (model: Model): Html.Document => {
   const h = Html.html<AppMessage>();
@@ -26,7 +28,7 @@ export const entryPage = (model: Model): Html.Document => {
             ),
           ],
           [
-            calendarLink(h),
+            CalendarLink(h),
             h.p([h.Class("font-note text-[10px] tracking-[.13em] text-wine uppercase")], [status]),
           ],
         ),
@@ -37,7 +39,7 @@ export const entryPage = (model: Model): Html.Document => {
             h.div(
               [],
               [
-                entryHeader(h, model.selectedDate, model.saveState),
+                EntryHeader(h, model.selectedDate, model.saveState),
                 canvasShell(
                   h,
                   model.entryText,

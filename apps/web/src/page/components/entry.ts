@@ -1,86 +1,23 @@
 import { Html } from "foldkit";
 import { Button, Dialog, FileDrop, Popover, Textarea } from "@foldkit/ui";
-import { ArrowLeft, ArrowUpRight, RotateCw, Sparkles, Trash2, Type } from "lucide";
+import { ArrowUpRight, Sparkles, Type } from "lucide";
 import { Option } from "effect";
 import type { CanvasElement, Sticker } from "@dearly/domain";
-import { canvasDropZone, canvasElement } from "../../core/canvasDrag";
+import { canvasDropZone } from "../../core/canvasDrag";
 import type { AppMessage } from "../../core/message";
 import {
-  ChangedRoute,
-  ChangedCanvasElementLayer,
   ChangedText,
-  DeletedCanvasElement,
-  DeleteCanvasElementRequested,
-  DiscardedDraft,
   FinishedResize,
-  GotDeleteDialogMessage,
   GotFileDropMessage,
   GotStickerPopoverMessage,
   ResizedCanvasElement,
-  RotatedCanvasElement,
-  SaveRequested,
-  SelectedCanvasElement,
-  StartedResize,
   SelectedSticker,
 } from "../../core/message";
-import { CalendarRoute } from "../../core/route";
-import { dateLabel, weekdayLabel } from "../../libs/date";
 import { icon } from "./icon";
+import { CanvasItem } from "./element";
+import { DeleteDialog } from "./dialog";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
-
-export const entryHeader = (
-  h: HtmlFactory,
-  date: string,
-  saveState: "idle" | "saving" | "failed",
-) =>
-  h.div(
-    [h.Class("mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between")],
-    [
-      h.div(
-        [],
-        [
-          h.p(
-            [h.Class("font-note text-[10px] tracking-[.15em] text-muted uppercase")],
-            [weekdayLabel(date)],
-          ),
-          h.h1([h.Class("mt-1 font-display text-4xl sm:text-5xl")], [dateLabel(date)]),
-        ],
-      ),
-      h.div(
-        [h.Class("flex items-center gap-3")],
-        [
-          Button.view<AppMessage>({
-            onClick: DiscardedDraft(),
-            toView: ({ button }) =>
-              h.button(
-                [
-                  ...button,
-                  h.Class(
-                    "font-note text-[10px] tracking-[.12em] text-muted hover:text-wine uppercase",
-                  ),
-                ],
-                ["Discard"],
-              ),
-          }),
-          Button.view<AppMessage>({
-            onClick: SaveRequested(),
-            isDisabled: saveState === "saving",
-            toView: ({ button }) =>
-              h.button(
-                [
-                  ...button,
-                  h.Class(
-                    "border border-ink bg-ink px-4 py-2 font-note text-[10px] tracking-[.14em] text-paper hover:bg-wine disabled:cursor-wait disabled:bg-muted uppercase",
-                  ),
-                ],
-                [saveState === "saving" ? "Saving…" : "Save entry"],
-              ),
-          }),
-        ],
-      ),
-    ],
-  );
 
 export const toolRail = (
   h: HtmlFactory,
@@ -213,8 +150,8 @@ export const canvasShell = (
       }),
       ...[...elements]
         .sort((a, b) => a.layer - b.layer)
-        .map((element) => canvasMedia(h, element, selectedElementId)),
-      deleteCanvasElementDialog(h, deleteDialog),
+        .map((element) => CanvasItem(h, element, selectedElementId)),
+      DeleteDialog(h, deleteDialog),
       uploadState === "uploading"
         ? h.p(
             [h.Class("relative mb-4 font-note text-[10px] text-muted uppercase")],
@@ -247,165 +184,6 @@ export const canvasShell = (
     ],
   );
 
-const canvasMedia = (h: HtmlFactory, element: CanvasElement, selectedElementId: string | null) => {
-  if (element.payload.kind === "text") return null;
-  const alt =
-    element.payload.kind === "image" ? (element.payload.alt ?? "Entry image") : "Entry sticker";
-  const isSelected = element.id === selectedElementId;
-  return h.keyed("div")(
-    element.id,
-    [
-      h.OnMount({
-        name: `canvas-${element.id}`,
-        f: (node) => canvasElement(element.id, element, node),
-      }),
-      h.Style({
-        position: "absolute",
-        left: `${element.x}px`,
-        top: `${element.y}px`,
-        width: `${element.width}px`,
-        height: `${element.height}px`,
-        transform: `rotate(${element.rotation}deg)`,
-      }),
-      h.OnClick(SelectedCanvasElement({ id: element.id })),
-      h.Class(
-        `cursor-move touch-none ${isSelected ? "ring-2 ring-wine ring-offset-2 ring-offset-canvas" : ""}`,
-      ),
-    ],
-    [
-      h.img([
-        h.Src(`/media/${element.payload.mediaObjectId}`),
-        h.Alt(alt),
-        h.Class("size-full object-contain"),
-      ]),
-      isSelected ? canvasControls(h) : null,
-      Button.view<AppMessage>({
-        toView: ({ button }) =>
-          h.button(
-            [
-              ...button,
-              h.OnPointerDown((_pointerType, _button, screenX, screenY) =>
-                Option.some(
-                  StartedResize({
-                    id: element.id,
-                    screenX,
-                    screenY,
-                    width: element.width,
-                    height: element.height,
-                  }),
-                ),
-              ),
-              h.AriaLabel(`Resize ${alt}`),
-              h.Class(
-                "absolute right-0 bottom-0 size-5 cursor-nwse-resize border border-ink bg-paper",
-              ),
-            ],
-            [],
-          ),
-      }),
-    ],
-  );
-};
-
-const canvasControls = (h: HtmlFactory) =>
-  h.div(
-    [h.Class("absolute -top-11 left-0 flex gap-1 border border-line bg-paper p-1")],
-    [
-      controlButton(h, "Rotate", RotateCw, RotatedCanvasElement({ degrees: 15 })),
-      controlButton(
-        h,
-        "Bring forward",
-        ArrowUpRight,
-        ChangedCanvasElementLayer({ direction: "forward" }),
-      ),
-      controlButton(h, "Delete", Trash2, DeleteCanvasElementRequested()),
-    ],
-  );
-
-const controlButton = (
-  h: HtmlFactory,
-  label: string,
-  symbol: Parameters<typeof icon>[1],
-  onClick: AppMessage,
-) =>
-  Button.view<AppMessage>({
-    onClick,
-    toView: ({ button }) =>
-      h.button(
-        [...button, h.AriaLabel(label), h.Class("grid size-8 place-items-center hover:bg-rose/35")],
-        [icon(h, symbol, label)],
-      ),
-  });
-
-const deleteCanvasElementDialog = (h: HtmlFactory, deleteDialog: Dialog.Model) =>
-  h.submodel({
-    slotId: "delete-canvas-element",
-    model: deleteDialog,
-    view: Dialog.view,
-    toParentMessage: (message) => GotDeleteDialogMessage({ message }),
-    viewInputs: {
-      toView: ({
-        dialog,
-        backdrop,
-        panel,
-        title,
-        description,
-        closeButton,
-        initialFocus,
-        isVisible,
-      }) =>
-        h.dialog(
-          [...dialog],
-          [
-            isVisible
-              ? h.div(
-                  [],
-                  [
-                    h.div([...backdrop, h.Class("fixed inset-0 bg-ink/30")], []),
-                    h.div(
-                      [
-                        ...panel,
-                        h.Class(
-                          "fixed top-1/2 left-1/2 w-[min(90vw,24rem)] -translate-x-1/2 -translate-y-1/2 border border-line bg-paper p-6",
-                        ),
-                      ],
-                      [
-                        h.h2([...title, h.Class("font-display text-2xl")], ["Delete element?"]),
-                        h.p(
-                          [...description, h.Class("mt-2 text-sm text-muted")],
-                          ["This cannot be undone."],
-                        ),
-                        h.div(
-                          [h.Class("mt-6 flex justify-end gap-3")],
-                          [
-                            h.button(
-                              [...closeButton, h.Class("px-3 py-2 text-sm hover:text-wine")],
-                              ["Cancel"],
-                            ),
-                            Button.view<AppMessage>({
-                              onClick: DeletedCanvasElement(),
-                              toView: ({ button }) =>
-                                h.button(
-                                  [
-                                    ...button,
-                                    ...initialFocus,
-                                    h.Class("bg-wine px-3 py-2 text-sm text-paper"),
-                                  ],
-                                  ["Delete"],
-                                ),
-                            }),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                )
-              : null,
-          ],
-        ),
-    },
-  });
-
 const toolButton = (h: HtmlFactory, label: string, content: ReturnType<typeof icon>) =>
   Button.view<AppMessage>({
     toView: ({ button }) =>
@@ -418,20 +196,5 @@ const toolButton = (h: HtmlFactory, label: string, content: ReturnType<typeof ic
           ),
         ],
         [content],
-      ),
-  });
-
-export const calendarLink = (h: HtmlFactory) =>
-  Button.view<AppMessage>({
-    onClick: ChangedRoute({ route: CalendarRoute() }),
-    toView: ({ button }) =>
-      h.button(
-        [
-          ...button,
-          h.Class(
-            "flex items-center gap-1 font-note text-[11px] tracking-[.1em] text-muted hover:text-wine uppercase",
-          ),
-        ],
-        [icon(h, ArrowLeft, "Calendar"), "Calendar"],
       ),
   });
