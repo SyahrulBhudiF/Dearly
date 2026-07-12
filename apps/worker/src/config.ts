@@ -1,6 +1,6 @@
 import { Config, ConfigProvider } from "effect";
 import type { Config as ConfigDescription } from "effect/Config";
-import type { DearlyEnv } from "./env";
+import type { DearlyEnv } from "./types";
 
 const stringEnv = (env: DearlyEnv): Record<string, string> =>
   Object.fromEntries(

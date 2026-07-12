@@ -1,4 +1,4 @@
-import type { WorkerContext } from "../context";
+import type { WorkerContext } from "../types";
 import { notImplemented, type WorkerEffect } from "../http";
 
 export const media = (_context: WorkerContext): WorkerEffect<Response> =>

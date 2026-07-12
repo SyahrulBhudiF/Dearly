@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { DearlyEnv } from "./env";
+import type { DearlyEnv } from "./types";
 import { handleRequestEffect } from "./router";
 
 export { handleRequestEffect };
