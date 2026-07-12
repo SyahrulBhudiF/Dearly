@@ -18,7 +18,7 @@ Dearly is a private, single-owner diary app with a month calendar and one freefo
 
 - `docs/context.md` defines domain language only.
 - `docs/materials/research.md`: Research Result and Key to implement this
-- `docs/adr/0001-consumer-oauth-for-owners.md`: use Google/GitHub-style consumer OAuth, not Cloudflare OAuth for diary users.
+- `docs/adr/0001-consumer-oauth-for-owners.md`: use Cloudflare Access for admission and verified JWT subjects for diary ownership.
 - `docs/adr/0002-single-worker-application.md`: serve frontend assets and API from one Worker.
 - `docs/adr/0003-cloudflare-d1-for-data.md`: use D1 for Owner, entry, canvas, preview, sticker metadata, and R2 object metadata.
 - `docs/adr/0004-private-r2-media.md`: store images/stickers in private R2 and serve through authenticated Worker routes.
@@ -52,7 +52,7 @@ flowchart LR
   Browser[Foldkit web app] -->|same-origin Effect RPC| Worker[Cloudflare Worker]
   Worker --> D1[(D1 SQLite)]
   Worker --> R2[(Private R2 bucket)]
-  Worker --> OAuth[Google/GitHub OAuth]
+  Access[Cloudflare Access] -->|verified JWT| Worker
   Browser --> LocalDraft[(local Draft store)]
 ```
 
@@ -87,9 +87,7 @@ Initial RPC procedures:
 
 D1 tables, first pass:
 
-- `owners`: internal Owner row keyed by verified email identity merge policy.
-- `oauth_identities`: provider identity rows linked to Owner.
-- `sessions`: same-origin session cookies.
+- Every persisted owner reference is the verified Cloudflare Access JWT `sub`; no local owner/session identity tables.
 - `diary_entries`: one row per Owner/date, stores saved Canvas state JSON and preview fields.
 - `media_objects`: R2 key, media kind, MIME, size, owner, lifecycle state.
 - `stickers`: reusable picker items backed by `media_objects`.
@@ -156,10 +154,10 @@ Initial Foldkit model:
 1. Scaffold monorepo with TurboRepo, TypeScript, package manager, and shared config.
 2. Add `packages/domain` with branded IDs, schemas, and tagged errors.
 3. Add `packages/rpc` with initial `RpcGroup` and client/server exports.
-4. Add `apps/worker` with Worker entrypoint, Effect RPC handler, session cookie plumbing, D1/R2 bindings, and static asset serving.
+4. Add `apps/worker` with Worker entrypoint, Effect RPC handler, Cloudflare Access JWT verification, D1/R2 bindings, and static asset serving.
 5. Add `infra` Alchemy resources for Worker, D1, R2, secrets, and static assets.
 6. Add `apps/web` Foldkit app shell with routes, month calendar, entry canvas, and theme tokens.
-7. Implement consumer OAuth login and Owner identity merge by verified email.
+7. Provision a Cloudflare Access application/policy and use its verified JWT `sub` for ownership.
 8. Implement month preview queries and Date Card states.
 9. Implement local Draft persistence.
 10. Implement Canvas Element create/select/move/resize/layer behavior.
@@ -177,7 +175,6 @@ Initial Foldkit model:
 
 ## Unresolved questions
 
-1. OAuth providers: start with Google only, GitHub only, or both? Google first, GitHub second after auth abstraction works.
 2. Draft persistence backend: IndexedDB or localStorage? IndexedDB because Staged Media needs Blob/File storage.
 3. Canvas size: fixed logical page or infinite board? fixed logical page first; zoom/pan later.
 4. Image handling: preserve originals or create thumbnails? preserve originals in R2 and generate client-side preview thumbnails stored separately.

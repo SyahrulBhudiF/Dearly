@@ -1,0 +1,70 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Libre+Franklin:ital,wght@0,400;0,500;0,600;1,400&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Libre Franklin", sans-serif;
+  --font-note: "DM Mono", monospace;
+  --color-paper: #f5f0e6;
+  --color-ink: #25221c;
+  --color-muted: #746d61;
+  --color-line: #d7cec0;
+  --color-wine: #7b3948;
+  --color-rose: #dca9a5;
+  --color-sage: #aab9a1;
+  --color-butter: #e8c977;
+  --color-sky: #b6ccd1;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+  }
+  body {
+    margin: 0;
+    min-width: 320px;
+  }
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--color-wine);
+    outline-offset: 3px;
+  }
+}
+
+.paper-grain {
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--color-ink) 8%, transparent) 0.55px,
+    transparent 0.55px
+  );
+  background-size: 7px 7px;
+}
+.date-card {
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease;
+}
+.date-card:hover {
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .date-card {
+    transition: none;
+  }
+  .date-card:hover {
+    transform: none;
+  }
+}

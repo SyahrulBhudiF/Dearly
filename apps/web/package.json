@@ -1,0 +1,26 @@
+{
+  "name": "@dearly/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dearly/domain": "workspace:*",
+    "@dearly/rpc": "workspace:*",
+    "@effect/platform-browser": ">=4.0.0-beta.97",
+    "@tailwindcss/vite": "^4.3.1",
+    "date-fns": "^4.4.0",
+    "effect": ">=4.0.0-beta.97",
+    "foldkit": "^0.127.0",
+    "tailwindcss": "^4.3.1"
+  },
+  "devDependencies": {
+    "@foldkit/vite-plugin": "^0.10.0",
+    "typescript": "7.0.2",
+    "vite": "8.1.4"
+  }
+}

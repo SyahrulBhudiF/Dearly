@@ -45,7 +45,7 @@ A reusable decorative image owned by the Owner and placed on one or more Canvase
 _Avoid_: Emoji, decal
 
 **Owner**:
-The person who owns a Diary and controls its entries and media. Consumer OAuth identities with the same verified email identify the same Owner.
+The person who owns a Diary and controls its entries and media. A verified Cloudflare Access JWT `sub` identifies the Owner.
 _Avoid_: Account, member, author
 
 **Image Gallery**:

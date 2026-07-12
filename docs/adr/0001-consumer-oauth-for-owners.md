@@ -1,3 +1,5 @@
-# Use consumer OAuth for Owners
+# Use Cloudflare Access for Owners
 
-Owners sign in through consumer OAuth providers, starting with Google and GitHub, instead of Cloudflare OAuth. Cloudflare OAuth is for integrating with Cloudflare accounts and would wrongly require diary users to own Cloudflare accounts; the app still keeps identities provider-neutral so additional providers can be added later.
+Cloudflare Access protects the whole application and verifies its signed JWT again in the Worker. Access policy owns admission; its verified JWT `sub` is the Owner ID on every persisted row. The application has no OAuth callback, app session cookie, session table, or local owner table.
+
+The Access policy is provisioned in `infra/alchemy.run.ts`; do not edit it manually in the Cloudflare dashboard.

@@ -1,22 +1,27 @@
 import { describe, expect, it } from "@effect/vitest";
-import { Effect, Option, Redacted } from "effect";
+import { Effect, Option } from "effect";
 import { loadConfig } from "../src/config/env";
 
 describe("worker config", () => {
-  it("uses safe defaults when optional secrets are absent", async () => {
+  it("uses safe defaults when Access config is absent", async () => {
     const config = await Effect.runPromise(loadConfig({}));
 
     expect(config.appEnv).toBe("development");
     expect(config.timeZone).toBe("Asia/Jakarta");
-    expect(Option.isNone(config.sessionSecret)).toBe(true);
+    expect(Option.isNone(config.access)).toBe(true);
   });
 
-  it("loads Cloudflare string env as Effect config", async () => {
+  it("loads Cloudflare Access config", async () => {
     const config = await Effect.runPromise(
-      loadConfig({ APP_ENV: "production", SESSION_SECRET: "secret" }),
+      loadConfig({
+        APP_ENV: "production",
+        CF_ACCESS_AUD: "access-audience",
+        CF_ACCESS_TEAM_DOMAIN: "https://dearly.cloudflareaccess.com",
+      }),
     );
 
-    expect(config.appEnv).toBe("production");
-    expect(Option.map(config.sessionSecret, Redacted.value)).toEqual(Option.some("secret"));
+    expect(config.access).toEqual(
+      Option.some({ aud: "access-audience", teamDomain: "https://dearly.cloudflareaccess.com" }),
+    );
   });
 });

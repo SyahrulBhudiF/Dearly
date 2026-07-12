@@ -3,7 +3,7 @@ import { Schema } from "effect";
 const uuid = <const Brand extends string>(brand: Brand) =>
   Schema.String.check(Schema.isUUID()).pipe(Schema.brand(brand));
 
-export const OwnerId = uuid("@Dearly/OwnerId");
+export const OwnerId = Schema.String.pipe(Schema.brand("@Dearly/OwnerId"));
 export type OwnerId = Schema.Schema.Type<typeof OwnerId>;
 
 export const DiaryEntryId = uuid("@Dearly/DiaryEntryId");

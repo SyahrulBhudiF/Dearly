@@ -36,7 +36,7 @@ export const DearlyErrors = Schema.Union([
   DraftConflict,
 ]);
 
-export const DearlyRpc = RpcGroup.make(
+export class DearlyRpc extends RpcGroup.make(
   Rpc.make("getSession", {
     success: Schema.NullOr(OwnerSession),
     error: DearlyErrors,
@@ -85,6 +85,4 @@ export const DearlyRpc = RpcGroup.make(
     success: Schema.Void,
     error: DearlyErrors,
   }),
-);
-
-export type DearlyRpc = typeof DearlyRpc;
+) {}

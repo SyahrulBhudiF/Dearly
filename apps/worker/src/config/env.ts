@@ -10,11 +10,13 @@ const stringEnv = (env: DearlyEnv): Record<string, string> =>
 export const AppConfig = Config.all({
   appEnv: Config.string("APP_ENV").pipe(Config.withDefault("development")),
   timeZone: Config.string("TIME_ZONE").pipe(Config.withDefault("Asia/Jakarta")),
-  googleClientId: Config.option(Config.string("GOOGLE_CLIENT_ID")),
-  googleClientSecret: Config.option(Config.redacted("GOOGLE_CLIENT_SECRET")),
-  githubClientId: Config.option(Config.string("GITHUB_CLIENT_ID")),
-  githubClientSecret: Config.option(Config.redacted("GITHUB_CLIENT_SECRET")),
-  sessionSecret: Config.option(Config.redacted("SESSION_SECRET")),
+  access: Config.option(
+    Config.all({
+      aud: Config.string("CF_ACCESS_AUD"),
+      teamDomain: Config.string("CF_ACCESS_TEAM_DOMAIN"),
+    }),
+  ),
+  devOwnerId: Config.option(Config.string("DEV_OWNER_ID")),
 });
 
 export type AppConfig = typeof AppConfig extends ConfigDescription<infer A> ? A : never;

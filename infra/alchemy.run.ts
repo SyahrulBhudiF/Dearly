@@ -5,11 +5,29 @@ import * as Effect from "effect/Effect";
 import { Bucket, Database } from "./cloudflare";
 
 const APP_ENV = Config.string("APP_ENV").pipe(Config.withDefault("production"));
-const GOOGLE_CLIENT_ID = Config.redacted("GOOGLE_CLIENT_ID");
-const GOOGLE_CLIENT_SECRET = Config.redacted("GOOGLE_CLIENT_SECRET");
-const GITHUB_CLIENT_ID = Config.redacted("GITHUB_CLIENT_ID");
-const GITHUB_CLIENT_SECRET = Config.redacted("GITHUB_CLIENT_SECRET");
-const SESSION_SECRET = Config.redacted("SESSION_SECRET");
+const ACCESS_TEAM_DOMAIN = Config.string("CF_ACCESS_TEAM_DOMAIN");
+const ACCESS_OWNER_EMAILS = Config.string("CF_ACCESS_OWNER_EMAILS").pipe(
+  Config.map((emails) =>
+    emails
+      .split(",")
+      .map((email) => email.trim())
+      .filter(Boolean),
+  ),
+);
+const DEARLY_DOMAIN = Config.string("DEARLY_DOMAIN");
+
+const accessPolicy = Cloudflare.Access.Policy("DearlyOwner", {
+  name: "Dearly owner",
+  decision: "allow",
+  include: ACCESS_OWNER_EMAILS.map((email) => ({ email: { email } })),
+});
+
+const accessApplication = Cloudflare.Access.Application("Dearly", {
+  type: "self_hosted",
+  domain: DEARLY_DOMAIN,
+  policies: [accessPolicy.policyId],
+  sessionDuration: "24h",
+});
 
 export const Worker = Cloudflare.Worker("DearlyWorker", {
   main: "../apps/worker/src/index.ts",
@@ -18,11 +36,8 @@ export const Worker = Cloudflare.Worker("DearlyWorker", {
     DB: Database,
     MEDIA: Bucket,
     APP_ENV,
-    GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET,
-    GITHUB_CLIENT_ID,
-    GITHUB_CLIENT_SECRET,
-    SESSION_SECRET,
+    CF_ACCESS_AUD: accessApplication.aud,
+    CF_ACCESS_TEAM_DOMAIN: ACCESS_TEAM_DOMAIN,
   },
 });
 

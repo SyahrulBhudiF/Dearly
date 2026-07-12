@@ -1,4 +1,3 @@
-import type { Option } from "effect";
 import type { AppConfig } from "./config/env";
 
 export interface AssetBinding {
@@ -36,5 +35,5 @@ export interface DearlyEnv {
 export interface WorkerContext {
   readonly config: AppConfig;
   readonly env: DearlyEnv;
-  readonly sessionId: Option.Option<string>;
+  readonly request: Request;
 }

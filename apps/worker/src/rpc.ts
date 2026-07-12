@@ -1,208 +1,78 @@
-import {
-  BadRequest,
-  CalendarDate,
-  CalendarMonth,
-  CreateMediaUploadPayload,
-  EntryNotFound,
-  MediaNotFound,
-  MediaObjectId,
-  MediaTooLarge,
-  type OwnerSession,
-  SaveEntryPayload,
-  StickerId,
-  Unauthorized,
-  UnsupportedMediaType,
-} from "@dearly/domain";
-import { Effect, Option, Schema } from "effect";
-import { json, notImplemented, type WorkerEffect } from "./libs/http";
+import { EntryNotFound, MediaNotFound, type OwnerSession, Unauthorized } from "@dearly/domain";
+import { DearlyRpc } from "@dearly/rpc";
+import { Effect, Layer, Option } from "effect";
+import * as HttpEffect from "effect/unstable/http/HttpEffect";
+import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { discardServerEntry, getEntryByDate, listMonthEntries, saveEntry } from "./modules/entry";
-import {
-  allowedMediaMimeTypes,
-  createMediaUpload,
-  getMediaObject,
-  maxMediaBytes,
-} from "./modules/media";
+import { createMediaUpload, getMediaObject } from "./modules/media";
 import { getSession } from "./modules/session";
 import { createSticker, deleteStickerFromPicker, listStickers } from "./modules/sticker";
+import type { WorkerEffect } from "./libs/http";
 import type { WorkerContext } from "./types";
 
-export const rpc = (request: Request, context: WorkerContext): WorkerEffect<Response> => {
-  const procedure = new URL(request.url).pathname.slice("/rpc/".length);
+export const rpc = (request: Request, context: WorkerContext) =>
+  Effect.promise(() => HttpEffect.toWebHandler(server(context))(request)).pipe(Effect.orDie);
 
-  switch (procedure) {
-    case "getSession":
-      return getSession(context).pipe(
-        Effect.flatMap(
+const server = (context: WorkerContext) =>
+  Effect.flatten(
+    Effect.provide(
+      RpcServer.toHttpEffect(DearlyRpc),
+      Layer.mergeAll(handlers(context), RpcSerialization.layerNdjson),
+    ),
+  );
+
+const handlers = (context: WorkerContext) =>
+  DearlyRpc.toLayer({
+    getSession: (_payload) =>
+      getSession(context).pipe(
+        Effect.map(
           Option.match({
-            onNone: () => json(200, null),
-            onSome: (session) => json(200, session),
+            onNone: () => null,
+            onSome: (session) => session,
           }),
         ),
-      );
-
-    case "listMonthEntries":
-      return withOwner(context, (owner) =>
-        readJson(request).pipe(
-          Effect.flatMap((body) =>
-            Option.match(
-              Schema.decodeUnknownOption(Schema.Struct({ month: CalendarMonth }))(body),
-              {
-                onNone: badPayload,
-                onSome: ({ month }) =>
-                  listMonthEntries(context, owner, month).pipe(
-                    Effect.flatMap((previews) => json(200, previews)),
-                  ),
-              },
-            ),
-          ),
-        ),
-      );
-
-    case "getEntryByDate":
-      return withOwner(context, (owner) =>
-        readJson(request).pipe(
-          Effect.flatMap((body) =>
-            Option.match(Schema.decodeUnknownOption(Schema.Struct({ date: CalendarDate }))(body), {
-              onNone: badPayload,
-              onSome: ({ date }) =>
-                getEntryByDate(context, owner, date).pipe(
-                  Effect.flatMap(
-                    Option.match({
-                      onNone: () =>
-                        Effect.fail(new EntryNotFound({ date, message: "Entry not found" })),
-                      onSome: (entry) => json(200, entry),
-                    }),
-                  ),
-                ),
+      ),
+    listMonthEntries: ({ month }) =>
+      withOwner(context, (owner) => listMonthEntries(context, owner, month)),
+    getEntryByDate: ({ date }) =>
+      withOwner(context, (owner) =>
+        getEntryByDate(context, owner, date).pipe(
+          Effect.flatMap(
+            Option.match({
+              onNone: () => Effect.fail(new EntryNotFound({ date, message: "Entry not found" })),
+              onSome: Effect.succeed,
             }),
           ),
         ),
-      );
-
-    case "saveEntry":
-      return withOwner(context, (owner) =>
-        readJson(request).pipe(
-          Effect.flatMap((body) =>
-            Option.match(Schema.decodeUnknownOption(SaveEntryPayload)(body), {
-              onNone: badPayload,
-              onSome: (payload) =>
-                saveEntry(context, owner, payload).pipe(
-                  Effect.flatMap((entry) => json(200, entry)),
-                ),
+      ),
+    saveEntry: (payload) => withOwner(context, (owner) => saveEntry(context, owner, payload)),
+    discardServerEntry: ({ date }) =>
+      withOwner(context, (owner) => discardServerEntry(context, owner, date)),
+    createMediaUpload: (payload) =>
+      withOwner(context, (owner) => createMediaUpload(context, owner, payload)),
+    getMediaObject: ({ mediaObjectId }) =>
+      withOwner(context, (owner) =>
+        getMediaObject(context, owner, mediaObjectId).pipe(
+          Effect.flatMap(
+            Option.match({
+              onNone: () =>
+                Effect.fail(new MediaNotFound({ mediaObjectId, message: "Media not found" })),
+              onSome: Effect.succeed,
             }),
           ),
         ),
-      );
+      ),
+    listStickers: () => withOwner(context, (owner) => listStickers(context, owner)),
+    createSticker: ({ mediaObjectId, label }) =>
+      withOwner(context, (owner) => createSticker(context, owner, mediaObjectId, label)),
+    deleteStickerFromPicker: ({ stickerId }) =>
+      withOwner(context, (owner) => deleteStickerFromPicker(context, owner, stickerId)),
+  });
 
-    case "discardServerEntry":
-      return withOwner(context, (owner) =>
-        readJson(request).pipe(
-          Effect.flatMap((body) =>
-            Option.match(Schema.decodeUnknownOption(Schema.Struct({ date: CalendarDate }))(body), {
-              onNone: badPayload,
-              onSome: ({ date }) =>
-                discardServerEntry(context, owner, date).pipe(
-                  Effect.flatMap(() => json(200, null)),
-                ),
-            }),
-          ),
-        ),
-      );
-
-    case "createMediaUpload":
-      return withOwner(context, (owner) =>
-        readJson(request).pipe(
-          Effect.flatMap((body) =>
-            Option.match(Schema.decodeUnknownOption(CreateMediaUploadPayload)(body), {
-              onNone: badPayload,
-              onSome: (payload) =>
-                validateMediaPayload(payload) ??
-                createMediaUpload(context, owner, payload).pipe(
-                  Effect.flatMap((upload) => json(200, upload)),
-                ),
-            }),
-          ),
-        ),
-      );
-
-    case "getMediaObject":
-      return withOwner(context, (owner) =>
-        readJson(request).pipe(
-          Effect.flatMap((body) =>
-            Option.match(
-              Schema.decodeUnknownOption(Schema.Struct({ mediaObjectId: MediaObjectId }))(body),
-              {
-                onNone: badPayload,
-                onSome: ({ mediaObjectId }) =>
-                  getMediaObject(context, owner, mediaObjectId).pipe(
-                    Effect.flatMap(
-                      Option.match({
-                        onNone: () =>
-                          Effect.fail(
-                            new MediaNotFound({ mediaObjectId, message: "Media not found" }),
-                          ),
-                        onSome: (media) => json(200, media),
-                      }),
-                    ),
-                  ),
-              },
-            ),
-          ),
-        ),
-      );
-
-    case "listStickers":
-      return withOwner(context, (owner) =>
-        listStickers(context, owner).pipe(Effect.flatMap((stickers) => json(200, stickers))),
-      );
-
-    case "createSticker":
-      return withOwner(context, (owner) =>
-        readJson(request).pipe(
-          Effect.flatMap((body) =>
-            Option.match(
-              Schema.decodeUnknownOption(
-                Schema.Struct({ mediaObjectId: MediaObjectId, label: Schema.String }),
-              )(body),
-              {
-                onNone: badPayload,
-                onSome: ({ mediaObjectId, label }) =>
-                  createSticker(context, owner, mediaObjectId, label).pipe(
-                    Effect.flatMap((sticker) => json(200, sticker)),
-                  ),
-              },
-            ),
-          ),
-        ),
-      );
-
-    case "deleteStickerFromPicker":
-      return withOwner(context, (owner) =>
-        readJson(request).pipe(
-          Effect.flatMap((body) =>
-            Option.match(
-              Schema.decodeUnknownOption(Schema.Struct({ stickerId: StickerId }))(body),
-              {
-                onNone: badPayload,
-                onSome: ({ stickerId }) =>
-                  deleteStickerFromPicker(context, owner, stickerId).pipe(
-                    Effect.flatMap(() => json(200, null)),
-                  ),
-              },
-            ),
-          ),
-        ),
-      );
-
-    default:
-      return notImplemented(`RPC procedure is not wired yet: ${procedure}`);
-  }
-};
-
-const withOwner = (
+const withOwner = <A>(
   context: WorkerContext,
-  use: (owner: OwnerSession) => WorkerEffect<Response>,
-): WorkerEffect<Response> =>
+  use: (owner: OwnerSession) => WorkerEffect<A>,
+): WorkerEffect<A> =>
   getSession(context).pipe(
     Effect.flatMap(
       Option.match({
@@ -211,30 +81,3 @@ const withOwner = (
       }),
     ),
   );
-
-const readJson = (request: Request): WorkerEffect<unknown> => Effect.promise(() => request.json());
-
-const validateMediaPayload = (payload: Schema.Schema.Type<typeof CreateMediaUploadPayload>) => {
-  if (payload.sizeBytes > maxMediaBytes) {
-    return Effect.fail(
-      new MediaTooLarge({
-        maxBytes: maxMediaBytes,
-        actualBytes: payload.sizeBytes,
-        message: "Media file is too large",
-      }),
-    );
-  }
-
-  if (!allowedMediaMimeTypes.has(payload.mimeType)) {
-    return Effect.fail(
-      new UnsupportedMediaType({
-        mimeType: payload.mimeType,
-        message: "Media MIME type is not allowed",
-      }),
-    );
-  }
-
-  return undefined;
-};
-
-const badPayload = () => Effect.fail(new BadRequest({ message: "Invalid RPC payload" }));

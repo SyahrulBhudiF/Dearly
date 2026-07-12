@@ -22,6 +22,20 @@
       "when": 1783841948270,
       "tag": "0002_square_human_fly",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1783866725699,
+      "tag": "0003_groovy_karnak",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1783867242728,
+      "tag": "0004_public_molecule_man",
+      "breakpoints": true
     }
   ]
 }

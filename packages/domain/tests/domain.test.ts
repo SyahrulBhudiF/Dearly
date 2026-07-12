@@ -30,12 +30,8 @@ describe("domain schemas", () => {
     expect(decoded._tag).toBe("Failure");
   });
 
-  it("rejects malformed owner emails", () => {
-    const decoded = Schema.decodeUnknownResult(OwnerSession)({
-      ownerId: "00000000-0000-4000-8000-000000000001",
-      email: "not-email",
-    });
-
-    expect(decoded._tag).toBe("Failure");
+  it("accepts opaque Cloudflare Access subjects as owner IDs", () => {
+    const decoded = Schema.decodeUnknownResult(OwnerSession)({ ownerId: "access-subject" });
+    expect(decoded._tag).toBe("Success");
   });
 });

@@ -4,21 +4,15 @@ import { getSession } from "../../src/modules/session";
 import { context, ownerId } from "../fakes";
 
 describe("session module", () => {
-  it("returns owner session for a valid cookie", async () => {
+  it("returns the configured development owner", async () => {
     const session = await Effect.runPromise(getSession(context()));
-
-    expect(Option.getOrThrow(session)).toEqual({
-      ownerId,
-      email: "owner@dearly.test",
-      displayName: "Owner",
-    });
+    expect(Option.getOrThrow(session)).toEqual({ ownerId });
   });
 
-  it("returns none for an invalid or absent session", async () => {
-    const invalid = await Effect.runPromise(getSession(context({ hasSession: false })));
-    const absent = await Effect.runPromise(getSession({ ...context(), sessionId: Option.none() }));
-
-    expect(Option.isNone(invalid)).toBe(true);
-    expect(Option.isNone(absent)).toBe(true);
+  it("returns none outside development without a validated Access token", async () => {
+    const session = await Effect.runPromise(
+      getSession({ ...context(), config: { ...context().config, appEnv: "production" } }),
+    );
+    expect(Option.isNone(session)).toBe(true);
   });
 });

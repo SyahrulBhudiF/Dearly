@@ -5,15 +5,12 @@ import { health } from "./health";
 import { notFound, type WorkerEffect } from "./libs/http";
 import { media } from "./media";
 import { rpc } from "./rpc";
-import { sessionIdFromRequest } from "./libs/session";
 import type { DearlyEnv, WorkerContext } from "./types";
 
 export const handleRequestEffect = (request: Request, env: DearlyEnv): WorkerEffect<Response> =>
   loadConfig(env).pipe(
     Effect.orDie,
-    Effect.flatMap((config) =>
-      route(request, { config, env, sessionId: sessionIdFromRequest(request) }),
-    ),
+    Effect.flatMap((config) => route(request, { config, env, request })),
   );
 
 const route = (request: Request, context: WorkerContext): WorkerEffect<Response> => {

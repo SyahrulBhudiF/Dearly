@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 import { handleRequest } from "../src/index";
 import type { AssetBinding } from "../src/types";
-import { authed, fakeDb, fakeR2, mediaId, request } from "./fakes";
+import { fakeDb, fakeR2, mediaId, request } from "./fakes";
 
 describe("worker routes", () => {
   it("returns health JSON", async () => {
@@ -23,7 +23,9 @@ describe("worker routes", () => {
   });
 
   it("serves private media route for the owner", async () => {
-    const response = await handleRequest(request(`/media/${mediaId}`, authed), {
+    const response = await handleRequest(request(`/media/${mediaId}`), {
+      APP_ENV: "test",
+      DEV_OWNER_ID: "development-owner",
       DB: fakeDb(),
       MEDIA: fakeR2(),
     });
