@@ -1,6 +1,8 @@
 import {
   CalendarDate,
   CalendarMonth,
+  CreateMediaUploadPayload,
+  MediaObjectId,
   type OwnerSession,
   SaveEntryPayload,
   Unauthorized,
@@ -8,6 +10,12 @@ import {
 import { Effect, Option, Schema } from "effect";
 import { json, notImplemented, type WorkerEffect } from "./libs/http";
 import { getEntryByDate, listMonthEntries, saveEntry } from "./modules/entry";
+import {
+  allowedMediaMimeTypes,
+  createMediaUpload,
+  getMediaObject,
+  maxMediaBytes,
+} from "./modules/media";
 import { getSession } from "./modules/session";
 import type { WorkerContext } from "./types";
 
@@ -79,6 +87,45 @@ export const rpc = (request: Request, context: WorkerContext): WorkerEffect<Resp
         ),
       );
 
+    case "createMediaUpload":
+      return withOwner(context, (owner) =>
+        readJson(request).pipe(
+          Effect.flatMap((body) =>
+            Option.match(Schema.decodeUnknownOption(CreateMediaUploadPayload)(body), {
+              onNone: badPayload,
+              onSome: (payload) =>
+                validateMediaPayload(payload) ??
+                createMediaUpload(context, owner, payload).pipe(
+                  Effect.flatMap((upload) => json(200, upload)),
+                ),
+            }),
+          ),
+        ),
+      );
+
+    case "getMediaObject":
+      return withOwner(context, (owner) =>
+        readJson(request).pipe(
+          Effect.flatMap((body) =>
+            Option.match(
+              Schema.decodeUnknownOption(Schema.Struct({ mediaObjectId: MediaObjectId }))(body),
+              {
+                onNone: badPayload,
+                onSome: ({ mediaObjectId }) =>
+                  getMediaObject(context, owner, mediaObjectId).pipe(
+                    Effect.flatMap(
+                      Option.match({
+                        onNone: () => json(404, { error: "NotFound", message: "Media not found" }),
+                        onSome: (media) => json(200, media),
+                      }),
+                    ),
+                  ),
+              },
+            ),
+          ),
+        ),
+      );
+
     default:
       return notImplemented(`RPC procedure is not wired yet: ${procedure}`);
   }
@@ -98,5 +145,25 @@ const withOwner = (
   );
 
 const readJson = (request: Request): WorkerEffect<unknown> => Effect.promise(() => request.json());
+
+const validateMediaPayload = (payload: Schema.Schema.Type<typeof CreateMediaUploadPayload>) => {
+  if (payload.sizeBytes > maxMediaBytes) {
+    return json(413, {
+      error: "MediaTooLarge",
+      maxBytes: maxMediaBytes,
+      actualBytes: payload.sizeBytes,
+      message: "Media file is too large",
+    });
+  }
+
+  if (!allowedMediaMimeTypes.has(payload.mimeType)) {
+    return json(415, {
+      error: "UnsupportedMediaType",
+      message: "Media MIME type is not allowed",
+    });
+  }
+
+  return undefined;
+};
 
 const badPayload = () => json(400, { error: "BadRequest", message: "Invalid RPC payload" });

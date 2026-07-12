@@ -21,6 +21,10 @@ const db = () => {
             return params[0] === "session-1" ? [[ownerId, "owner@dearly.test", "Owner"]] : [];
           }
 
+          if (sql.includes('insert into "media_objects"')) {
+            return [[params[0], params[1], params[2], params[3], params[4], params[5], now]];
+          }
+
           if (sql.includes('from "media_objects"')) {
             return [[mediaId, ownerId, "image", "media/image.png", "image/png", 4, now]];
           }
@@ -113,6 +117,42 @@ describe("worker routes", () => {
 
     expect(fetched.status).toBe(200);
     expect(await fetched.json()).toMatchObject({ date: "2026-07-12" });
+  });
+
+  it("creates media upload metadata", async () => {
+    const response = await handleRequest(
+      request("/rpc/createMediaUpload", {
+        ...authed,
+        method: "POST",
+        body: JSON.stringify({ kind: "image", mimeType: "image/png", sizeBytes: 4 }),
+      }),
+      { DB: db() },
+    );
+
+    expect(response.status).toBe(200);
+    const upload = await response.json();
+    expect(upload.r2Key.startsWith(`${ownerId}/`)).toBe(true);
+    expect(upload.uploadUrl.startsWith("/media/")).toBe(true);
+  });
+
+  it("uploads private media through the Worker", async () => {
+    let uploaded: unknown;
+    const response = await handleRequest(
+      request(`/media/${mediaId}`, { ...authed, method: "POST", body: "png" }),
+      {
+        DB: db(),
+        MEDIA: {
+          get: async () => null,
+          put: async (_key, value) => {
+            uploaded = value;
+            return {};
+          },
+        },
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(uploaded).toBeInstanceOf(ReadableStream);
   });
 
   it("serves private media for the owner", async () => {
