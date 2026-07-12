@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 import { handleRequest } from "../src/index";
+import type { AssetBinding, D1Binding } from "../src/types";
 
 const request = (path: string, init?: RequestInit) =>
   new Request(`https://dearly.test${path}`, init);
@@ -15,7 +16,7 @@ const dbWithSession = () =>
         }),
       }),
     }),
-  }) as unknown as D1Database;
+  }) as D1Binding;
 
 describe("worker routes", () => {
   it("returns health JSON", async () => {
@@ -70,7 +71,7 @@ describe("worker routes", () => {
     const response = await handleRequest(request("/"), {
       ASSETS: {
         fetch: async () => new Response("html", { status: 200 }),
-      } as Fetcher,
+      } as AssetBinding,
     });
 
     expect(response.status).toBe(200);

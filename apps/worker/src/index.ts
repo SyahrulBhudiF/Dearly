@@ -10,4 +10,4 @@ export const handleRequest = (request: Request, env: DearlyEnv): Promise<Respons
 
 export default {
   fetch: handleRequest,
-} satisfies ExportedHandler<DearlyEnv>;
+};
