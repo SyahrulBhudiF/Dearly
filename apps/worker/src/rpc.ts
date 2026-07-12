@@ -6,9 +6,10 @@ import {
   Unauthorized,
 } from "@dearly/domain";
 import { Effect, Option, Schema } from "effect";
-import { json, notImplemented, type WorkerEffect } from "../../libs/http";
-import type { WorkerContext } from "../../types";
-import { getEntryByDate, getSession, listMonthEntries, saveEntry } from "./service";
+import { json, notImplemented, type WorkerEffect } from "./libs/http";
+import { getEntryByDate, listMonthEntries, saveEntry } from "./modules/rpc";
+import { getSession } from "./modules/session";
+import type { WorkerContext } from "./types";
 
 export const rpc = (request: Request, context: WorkerContext): WorkerEffect<Response> => {
   const procedure = new URL(request.url).pathname.slice("/rpc/".length);

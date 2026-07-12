@@ -4,53 +4,18 @@ import {
   DiaryEntry,
   EntryPreview,
   type OwnerSession,
-  OwnerSession as OwnerSessionSchema,
   SaveEntryPayload,
 } from "@dearly/domain";
-import { and, between, eq, gt } from "drizzle-orm";
+import { and, between, eq } from "drizzle-orm";
 import { DateTime, Effect, Option, Schema } from "effect";
-import { getDb } from "../../database/client";
-import { diaryEntries, owners, sessions } from "../../database/schema";
-import type { WorkerEffect } from "../../libs/http";
-import type { WorkerContext } from "../../types";
+import { getDb } from "../database/client";
+import { diaryEntries } from "../database/schema";
+import type { WorkerEffect } from "../libs/http";
+import type { WorkerContext } from "../types";
 
 export type EntryPreviewResult = Schema.Schema.Type<typeof EntryPreview>;
 export type DiaryEntryResult = Schema.Schema.Type<typeof DiaryEntry>;
 export type SaveEntryInput = Schema.Schema.Type<typeof SaveEntryPayload>;
-
-export const getSession = (context: WorkerContext): WorkerEffect<Option.Option<OwnerSession>> =>
-  Option.match(context.sessionId, {
-    onNone: () => Effect.succeed(Option.none()),
-    onSome: (sessionId) => {
-      const db = getDb(context);
-      if (db === undefined) {
-        return Effect.succeed(Option.none());
-      }
-
-      return Effect.promise(() =>
-        db
-          .select({
-            ownerId: owners.id,
-            email: owners.email,
-            displayName: owners.displayName,
-          })
-          .from(sessions)
-          .innerJoin(owners, eq(owners.id, sessions.ownerId))
-          .where(and(eq(sessions.id, sessionId), gt(sessions.expiresAt, new Date().toISOString())))
-          .limit(1),
-      ).pipe(
-        Effect.map((rows) =>
-          rows.length === 0
-            ? Option.none()
-            : Schema.decodeUnknownOption(OwnerSessionSchema)({
-                ownerId: rows[0]!.ownerId,
-                email: rows[0]!.email,
-                displayName: rows[0]!.displayName ?? undefined,
-              }),
-        ),
-      );
-    },
-  });
 
 export const listMonthEntries = (
   context: WorkerContext,

@@ -3,6 +3,7 @@ import { handleRequest } from "../src/index";
 import type { AssetBinding, D1Binding } from "../src/types";
 
 const ownerId = "00000000-0000-4000-8000-000000000001";
+const mediaId = "00000000-0000-4000-8000-000000000003";
 const now = "2026-07-12T00:00:00.000Z";
 const document = { version: 1, logicalWidth: 1000, logicalHeight: 1000, elements: [] };
 
@@ -18,6 +19,10 @@ const db = () => {
         raw: async () => {
           if (sql.includes('from "sessions"')) {
             return params[0] === "session-1" ? [[ownerId, "owner@dearly.test", "Owner"]] : [];
+          }
+
+          if (sql.includes('from "media_objects"')) {
+            return [[mediaId, ownerId, "image", "media/image.png", "image/png", 4, now]];
           }
 
           if (sql.includes('insert into "diary_entries"')) {
@@ -108,6 +113,23 @@ describe("worker routes", () => {
 
     expect(fetched.status).toBe(200);
     expect(await fetched.json()).toMatchObject({ date: "2026-07-12" });
+  });
+
+  it("serves private media for the owner", async () => {
+    const response = await handleRequest(request(`/media/${mediaId}`, authed), {
+      DB: db(),
+      MEDIA: {
+        get: async () => ({
+          body: new Response("png").body,
+          arrayBuffer: async () => new TextEncoder().encode("png").buffer,
+        }),
+        put: async () => ({}),
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/png");
+    expect(await response.text()).toBe("png");
   });
 
   it("serves static assets when the binding finds one", async () => {

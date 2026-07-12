@@ -16,9 +16,14 @@ export interface D1Binding {
   readonly prepare: (query: string) => D1PreparedStatement;
 }
 
+export interface R2ObjectBody {
+  readonly body: ReadableStream | null;
+  readonly arrayBuffer: () => Promise<ArrayBuffer>;
+}
+
 export interface R2Binding {
-  readonly get?: (key: string) => Promise<unknown>;
-  readonly put?: (key: string, value: unknown) => Promise<unknown>;
+  readonly get: (key: string) => Promise<R2ObjectBody | null>;
+  readonly put: (key: string, value: unknown) => Promise<unknown>;
 }
 
 export interface DearlyEnv {

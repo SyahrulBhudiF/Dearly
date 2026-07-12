@@ -1,4 +1,4 @@
-import { index, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const owners = sqliteTable("owners", {
   id: text("id").primaryKey(),
@@ -39,6 +39,22 @@ export const sessions = sqliteTable(
   ],
 );
 
+export const mediaObjects = sqliteTable(
+  "media_objects",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => owners.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ["image", "sticker", "thumbnail"] }).notNull(),
+    r2Key: text("r2_key").notNull().unique(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("media_objects_owner_id_idx").on(table.ownerId)],
+);
+
 export const diaryEntries = sqliteTable(
   "diary_entries",
   {
@@ -49,7 +65,9 @@ export const diaryEntries = sqliteTable(
     entryDate: text("entry_date").notNull(),
     documentJson: text("document_json", { mode: "json" }).notNull(),
     previewSnippet: text("preview_snippet"),
-    previewThumbnailMediaObjectId: text("preview_thumbnail_media_object_id"),
+    previewThumbnailMediaObjectId: text("preview_thumbnail_media_object_id").references(
+      () => mediaObjects.id,
+    ),
     updatedAt: text("updated_at").notNull(),
   },
   (table) => [

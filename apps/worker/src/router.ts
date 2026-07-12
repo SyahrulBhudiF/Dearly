@@ -1,10 +1,10 @@
 import { Effect, Option } from "effect";
 import { loadConfig } from "./config/env";
+import { assets } from "./assets";
+import { health } from "./health";
 import { notFound, type WorkerEffect } from "./libs/http";
-import { assets } from "./modules/assets";
-import { health } from "./modules/health";
-import { media } from "./modules/media";
-import { rpc } from "./modules/rpc";
+import { media } from "./media";
+import { rpc } from "./rpc";
 import { sessionIdFromRequest } from "./libs/session";
 import type { DearlyEnv, WorkerContext } from "./types";
 
@@ -28,7 +28,7 @@ const route = (request: Request, context: WorkerContext): WorkerEffect<Response>
   }
 
   if (url.pathname.startsWith("/media")) {
-    return media(context);
+    return media(request, context);
   }
 
   return assets(request, context).pipe(
