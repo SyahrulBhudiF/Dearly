@@ -1,6 +1,6 @@
 import { Config, ConfigProvider } from "effect";
 import type { Config as ConfigDescription } from "effect/Config";
-import type { DearlyEnv } from "./types";
+import type { DearlyEnv } from "../types";
 
 const stringEnv = (env: DearlyEnv): Record<string, string> =>
   Object.fromEntries(
@@ -9,6 +9,7 @@ const stringEnv = (env: DearlyEnv): Record<string, string> =>
 
 export const AppConfig = Config.all({
   appEnv: Config.string("APP_ENV").pipe(Config.withDefault("development")),
+  timeZone: Config.string("TIME_ZONE").pipe(Config.withDefault("Asia/Jakarta")),
   googleClientId: Config.option(Config.string("GOOGLE_CLIENT_ID")),
   googleClientSecret: Config.option(Config.redacted("GOOGLE_CLIENT_SECRET")),
   githubClientId: Config.option(Config.string("GITHUB_CLIENT_ID")),

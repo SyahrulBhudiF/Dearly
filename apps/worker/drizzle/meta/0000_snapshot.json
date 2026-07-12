@@ -1,0 +1,262 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "8a6046fa-3c28-4a2d-bab5-221305a3bb11",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "diary_entries": {
+      "name": "diary_entries",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "entry_date": {
+          "name": "entry_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "document_json": {
+          "name": "document_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "preview_snippet": {
+          "name": "preview_snippet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "preview_thumbnail_media_object_id": {
+          "name": "preview_thumbnail_media_object_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "diary_entries_owner_entry_date_idx": {
+          "name": "diary_entries_owner_entry_date_idx",
+          "columns": ["owner_id", "entry_date"],
+          "isUnique": true
+        },
+        "diary_entries_owner_date_idx": {
+          "name": "diary_entries_owner_date_idx",
+          "columns": ["owner_id", "entry_date"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "diary_entries_owner_id_owners_id_fk": {
+          "name": "diary_entries_owner_id_owners_id_fk",
+          "tableFrom": "diary_entries",
+          "tableTo": "owners",
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "oauth_identities": {
+      "name": "oauth_identities",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider_subject": {
+          "name": "provider_subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "oauth_identities_provider_subject_idx": {
+          "name": "oauth_identities_provider_subject_idx",
+          "columns": ["provider", "provider_subject"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "oauth_identities_owner_id_owners_id_fk": {
+          "name": "oauth_identities_owner_id_owners_id_fk",
+          "tableFrom": "oauth_identities",
+          "tableTo": "owners",
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "owners": {
+      "name": "owners",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "owners_email_unique": {
+          "name": "owners_email_unique",
+          "columns": ["email"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "sessions": {
+      "name": "sessions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "sessions_owner_id_idx": {
+          "name": "sessions_owner_id_idx",
+          "columns": ["owner_id"],
+          "isUnique": false
+        },
+        "sessions_expires_at_idx": {
+          "name": "sessions_expires_at_idx",
+          "columns": ["expires_at"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "sessions_owner_id_owners_id_fk": {
+          "name": "sessions_owner_id_owners_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "owners",
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

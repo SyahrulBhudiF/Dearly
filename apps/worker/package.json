@@ -13,6 +13,10 @@
   "dependencies": {
     "@dearly/domain": "workspace:*",
     "@dearly/rpc": "workspace:*",
+    "drizzle-orm": "^0.45.2",
     "effect": "4.0.0-beta.88"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10"
   }
 }

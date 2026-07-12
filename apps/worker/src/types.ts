@@ -1,5 +1,5 @@
 import type { Option } from "effect";
-import type { AppConfig } from "./config";
+import type { AppConfig } from "./config/env";
 
 export interface AssetBinding {
   readonly fetch: (request: Request) => Promise<Response>;
@@ -8,8 +8,8 @@ export interface AssetBinding {
 export interface D1PreparedStatement {
   readonly bind: (...values: ReadonlyArray<unknown>) => D1PreparedStatement;
   readonly first: <T = unknown>() => Promise<T | null>;
-  readonly run?: () => Promise<unknown>;
-  readonly all?: <T = unknown>() => Promise<{ readonly results: ReadonlyArray<T> }>;
+  readonly run: () => Promise<unknown>;
+  readonly all: <T = unknown>() => Promise<{ readonly results: ReadonlyArray<T> }>;
 }
 
 export interface D1Binding {

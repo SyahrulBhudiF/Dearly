@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect";
-import type { WorkerContext } from "../types";
-import type { WorkerEffect } from "../http";
+import type { WorkerContext } from "../../types";
+import type { WorkerEffect } from "../../libs/http";
 
 export const assets = (
   request: Request,

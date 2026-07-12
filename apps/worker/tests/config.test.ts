@@ -1,12 +1,13 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Effect, Option, Redacted } from "effect";
-import { loadConfig } from "../src/config";
+import { loadConfig } from "../src/config/env";
 
 describe("worker config", () => {
   it("uses safe defaults when optional secrets are absent", async () => {
     const config = await Effect.runPromise(loadConfig({}));
 
     expect(config.appEnv).toBe("development");
+    expect(config.timeZone).toBe("Asia/Jakarta");
     expect(Option.isNone(config.sessionSecret)).toBe(true);
   });
 

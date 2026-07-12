@@ -1,11 +1,11 @@
 import { Effect, Option } from "effect";
-import { loadConfig } from "./config";
-import { notFound, type WorkerEffect } from "./http";
-import { assets } from "./routes/assets";
-import { health } from "./routes/health";
-import { media } from "./routes/media";
-import { rpc } from "./routes/rpc";
-import { sessionIdFromRequest } from "./session";
+import { loadConfig } from "./config/env";
+import { notFound, type WorkerEffect } from "./libs/http";
+import { assets } from "./modules/assets";
+import { health } from "./modules/health";
+import { media } from "./modules/media";
+import { rpc } from "./modules/rpc";
+import { sessionIdFromRequest } from "./libs/session";
 import type { DearlyEnv, WorkerContext } from "./types";
 
 export const handleRequestEffect = (request: Request, env: DearlyEnv): WorkerEffect<Response> =>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Option } from "effect";
-import { clearSessionCookie, sessionCookie, sessionIdFromRequest } from "../src/session";
+import { clearSessionCookie, sessionCookie, sessionIdFromRequest } from "../src/libs/session";
 
 describe("session cookies", () => {
   it("reads the Dearly session cookie", () => {
