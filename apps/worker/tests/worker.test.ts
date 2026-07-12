@@ -36,6 +36,6 @@ describe("worker routes", () => {
     const response = await handleRequest(request("/missing"), {});
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: "NotFound", message: "Route not found" });
+    expect(await response.json()).toEqual({ _tag: "NotFound", message: "Route not found" });
   });
 });

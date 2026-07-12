@@ -1,12 +1,17 @@
 import {
+  BadRequest,
   CalendarDate,
   CalendarMonth,
   CreateMediaUploadPayload,
+  EntryNotFound,
+  MediaNotFound,
   MediaObjectId,
+  MediaTooLarge,
   type OwnerSession,
   SaveEntryPayload,
   StickerId,
   Unauthorized,
+  UnsupportedMediaType,
 } from "@dearly/domain";
 import { Effect, Option, Schema } from "effect";
 import { json, notImplemented, type WorkerEffect } from "./libs/http";
@@ -64,7 +69,7 @@ export const rpc = (request: Request, context: WorkerContext): WorkerEffect<Resp
                   Effect.flatMap(
                     Option.match({
                       onNone: () =>
-                        json(404, { error: "EntryNotFound", date, message: "Entry not found" }),
+                        Effect.fail(new EntryNotFound({ date, message: "Entry not found" })),
                       onSome: (entry) => json(200, entry),
                     }),
                   ),
@@ -132,7 +137,10 @@ export const rpc = (request: Request, context: WorkerContext): WorkerEffect<Resp
                   getMediaObject(context, owner, mediaObjectId).pipe(
                     Effect.flatMap(
                       Option.match({
-                        onNone: () => json(404, { error: "NotFound", message: "Media not found" }),
+                        onNone: () =>
+                          Effect.fail(
+                            new MediaNotFound({ mediaObjectId, message: "Media not found" }),
+                          ),
                         onSome: (media) => json(200, media),
                       }),
                     ),
@@ -198,7 +206,7 @@ const withOwner = (
   getSession(context).pipe(
     Effect.flatMap(
       Option.match({
-        onNone: () => json(401, new Unauthorized({ message: "Owner session is required" })),
+        onNone: () => Effect.fail(new Unauthorized({ message: "Owner session is required" })),
         onSome: use,
       }),
     ),
@@ -208,22 +216,25 @@ const readJson = (request: Request): WorkerEffect<unknown> => Effect.promise(() 
 
 const validateMediaPayload = (payload: Schema.Schema.Type<typeof CreateMediaUploadPayload>) => {
   if (payload.sizeBytes > maxMediaBytes) {
-    return json(413, {
-      error: "MediaTooLarge",
-      maxBytes: maxMediaBytes,
-      actualBytes: payload.sizeBytes,
-      message: "Media file is too large",
-    });
+    return Effect.fail(
+      new MediaTooLarge({
+        maxBytes: maxMediaBytes,
+        actualBytes: payload.sizeBytes,
+        message: "Media file is too large",
+      }),
+    );
   }
 
   if (!allowedMediaMimeTypes.has(payload.mimeType)) {
-    return json(415, {
-      error: "UnsupportedMediaType",
-      message: "Media MIME type is not allowed",
-    });
+    return Effect.fail(
+      new UnsupportedMediaType({
+        mimeType: payload.mimeType,
+        message: "Media MIME type is not allowed",
+      }),
+    );
   }
 
   return undefined;
 };
 
-const badPayload = () => json(400, { error: "BadRequest", message: "Invalid RPC payload" });
+const badPayload = () => Effect.fail(new BadRequest({ message: "Invalid RPC payload" }));

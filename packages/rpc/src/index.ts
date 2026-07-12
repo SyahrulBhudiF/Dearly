@@ -1,28 +1,38 @@
 import {
   CalendarDate,
+  BadRequest,
   CalendarMonth,
   CreateMediaUploadPayload,
   DiaryEntry,
   DraftConflict,
   EntryNotFound,
   EntryPreview,
+  MediaNotFound,
   MediaObject,
   MediaObjectId,
   MediaTooLarge,
   MediaUpload,
   OwnerSession,
   SaveEntryPayload,
+  NotFound,
   Sticker,
   StickerId,
+  StickerNotFound,
   Unauthorized,
+  UnsupportedMediaType,
 } from "@dearly/domain";
 import { Rpc, RpcGroup } from "effect/unstable/rpc";
 import { Schema } from "effect";
 
 export const DearlyErrors = Schema.Union([
   Unauthorized,
+  BadRequest,
+  NotFound,
   EntryNotFound,
+  MediaNotFound,
+  StickerNotFound,
   MediaTooLarge,
+  UnsupportedMediaType,
   DraftConflict,
 ]);
 

@@ -2,7 +2,9 @@ import {
   CreateMediaUploadPayload,
   MediaObject,
   type MediaObjectId,
+  MediaTooLarge,
   MediaUpload,
+  UnsupportedMediaType,
   type OwnerSession,
 } from "@dearly/domain";
 import { and, eq } from "drizzle-orm";
@@ -37,10 +39,21 @@ export const createMediaUpload = (
   payload: CreateMediaInput,
 ): WorkerEffect<MediaUploadResult> => {
   if (payload.sizeBytes > maxMediaBytes) {
-    return Effect.die(new Error("Media file is too large"));
+    return Effect.fail(
+      new MediaTooLarge({
+        maxBytes: maxMediaBytes,
+        actualBytes: payload.sizeBytes,
+        message: "Media file is too large",
+      }),
+    );
   }
   if (!allowedMediaMimeTypes.has(payload.mimeType)) {
-    return Effect.die(new Error("Media MIME type is not allowed"));
+    return Effect.fail(
+      new UnsupportedMediaType({
+        mimeType: payload.mimeType,
+        message: "Media MIME type is not allowed",
+      }),
+    );
   }
 
   const db = getDb(context);
