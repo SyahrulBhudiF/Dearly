@@ -47,7 +47,7 @@ export const CanvasItem = (
       }),
       h.OnClick(SelectedCanvasElement({ id: element.id })),
       h.Class(
-        `cursor-move touch-none ${isSelected ? "ring-2 ring-wine ring-offset-2 ring-offset-canvas" : ""}`,
+        `cursor-move touch-none ${isSelected ? "z-10 outline-2 -outline-offset-2 outline-wine" : ""}`,
       ),
     ],
     [
@@ -106,7 +106,7 @@ export const CanvasItem = (
 
 const canvasControls = (h: HtmlFactory) =>
   h.div(
-    [h.Class("absolute -top-11 left-0 flex gap-1 border border-line bg-paper p-1")],
+    [h.Class("absolute -top-11 left-0 z-20 flex gap-1 border border-line bg-paper p-1")],
     [
       controlButton(h, "Rotate", RotateCw, RotatedCanvasElement({ degrees: 15 })),
       controlButton(
