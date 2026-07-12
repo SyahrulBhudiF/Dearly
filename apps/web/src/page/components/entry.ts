@@ -64,29 +64,17 @@ export const toolRail = (h: HtmlFactory) =>
       ["T", "Text"],
       ["✦", "Sticker"],
       ["↗", "Move"],
-    ]
-      .map(([symbol, label]) =>
-        h.button(
-          [
-            h.AriaLabel(label!),
-            h.Class(
-              "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
-            ),
-          ],
-          [symbol!],
-        ),
-      )
-      .concat([
-        h.input([
-          h.Type("file"),
-          h.Accept("image/jpeg,image/png,image/webp,image/gif"),
-          h.OnFileChange((files) => SelectedImage({ file: files[0]! })),
-          h.AriaLabel("Add image"),
+    ].map(([symbol, label]) =>
+      h.button(
+        [
+          h.AriaLabel(label!),
           h.Class(
-            "block w-28 text-[10px] text-muted file:mr-2 file:border file:border-line file:bg-paper file:px-2 file:py-2 file:font-note file:text-[9px] file:tracking-[.1em] file:text-ink file:uppercase hover:file:border-wine sm:w-auto lg:w-28",
+            "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
           ),
-        ]),
-      ]),
+        ],
+        [symbol!],
+      ),
+    ),
   );
 
 export const canvasShell = (
@@ -110,6 +98,37 @@ export const canvasShell = (
         ],
         [],
       ),
+      imageMediaObjectId === null
+        ? h.div(
+            [
+              h.AllowDrop(),
+              h.OnDropFiles((files) => SelectedImage({ file: files[0]! })),
+              h.Class(
+                "relative mb-6 flex min-h-28 max-w-lg items-center justify-center border border-dashed border-line px-4 py-5 text-center transition-colors hover:border-wine",
+              ),
+            ],
+            [
+              h.label(
+                [
+                  h.Class(
+                    "cursor-pointer font-note text-[10px] tracking-[.1em] text-muted uppercase",
+                  ),
+                ],
+                [
+                  "Drop an image here or ",
+                  h.span([h.Class("text-wine")], ["choose a file"]),
+                  h.input([
+                    h.Type("file"),
+                    h.Accept("image/jpeg,image/png,image/webp,image/gif"),
+                    h.OnFileChange((files) => SelectedImage({ file: files[0]! })),
+                    h.AriaLabel("Add entry image"),
+                    h.Class("sr-only"),
+                  ]),
+                ],
+              ),
+            ],
+          )
+        : null,
       imageMediaObjectId === null
         ? null
         : h.img([
