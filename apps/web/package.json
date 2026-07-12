@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "vitest run --environment happy-dom"
   },
   "dependencies": {
     "@dearly/domain": "workspace:*",
@@ -23,7 +24,9 @@
   },
   "devDependencies": {
     "@foldkit/vite-plugin": "^0.10.0",
+    "happy-dom": "^20.10.6",
     "typescript": "7.0.2",
-    "vite": "8.1.4"
+    "vite": "8.1.4",
+    "vitest": "^4.1.10"
   }
 }

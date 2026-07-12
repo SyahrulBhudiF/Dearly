@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { FileDrop } from "@foldkit/ui";
+import { FileDrop, Popover } from "@foldkit/ui";
 import { CalendarDate, CanvasElement, EntryPreview, OwnerSession, Sticker } from "@dearly/domain";
 import { today } from "../libs/date";
 import { CalendarRoute, EntryRoute, NotFoundRoute, type AppRoute } from "./route";
@@ -28,7 +28,7 @@ export const Model = Schema.Struct({
       height: Schema.Number,
     }),
   ),
-  stickerPickerOpen: Schema.Boolean,
+  stickerPopover: Popover.Model,
   fileDrop: FileDrop.Model,
   uploadState: Schema.Literals(["idle", "uploading", "failed"]),
   saveState: Schema.Literals(["idle", "saving", "failed"]),
@@ -50,7 +50,7 @@ export const initialModel = (route: AppRoute): Model => {
     elements: [],
     stickers: [],
     resizing: null,
-    stickerPickerOpen: false,
+    stickerPopover: Popover.init({ id: "sticker-picker" }),
     fileDrop: FileDrop.init({ id: "entry-media" }),
     uploadState: "idle",
     saveState: "idle",

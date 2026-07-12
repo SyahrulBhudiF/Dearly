@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { FileDrop } from "@foldkit/ui";
+import { FileDrop, Popover } from "@foldkit/ui";
 import { DiaryEntry, EntryPreview, MediaObjectId, OwnerSession, Sticker } from "@dearly/domain";
 import { File } from "foldkit/file";
 import { Message } from "foldkit";
@@ -22,7 +22,9 @@ export const StoredDraft = Message.m("StoredDraft");
 export const SelectedImage = Message.m("SelectedImage", { file: File });
 export const UploadedImage = Message.m("UploadedImage", { mediaObjectId: MediaObjectId });
 export const FailedToUploadImage = Message.m("FailedToUploadImage");
-export const ToggledStickerPicker = Message.m("ToggledStickerPicker");
+export const GotStickerPopoverMessage = Message.m("GotStickerPopoverMessage", {
+  message: Popover.Message,
+});
 export const LoadedStickers = Message.m("LoadedStickers", { stickers: Schema.Array(Sticker) });
 export const SelectedSticker = Message.m("SelectedSticker", { sticker: Sticker });
 export const MovedCanvasElement = Message.m("MovedCanvasElement", {
@@ -62,7 +64,7 @@ export const AppMessage = Schema.Union([
   SelectedImage,
   UploadedImage,
   FailedToUploadImage,
-  ToggledStickerPicker,
+  GotStickerPopoverMessage,
   LoadedStickers,
   SelectedSticker,
   MovedCanvasElement,

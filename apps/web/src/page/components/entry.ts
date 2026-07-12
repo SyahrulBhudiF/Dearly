@@ -1,5 +1,5 @@
 import { Html } from "foldkit";
-import { Button, FileDrop, Textarea } from "@foldkit/ui";
+import { Button, FileDrop, Popover, Textarea } from "@foldkit/ui";
 import { ArrowLeft, ArrowUpRight, Sparkles, Type } from "lucide";
 import { Option } from "effect";
 import type { CanvasElement, Sticker } from "@dearly/domain";
@@ -11,11 +11,11 @@ import {
   DiscardedDraft,
   FinishedResize,
   GotFileDropMessage,
+  GotStickerPopoverMessage,
   ResizedCanvasElement,
   SaveRequested,
   StartedResize,
   SelectedSticker,
-  ToggledStickerPicker,
 } from "../../core/message";
 import { CalendarRoute } from "../../core/route";
 import { dateLabel, weekdayLabel } from "../../libs/date";
@@ -78,57 +78,76 @@ export const entryHeader = (
 
 export const toolRail = (
   h: HtmlFactory,
-  stickerPickerOpen: boolean,
+  stickerPopover: Popover.Model,
   stickers: ReadonlyArray<Sticker>,
 ) =>
   h.nav(
     [h.Class("flex gap-2 lg:flex-col")],
     [
       toolButton(h, "Text", icon(h, Type, "Text")),
-      Button.view<AppMessage>({
-        onClick: ToggledStickerPicker(),
-        toView: ({ button }) =>
-          h.button(
-            [
-              ...button,
-              h.AriaLabel("Sticker"),
-              h.AriaExpanded(stickerPickerOpen),
-              h.Class(
-                "grid size-11 place-items-center rounded-full border border-line bg-paper hover:border-wine hover:text-wine",
-              ),
-            ],
-            [icon(h, Sparkles, "Sticker")],
-          ),
-      }),
-      stickerPickerOpen
-        ? h.div(
-            [
-              h.Class(
-                "absolute z-10 mt-14 grid grid-cols-2 gap-2 border border-line bg-paper p-2 sm:grid-cols-3",
-              ),
-            ],
-            stickers.map((sticker) =>
-              Button.view<AppMessage>({
-                onClick: SelectedSticker({ sticker }),
-                toView: ({ button }) =>
-                  h.button(
-                    [
-                      ...button,
-                      h.AriaLabel(`Add ${sticker.label}`),
-                      h.Class("size-11 overflow-hidden border border-line hover:border-wine"),
-                    ],
-                    [
-                      h.img([
-                        h.Src(`/media/${sticker.mediaObjectId}`),
-                        h.Alt(sticker.label),
-                        h.Class("size-full object-cover"),
-                      ]),
-                    ],
-                  ),
-              }),
+      h.submodel({
+        slotId: "sticker-picker",
+        model: stickerPopover,
+        view: Popover.view,
+        toParentMessage: (message) => GotStickerPopoverMessage({ message }),
+        viewInputs: {
+          anchor: { placement: "right-start", gap: 8 },
+          ariaLabel: "Choose sticker",
+          toView: ({ button, panel, backdrop, isVisible }) =>
+            h.div(
+              [],
+              [
+                h.button(
+                  [
+                    ...button,
+                    h.Class(
+                      "grid size-11 place-items-center rounded-full border border-line bg-paper hover:border-wine hover:text-wine",
+                    ),
+                  ],
+                  [icon(h, Sparkles, "Sticker")],
+                ),
+                isVisible
+                  ? h.div(
+                      [],
+                      [
+                        h.div([...backdrop, h.Class("fixed inset-0 z-10")], []),
+                        h.div(
+                          [
+                            ...panel,
+                            h.Class(
+                              "z-20 grid grid-cols-2 gap-2 border border-line bg-paper p-2 sm:grid-cols-3",
+                            ),
+                          ],
+                          stickers.map((sticker) =>
+                            Button.view<AppMessage>({
+                              onClick: SelectedSticker({ sticker }),
+                              toView: ({ button }) =>
+                                h.button(
+                                  [
+                                    ...button,
+                                    h.AriaLabel(`Add ${sticker.label}`),
+                                    h.Class(
+                                      "size-11 overflow-hidden border border-line hover:border-wine",
+                                    ),
+                                  ],
+                                  [
+                                    h.img([
+                                      h.Src(`/media/${sticker.mediaObjectId}`),
+                                      h.Alt(sticker.label),
+                                      h.Class("size-full object-cover"),
+                                    ]),
+                                  ],
+                                ),
+                            }),
+                          ),
+                        ),
+                      ],
+                    )
+                  : null,
+              ],
             ),
-          )
-        : null,
+        },
+      }),
       toolButton(h, "Move", icon(h, ArrowUpRight, "Move")),
     ],
   );

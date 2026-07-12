@@ -1,7 +1,7 @@
 import { Match, Option } from "effect";
-import { FileDrop } from "@foldkit/ui";
+import { FileDrop, Popover } from "@foldkit/ui";
 import type { CanvasElement, DiaryEntry } from "@dearly/domain";
-import type { Command } from "foldkit";
+import { Command } from "foldkit";
 import {
   loadDraft,
   loadEntries,
@@ -13,7 +13,7 @@ import {
   storeDraft,
   uploadImage,
 } from "./command";
-import { ChangedRoute, type AppMessage } from "./message";
+import { ChangedRoute, GotStickerPopoverMessage, type AppMessage } from "./message";
 import type { Model } from "./model";
 import { EntryRoute } from "./route";
 
@@ -51,7 +51,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             localDraft: null,
             elements: [],
             resizing: null,
-            stickerPickerOpen: false,
+            stickerPopover: Popover.init({ id: "sticker-picker" }),
             fileDrop: FileDrop.init({ id: "entry-media" }),
             uploadState: "idle",
             saveState: "idle",
@@ -90,10 +90,13 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         [],
       ],
       StoredDraft: (): UpdateResult => [model, []],
-      ToggledStickerPicker: (): UpdateResult => [
-        { ...model, stickerPickerOpen: !model.stickerPickerOpen },
-        [],
-      ],
+      GotStickerPopoverMessage: ({ message: popoverMessage }): UpdateResult => {
+        const [stickerPopover, commands] = Popover.update(model.stickerPopover, popoverMessage);
+        return [
+          { ...model, stickerPopover },
+          Command.mapMessages(commands, (message) => GotStickerPopoverMessage({ message })),
+        ];
+      },
       LoadedStickers: ({ stickers }): UpdateResult => [{ ...model, stickers }, []],
       SelectedSticker: ({ sticker }): UpdateResult => [
         {
@@ -115,7 +118,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
               layer: model.elements.length,
             },
           ],
-          stickerPickerOpen: false,
+          stickerPopover: Popover.close(model.stickerPopover)[0],
         },
         [],
       ],

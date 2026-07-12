@@ -23,6 +23,7 @@ export const monthHeader = (h: HtmlFactory, month: string) => {
           h.button(
             [
               ...button,
+              h.AriaLabel("Previous month"),
               h.Class("flex items-center gap-1 font-note text-xs text-muted hover:text-wine"),
             ],
             [icon(h, ArrowLeft, "Previous month"), "PREV"],
@@ -35,6 +36,7 @@ export const monthHeader = (h: HtmlFactory, month: string) => {
           h.button(
             [
               ...button,
+              h.AriaLabel("Next month"),
               h.Class("flex items-center gap-1 font-note text-xs text-muted hover:text-wine"),
             ],
             ["NEXT", icon(h, ArrowRight, "Next month")],
