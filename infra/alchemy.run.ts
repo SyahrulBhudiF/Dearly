@@ -16,36 +16,6 @@ const ACCESS_OWNER_EMAILS = Config.string("CF_ACCESS_OWNER_EMAILS").pipe(
 );
 const DEARLY_DOMAIN = Config.string("DEARLY_DOMAIN");
 
-const accessPolicy = Cloudflare.Access.Policy("DearlyOwner", {
-  name: "Dearly owner",
-  decision: "allow",
-  include: ACCESS_OWNER_EMAILS.pipe(
-    Config.map((emails) => emails.map((email) => ({ email: { email } }))),
-  ),
-});
-
-const accessApplication = Cloudflare.Access.Application("Dearly", {
-  type: "self_hosted",
-  domain: DEARLY_DOMAIN,
-  policies: [accessPolicy.policyId],
-  sessionDuration: "24h",
-});
-
-export const Worker = Cloudflare.Worker("DearlyWorker", {
-  main: "../apps/worker/src/index.ts",
-  assets: "../apps/web/dist",
-  compatibility: { flags: ["nodejs_compat"] },
-  env: {
-    DB: Database,
-    MEDIA: Bucket,
-    APP_ENV,
-    CF_ACCESS_AUD: accessApplication.aud,
-    CF_ACCESS_TEAM_DOMAIN: ACCESS_TEAM_DOMAIN,
-  },
-});
-
-export type WorkerEnv = Cloudflare.InferEnv<typeof Worker>;
-
 export default Alchemy.Stack(
   "Dearly",
   {
@@ -53,7 +23,31 @@ export default Alchemy.Stack(
     state: Cloudflare.state(),
   },
   Effect.gen(function* () {
-    const worker = yield* Worker;
+    const accessPolicy = yield* Cloudflare.Access.Policy("DearlyOwner", {
+      name: "Dearly owner",
+      decision: "allow",
+      include: yield* ACCESS_OWNER_EMAILS.pipe(
+        Config.map((emails) => emails.map((email) => ({ email: { email } }))),
+      ),
+    });
+    const accessApplication = yield* Cloudflare.Access.Application("Dearly", {
+      type: "self_hosted",
+      domain: yield* DEARLY_DOMAIN,
+      policies: [accessPolicy.policyId],
+      sessionDuration: "24h",
+    });
+    const worker = yield* Cloudflare.Worker("DearlyWorker", {
+      main: "../apps/worker/src/index.ts",
+      assets: "../apps/web/dist",
+      compatibility: { flags: ["nodejs_compat"] },
+      env: {
+        DB: Database,
+        MEDIA: Bucket,
+        APP_ENV,
+        CF_ACCESS_AUD: accessApplication.aud,
+        CF_ACCESS_TEAM_DOMAIN: ACCESS_TEAM_DOMAIN,
+      },
+    });
     return { url: worker.url };
   }),
 );
