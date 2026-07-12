@@ -1,10 +1,10 @@
 import { Scene } from "foldkit";
 import { test } from "vitest";
-import { initialModel } from "./core/model";
-import { CalendarRoute } from "./core/route";
-import { loadEntries } from "./core/command";
-import { update } from "./core/update";
-import { view } from "./view";
+import { loadEntries } from "../../src/core/command";
+import { initialModel } from "../../src/core/model";
+import { CalendarRoute } from "../../src/core/route";
+import { update } from "../../src/core/update";
+import { view } from "../../src/view";
 
 test("calendar month controls render and navigate", () => {
   Scene.scene(

@@ -1,9 +1,9 @@
 import { Story } from "foldkit";
 import { expect, test } from "vitest";
-import { initialModel } from "./model";
-import { UploadedImage } from "./message";
-import { CalendarRoute } from "./route";
-import { update } from "./update";
+import { initialModel } from "../../src/core/model";
+import { UploadedImage } from "../../src/core/message";
+import { CalendarRoute } from "../../src/core/route";
+import { update } from "../../src/core/update";
 
 const model = initialModel(CalendarRoute());
 
