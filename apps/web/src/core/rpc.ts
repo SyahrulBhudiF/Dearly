@@ -11,14 +11,23 @@ const RpcClientLive = RpcClient.layerProtocolHttp({ url: "/rpc" }).pipe(
 
 const client = Effect.gen(function* () {
   return yield* RpcClient.make(DearlyRpc);
-}).pipe(Effect.scoped, Effect.provide(RpcClientLive));
+}).pipe(Effect.provide(RpcClientLive));
 
-export const getSession = client.pipe(Effect.flatMap((rpc) => rpc.getSession()));
+export const getSession = client.pipe(
+  Effect.flatMap((rpc) => rpc.getSession()),
+  Effect.scoped,
+);
 
 export const listMonthEntries = (month: string) =>
-  client.pipe(Effect.flatMap((rpc) => rpc.listMonthEntries({ month: month as never })));
+  client.pipe(
+    Effect.flatMap((rpc) => rpc.listMonthEntries({ month: month as never })),
+    Effect.scoped,
+  );
 
-export const listStickers = client.pipe(Effect.flatMap((rpc) => rpc.listStickers()));
+export const listStickers = client.pipe(
+  Effect.flatMap((rpc) => rpc.listStickers()),
+  Effect.scoped,
+);
 
 export const uploadImage = (file: File) =>
   client.pipe(
@@ -40,10 +49,14 @@ export const uploadImage = (file: File) =>
         Effect.as(upload.mediaObjectId),
       ),
     ),
+    Effect.scoped,
   );
 
 export const getEntryByDate = (date: string) =>
-  client.pipe(Effect.flatMap((rpc) => rpc.getEntryByDate({ date: date as never })));
+  client.pipe(
+    Effect.flatMap((rpc) => rpc.getEntryByDate({ date: date as never })),
+    Effect.scoped,
+  );
 
 export const saveEntry = (date: string, text: string, elements: ReadonlyArray<CanvasElement>) =>
   client.pipe(
@@ -64,4 +77,5 @@ export const saveEntry = (date: string, text: string, elements: ReadonlyArray<Ca
         },
       }),
     ),
+    Effect.scoped,
   );
