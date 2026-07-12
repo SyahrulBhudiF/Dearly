@@ -12,7 +12,7 @@ export const entryHeader = (
   saveState: "idle" | "saving" | "failed",
 ) =>
   h.div(
-    [h.Class("mb-8 flex items-end justify-between gap-4")],
+    [h.Class("mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between")],
     [
       h.div(
         [],
@@ -74,7 +74,11 @@ export const toolRail = (h: HtmlFactory) =>
 
 export const canvasShell = (h: HtmlFactory, text: string) =>
   h.div(
-    [h.Class("relative min-h-[60vh] overflow-hidden border border-line bg-[#fbf8f0] p-7 sm:p-12")],
+    [
+      h.Class(
+        "relative min-h-[55vh] overflow-hidden border border-line bg-canvas p-5 sm:min-h-[60vh] sm:p-12",
+      ),
+    ],
     [
       h.div(
         [
@@ -91,7 +95,7 @@ export const canvasShell = (h: HtmlFactory, text: string) =>
           h.Placeholder("What deserves a place on this page?"),
           h.Rows(14),
           h.Class(
-            "relative block w-full max-w-xl resize-none bg-transparent font-display text-3xl leading-tight placeholder:text-muted/70 focus:outline-none",
+            "relative block w-full max-w-xl resize-none bg-transparent font-display text-2xl leading-tight placeholder:text-muted/70 focus:outline-none sm:text-3xl",
           ),
           h.AriaLabel("Diary entry"),
         ],

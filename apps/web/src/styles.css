@@ -6,6 +6,7 @@
   --font-body: "Libre Franklin", sans-serif;
   --font-note: "DM Mono", monospace;
   --color-paper: #f5f0e6;
+  --color-canvas: #fbf8f0;
   --color-ink: #25221c;
   --color-muted: #746d61;
   --color-line: #d7cec0;
@@ -28,6 +29,7 @@
   body {
     margin: 0;
     min-width: 320px;
+    overflow-x: hidden;
   }
   button,
   input,

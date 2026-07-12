@@ -15,6 +15,8 @@ export const SaveRequested = Message.m("SaveRequested");
 export const SavedEntry = Message.m("SavedEntry", { entry: DiaryEntry });
 export const FailedToSave = Message.m("FailedToSave");
 export const DiscardedDraft = Message.m("DiscardedDraft");
+export const LoadedDraft = Message.m("LoadedDraft", { text: Schema.NullOr(Schema.String) });
+export const StoredDraft = Message.m("StoredDraft");
 
 export const AppMessage = Schema.Union([
   ChangedRoute,
@@ -29,5 +31,7 @@ export const AppMessage = Schema.Union([
   SavedEntry,
   FailedToSave,
   DiscardedDraft,
+  LoadedDraft,
+  StoredDraft,
 ]);
 export type AppMessage = Schema.Schema.Type<typeof AppMessage>;

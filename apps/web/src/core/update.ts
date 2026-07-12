@@ -1,7 +1,15 @@
 import { Match } from "effect";
 import type { DiaryEntry } from "@dearly/domain";
 import type { Command } from "foldkit";
-import { loadEntries, loadEntry, loadSession, saveEntry } from "./command";
+import {
+  loadDraft,
+  loadEntries,
+  loadEntry,
+  loadSession,
+  removeDraft,
+  saveEntry,
+  storeDraft,
+} from "./command";
 import { ChangedRoute, type AppMessage } from "./message";
 import type { Model } from "./model";
 import { EntryRoute } from "./route";
@@ -13,7 +21,9 @@ export const init = (model: Model): UpdateResult => [
   [
     loadSession(),
     loadEntries({ month: model.month }),
-    ...(model.route._tag === "EntryRoute" ? [loadEntry({ date: model.selectedDate })] : []),
+    ...(model.route._tag === "EntryRoute"
+      ? [loadEntry({ date: model.selectedDate }), loadDraft({ date: model.selectedDate })]
+      : []),
   ],
 ];
 
@@ -28,7 +38,11 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         const month = selectedDate.slice(0, 7);
         return [
           { ...model, route, selectedDate, month, entryText: "", savedText: "", saveState: "idle" },
-          [loadEntries({ month }), loadEntry({ date: selectedDate })],
+          [
+            loadEntries({ month }),
+            loadEntry({ date: selectedDate }),
+            loadDraft({ date: selectedDate }),
+          ],
         ];
       },
       SelectedDate: ({ date }): UpdateResult =>
@@ -41,12 +55,17 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       LoadedEntries: ({ entries }): UpdateResult => [{ ...model, entries, loadState: "idle" }, []],
       LoadedEntry: ({ entry }): UpdateResult => {
         const text = entry === null ? "" : entryText(entry);
-        return [{ ...model, entryText: text, savedText: text, saveState: "idle" }, []];
+        return [{ ...model, savedText: text, saveState: "idle" }, []];
       },
+      LoadedDraft: ({ text }): UpdateResult =>
+        text === null
+          ? [{ ...model, entryText: model.savedText }, []]
+          : [{ ...model, entryText: text }, []],
+      StoredDraft: (): UpdateResult => [model, []],
       FailedToLoad: (): UpdateResult => [{ ...model, loadState: "failed" }, []],
       ChangedText: ({ text }): UpdateResult => [
         { ...model, entryText: text, saveState: "idle" },
-        [],
+        [storeDraft({ date: model.selectedDate, text })],
       ],
       SaveRequested: (): UpdateResult => [
         { ...model, saveState: "saving" },
@@ -54,12 +73,12 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       ],
       SavedEntry: ({ entry }): UpdateResult => [
         { ...model, savedText: model.entryText, saveState: "idle" },
-        [loadEntries({ month: entry.date.slice(0, 7) })],
+        [loadEntries({ month: entry.date.slice(0, 7) }), removeDraft({ date: model.selectedDate })],
       ],
       FailedToSave: (): UpdateResult => [{ ...model, saveState: "failed" }, []],
       DiscardedDraft: (): UpdateResult => [
         { ...model, entryText: model.savedText, saveState: "idle" },
-        [],
+        [removeDraft({ date: model.selectedDate })],
       ],
     }),
   );
