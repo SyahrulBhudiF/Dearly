@@ -33,12 +33,18 @@ export const entryPage = (model: Model): Html.Document => {
         h.section(
           [h.Class("mx-auto grid max-w-6xl gap-8 py-10 lg:grid-cols-[72px_minmax(0,1fr)]")],
           [
-            toolRail(h),
+            toolRail(h, model.stickerPickerOpen, model.stickers),
             h.div(
               [],
               [
                 entryHeader(h, model.selectedDate, model.saveState),
-                canvasShell(h, model.entryText, model.imageMediaObjectId, model.uploadState),
+                canvasShell(
+                  h,
+                  model.entryText,
+                  model.imageMediaObjectId,
+                  model.stickerMediaObjectId,
+                  model.uploadState,
+                ),
               ],
             ),
           ],

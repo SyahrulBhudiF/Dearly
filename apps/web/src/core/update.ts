@@ -6,6 +6,7 @@ import {
   loadEntries,
   loadEntry,
   loadSession,
+  loadStickers,
   removeDraft,
   saveEntry,
   storeDraft,
@@ -22,6 +23,7 @@ export const init = (model: Model): UpdateResult => [
   [
     loadSession(),
     loadEntries({ month: model.month }),
+    loadStickers(),
     ...(model.route._tag === "EntryRoute"
       ? [loadEntry({ date: model.selectedDate }), loadDraft({ date: model.selectedDate })]
       : []),
@@ -47,6 +49,9 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             savedText: "",
             localDraft: null,
             imageMediaObjectId: null,
+            stickerId: null,
+            stickerMediaObjectId: null,
+            stickerPickerOpen: false,
             uploadState: "idle",
             saveState: "idle",
           },
@@ -73,6 +78,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             savedText,
             entryText: model.localDraft ?? savedText,
             imageMediaObjectId: entry === null ? null : imageMediaObjectId(entry),
+            stickerId: null,
+            stickerMediaObjectId: null,
             saveState: "idle",
           },
           [],
@@ -83,6 +90,20 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         [],
       ],
       StoredDraft: (): UpdateResult => [model, []],
+      ToggledStickerPicker: (): UpdateResult => [
+        { ...model, stickerPickerOpen: !model.stickerPickerOpen },
+        [],
+      ],
+      LoadedStickers: ({ stickers }): UpdateResult => [{ ...model, stickers }, []],
+      SelectedSticker: ({ sticker }): UpdateResult => [
+        {
+          ...model,
+          stickerId: sticker.id,
+          stickerMediaObjectId: sticker.mediaObjectId,
+          stickerPickerOpen: false,
+        },
+        [],
+      ],
       SelectedImage: ({ file }): UpdateResult => [
         { ...model, uploadState: "uploading" },
         [uploadImage({ file })],
@@ -104,6 +125,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             date: model.selectedDate,
             text: model.entryText,
             imageMediaObjectId: model.imageMediaObjectId,
+            stickerMediaObjectId: model.stickerMediaObjectId,
+            stickerId: model.stickerId,
           }),
         ],
       ],

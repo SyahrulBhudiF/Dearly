@@ -1,5 +1,12 @@
 import { Schema } from "effect";
-import { CalendarDate, EntryPreview, MediaObjectId, OwnerSession } from "@dearly/domain";
+import {
+  CalendarDate,
+  EntryPreview,
+  MediaObjectId,
+  OwnerSession,
+  Sticker,
+  StickerId,
+} from "@dearly/domain";
 import { today } from "../libs/date";
 import { CalendarRoute, EntryRoute, NotFoundRoute, type AppRoute } from "./route";
 
@@ -17,6 +24,10 @@ export const Model = Schema.Struct({
   savedText: Schema.String,
   localDraft: Schema.NullOr(Schema.String),
   imageMediaObjectId: Schema.NullOr(MediaObjectId),
+  stickers: Schema.Array(Sticker),
+  stickerId: Schema.NullOr(StickerId),
+  stickerMediaObjectId: Schema.NullOr(MediaObjectId),
+  stickerPickerOpen: Schema.Boolean,
   uploadState: Schema.Literals(["idle", "uploading", "failed"]),
   saveState: Schema.Literals(["idle", "saving", "failed"]),
 });
@@ -35,6 +46,10 @@ export const initialModel = (route: AppRoute): Model => {
     savedText: "",
     localDraft: null,
     imageMediaObjectId: null,
+    stickers: [],
+    stickerId: null,
+    stickerMediaObjectId: null,
+    stickerPickerOpen: false,
     uploadState: "idle",
     saveState: "idle",
   };

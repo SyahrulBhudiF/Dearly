@@ -1,4 +1,5 @@
 import { Html } from "foldkit";
+import type { Sticker } from "@dearly/domain";
 import type { AppMessage } from "../../core/message";
 import {
   ChangedRoute,
@@ -6,6 +7,8 @@ import {
   DiscardedDraft,
   SaveRequested,
   SelectedImage,
+  SelectedSticker,
+  ToggledStickerPicker,
 } from "../../core/message";
 import { CalendarRoute } from "../../core/route";
 import { dateLabel, weekdayLabel } from "../../libs/date";
@@ -57,30 +60,76 @@ export const entryHeader = (
     ],
   );
 
-export const toolRail = (h: HtmlFactory) =>
+export const toolRail = (
+  h: HtmlFactory,
+  stickerPickerOpen: boolean,
+  stickers: ReadonlyArray<Sticker>,
+) =>
   h.nav(
     [h.Class("flex gap-2 lg:flex-col")],
     [
-      ["T", "Text"],
-      ["✦", "Sticker"],
-      ["↗", "Move"],
-    ].map(([symbol, label]) =>
       h.button(
         [
-          h.AriaLabel(label!),
+          h.AriaLabel("Text"),
           h.Class(
             "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
           ),
         ],
-        [symbol!],
+        ["T"],
       ),
-    ),
+      h.button(
+        [
+          h.OnClick(ToggledStickerPicker()),
+          h.AriaLabel("Sticker"),
+          h.AriaExpanded(stickerPickerOpen),
+          h.Class(
+            "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
+          ),
+        ],
+        ["✦"],
+      ),
+      stickerPickerOpen
+        ? h.div(
+            [
+              h.Class(
+                "absolute z-10 mt-14 grid grid-cols-2 gap-2 border border-line bg-paper p-2 sm:grid-cols-3",
+              ),
+            ],
+            stickers.map((sticker) =>
+              h.button(
+                [
+                  h.OnClick(SelectedSticker({ sticker })),
+                  h.AriaLabel(`Add ${sticker.label}`),
+                  h.Class("size-11 overflow-hidden border border-line hover:border-wine"),
+                ],
+                [
+                  h.img([
+                    h.Src(`/media/${sticker.mediaObjectId}`),
+                    h.Alt(sticker.label),
+                    h.Class("size-full object-cover"),
+                  ]),
+                ],
+              ),
+            ),
+          )
+        : null,
+      h.button(
+        [
+          h.AriaLabel("Move"),
+          h.Class(
+            "grid size-11 place-items-center rounded-full border border-line bg-paper font-display text-lg hover:border-wine hover:text-wine",
+          ),
+        ],
+        ["↗"],
+      ),
+    ],
   );
 
 export const canvasShell = (
   h: HtmlFactory,
   text: string,
   imageMediaObjectId: string | null,
+  stickerMediaObjectId: string | null,
   uploadState: "idle" | "uploading" | "failed",
 ) =>
   h.div(
@@ -135,6 +184,13 @@ export const canvasShell = (
             h.Src(`/media/${imageMediaObjectId}`),
             h.Alt("Entry image"),
             h.Class("relative mb-6 max-h-80 w-full max-w-lg object-cover"),
+          ]),
+      stickerMediaObjectId === null
+        ? null
+        : h.img([
+            h.Src(`/media/${stickerMediaObjectId}`),
+            h.Alt("Entry sticker"),
+            h.Class("relative mb-6 size-28 object-contain"),
           ]),
       uploadState === "uploading"
         ? h.p(

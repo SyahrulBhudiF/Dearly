@@ -17,6 +17,8 @@ export const getSession = client.pipe(Effect.flatMap((rpc) => rpc.getSession()))
 export const listMonthEntries = (month: string) =>
   client.pipe(Effect.flatMap((rpc) => rpc.listMonthEntries({ month: month as never })));
 
+export const listStickers = client.pipe(Effect.flatMap((rpc) => rpc.listStickers()));
+
 export const uploadImage = (file: File) =>
   client.pipe(
     Effect.flatMap((rpc) =>
@@ -42,7 +44,13 @@ export const uploadImage = (file: File) =>
 export const getEntryByDate = (date: string) =>
   client.pipe(Effect.flatMap((rpc) => rpc.getEntryByDate({ date: date as never })));
 
-export const saveEntry = (date: string, text: string, imageMediaObjectId: string | null) =>
+export const saveEntry = (
+  date: string,
+  text: string,
+  imageMediaObjectId: string | null,
+  stickerMediaObjectId: string | null,
+  stickerId: string | null,
+) =>
   client.pipe(
     Effect.flatMap((rpc) =>
       rpc.saveEntry({
@@ -66,6 +74,24 @@ export const saveEntry = (date: string, text: string, imageMediaObjectId: string
                     layer: 0,
                   },
                 ]),
+            ...(stickerMediaObjectId === null
+              ? []
+              : [
+                  {
+                    id: crypto.randomUUID() as never,
+                    payload: {
+                      kind: "sticker" as const,
+                      stickerId: stickerId as never,
+                      mediaObjectId: stickerMediaObjectId as never,
+                    },
+                    x: 620,
+                    y: 100,
+                    width: 160,
+                    height: 160,
+                    rotation: 0,
+                    layer: 1,
+                  },
+                ]),
             {
               id: crypto.randomUUID() as never,
               payload: {
@@ -81,7 +107,7 @@ export const saveEntry = (date: string, text: string, imageMediaObjectId: string
               width: 720,
               height: 240,
               rotation: 0,
-              layer: 1,
+              layer: 2,
             },
           ],
         },

@@ -8,12 +8,24 @@ import {
   LoadedEntries,
   LoadedEntry,
   LoadedSession,
+  LoadedStickers,
   SavedEntry,
   UploadedImage,
   FailedToUploadImage,
 } from "./message";
 import * as draft from "./draft";
 import * as rpc from "./rpc";
+
+export const loadStickers = Command.define(
+  "loadStickers",
+  LoadedStickers,
+  FailedToLoad,
+)(
+  rpc.listStickers.pipe(
+    Effect.map((stickers) => LoadedStickers({ stickers })),
+    Effect.catch(() => Effect.succeed(FailedToLoad())),
+  ),
+);
 
 export const uploadImage = Command.define(
   "uploadImage",
@@ -90,11 +102,17 @@ const writeOrRemoveDraft = (date: string, text: string) =>
 
 export const saveEntry = Command.define(
   "saveEntry",
-  { date: Schema.String, text: Schema.String, imageMediaObjectId: Schema.NullOr(Schema.String) },
+  {
+    date: Schema.String,
+    text: Schema.String,
+    imageMediaObjectId: Schema.NullOr(Schema.String),
+    stickerMediaObjectId: Schema.NullOr(Schema.String),
+    stickerId: Schema.NullOr(Schema.String),
+  },
   SavedEntry,
   FailedToSave,
-)(({ date, text, imageMediaObjectId }) =>
-  rpc.saveEntry(date, text, imageMediaObjectId).pipe(
+)(({ date, text, imageMediaObjectId, stickerMediaObjectId, stickerId }) =>
+  rpc.saveEntry(date, text, imageMediaObjectId, stickerMediaObjectId, stickerId).pipe(
     Effect.map((entry) => SavedEntry({ entry })),
     Effect.catch(() => Effect.succeed(FailedToSave())),
   ),
