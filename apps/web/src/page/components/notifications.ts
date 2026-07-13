@@ -1,7 +1,9 @@
+import { Stream } from "effect";
 import { Html } from "foldkit";
 import { CircleCheck, CircleX, X } from "lucide";
 import type { AppMessage } from "../../core/app/message";
 import { DismissedNotification } from "../../core/app/message";
+import { notificationTimer } from "../../core/app/notificationTimer";
 import type { Model } from "../../core/notification/model";
 import { icon } from "./icon";
 
@@ -17,6 +19,10 @@ export const Notifications = (h: HtmlFactory, notifications: ReadonlyArray<Model
       h.keyed("div")(
         notification.id,
         [
+          h.OnMount({
+            name: `notification-${notification.id}`,
+            f: () => notificationTimer(notification.id).pipe(Stream.map((message) => message)),
+          }),
           h.Role("status"),
           h.Class(
             "flex items-center gap-3 rounded-[var(--radius)] border border-line bg-paper px-4 py-3 text-ink shadow-[var(--shadow)]",

@@ -9,6 +9,8 @@ export const ClosedPicker = Message.m("ClosedPicker");
 export const PickedYear = Message.m("PickedYear", { year: Schema.Number });
 export const ChangedMonth = Message.m("ChangedMonth", { month: Schema.String });
 export const WentToday = Message.m("WentToday");
+export const OpenedPhotoPreview = Message.m("OpenedPhotoPreview");
+export const ClosedPhotoPreview = Message.m("ClosedPhotoPreview");
 export const LoadedSession = Message.m("LoadedSession", { session: Schema.NullOr(OwnerSession) });
 export const LoadedEntries = Message.m("LoadedEntries", { entries: Schema.Array(EntryPreview) });
 export const FailedToLoad = Message.m("CalendarFailedToLoad");
@@ -21,6 +23,8 @@ export const CalendarMessage = Schema.Union([
   PickedYear,
   ChangedMonth,
   WentToday,
+  OpenedPhotoPreview,
+  ClosedPhotoPreview,
   LoadedSession,
   LoadedEntries,
   FailedToLoad,

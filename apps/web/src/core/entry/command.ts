@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import { CanvasElement } from "@dearly/domain";
 import { Command } from "foldkit";
 import * as rpc from "../rpc";
+import { captureCanvasThumbnail } from "../canvas/snapshot";
 import * as draft from "./draft";
 import {
   FailedToLoad,
@@ -55,7 +56,11 @@ export const saveEntry = Command.define(
   SavedEntry,
   FailedToSave,
 )(({ date, text, elements }) =>
-  rpc.saveEntry(date, text, elements).pipe(
+  Effect.tryPromise(() => captureCanvasThumbnail()).pipe(
+    Effect.flatMap(rpc.uploadThumbnail),
+    Effect.flatMap((thumbnailMediaObjectId) =>
+      rpc.saveEntry(date, text, elements, thumbnailMediaObjectId),
+    ),
     Effect.map((entry) => SavedEntry({ entry })),
     Effect.catch(() => Effect.succeed(FailedToSave())),
   ),

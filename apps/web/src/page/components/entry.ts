@@ -748,7 +748,9 @@ export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel
             name: "canvas-paste",
             f: () => canvasPaste().pipe(Stream.map(canvas)),
           }),
-          h.Class("relative h-[760px] w-[1080px] touch-pan-x bg-canvas overflow-hidden"),
+          h.DataAttribute("entry-canvas", "true"),
+          h.Style({ width: "1080px", height: "760px" }),
+          h.Class("relative touch-pan-x bg-canvas overflow-hidden"),
         ],
         [
           h.div(

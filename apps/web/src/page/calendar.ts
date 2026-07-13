@@ -62,6 +62,7 @@ export const calendarPage = (
                   model.entries,
                   model.pickerOpen,
                   model.pickerYear,
+                  model.photoPreviewOpen,
                 ),
                 h.div(
                   [h.Class("min-w-0")],

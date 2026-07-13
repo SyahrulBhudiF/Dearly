@@ -34,11 +34,11 @@ export const listImages = client.pipe(
   Effect.scoped,
 );
 
-export const uploadImage = (file: File) =>
+const uploadMedia = (file: File, kind: "image" | "thumbnail") =>
   client.pipe(
     Effect.flatMap((rpc) =>
       rpc.createMediaUpload({
-        kind: "image",
+        kind,
         name: file.name,
         mimeType: file.type,
         sizeBytes: file.size,
@@ -62,6 +62,9 @@ export const uploadImage = (file: File) =>
     Effect.scoped,
   );
 
+export const uploadImage = (file: File) => uploadMedia(file, "image");
+export const uploadThumbnail = (file: File) => uploadMedia(file, "thumbnail");
+
 export const createSticker = (mediaObjectId: string, label: string) =>
   client.pipe(
     Effect.flatMap((rpc) => rpc.createSticker({ mediaObjectId: mediaObjectId as never, label })),
@@ -74,7 +77,12 @@ export const getEntryByDate = (date: string) =>
     Effect.scoped,
   );
 
-export const saveEntry = (date: string, text: string, elements: ReadonlyArray<CanvasElement>) =>
+export const saveEntry = (
+  date: string,
+  text: string,
+  elements: ReadonlyArray<CanvasElement>,
+  thumbnailMediaObjectId: string,
+) =>
   client.pipe(
     Effect.flatMap((rpc) =>
       rpc.saveEntry({
@@ -88,13 +96,7 @@ export const saveEntry = (date: string, text: string, elements: ReadonlyArray<Ca
         preview: {
           date: date as never,
           snippet: text.trim().slice(0, 180) || undefined,
-          thumbnailMediaObjectId: elements.find(
-            (
-              element,
-            ): element is (typeof elements)[number] & {
-              payload: { readonly kind: "image"; readonly mediaObjectId: string };
-            } => element.payload.kind === "image",
-          )?.payload.mediaObjectId as never,
+          thumbnailMediaObjectId: thumbnailMediaObjectId as never,
           hasSavedEntry: true,
           hasDraft: false,
         },

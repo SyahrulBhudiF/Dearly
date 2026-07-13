@@ -16,9 +16,14 @@ A private diary for composing dated memories on a freeform canvas.
 | ------------------------------------------------------------------ | ------------------------------------------------------ |
 | ![Canvas layers panel](public/screenshots/canvas-layers.png) | ![Emoji picker](public/screenshots/emoji-picker.png) |
 
+| Photo preview                                                        |
+| -------------------------------------------------------------------- |
+| ![Photo preview](public/screenshots/photo-preview.png)               |
+
 ## Features
 
 - Private daily diary with calendar navigation.
+- Two calendars: the small sidebar calendar is for browsing photos, the large main calendar is for opening and editing entries.
 - Freeform canvas for mixing text, images, stickers, emoji, and shapes.
 - Rich text formatting with font, size, color, alignment, bold, italic, and underline.
 - Layer ordering to control what sits in front or behind.
@@ -26,6 +31,7 @@ A private diary for composing dated memories on a freeform canvas.
 - Canvas-wide Undo and Redo.
 - Copy and paste text and images directly into the canvas.
 - Local draft saving before final save.
+- Photo preview modal with download from saved canvas snapshots.
 
 ## Stack
 

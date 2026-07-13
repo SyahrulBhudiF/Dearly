@@ -1,13 +1,15 @@
 import type { EntryPreview } from "@dearly/domain";
 import { Stream } from "effect";
 import { Html } from "foldkit";
-import { ArrowLeft, ArrowRight, ChevronDown } from "lucide";
+import { ArrowLeft, ArrowRight, ChevronDown, Download, X } from "lucide";
 import { Button } from "@foldkit/ui";
-import { monthDays, monthLabel, nextMonth, previousMonth, today } from "../../libs/date";
+import { dateLabel, monthDays, monthLabel, nextMonth, previousMonth, today } from "../../libs/date";
 import { miniCalendarPicker } from "../../core/calendar/picker";
 import {
   ChangedMonth,
   ClosedPicker,
+  ClosedPhotoPreview,
+  OpenedPhotoPreview,
   PreviewedDate,
   SelectedDate,
   ToggledPicker,
@@ -69,6 +71,7 @@ export const miniCalendar = (
   entries: ReadonlyArray<EntryPreview>,
   pickerOpen: boolean,
   pickerYear: number,
+  photoPreviewOpen: boolean,
 ) =>
   h.aside(
     [h.Class("hidden lg:block")],
@@ -149,12 +152,12 @@ export const miniCalendar = (
       h.div(
         [
           h.Class(
-            "mt-5 aspect-square overflow-hidden rounded-[var(--radius)] border border-line bg-secondary/25",
+            "mt-5 flex aspect-square flex-col overflow-hidden rounded-[var(--radius)] border border-line bg-secondary/25",
           ),
         ],
         [
-          h.p([h.Class("p-4 font-display text-xl")], ["Our photo"]),
-          photoPreview(h, entries, selectedDate),
+          h.p([h.Class("shrink-0 border-b border-line/60 px-4 py-3 font-display text-xl")], ["Our photo"]),
+          photoPreview(h, entries, selectedDate, photoPreviewOpen),
         ],
       ),
     ],
@@ -220,18 +223,102 @@ const photoPreview = (
   h: HtmlFactory,
   entries: ReadonlyArray<EntryPreview>,
   selectedDate: string,
+  photoPreviewOpen: boolean,
 ) => {
   const preview = entries.find(
     (entry) => entry.date === selectedDate && entry.thumbnailMediaObjectId !== undefined,
   );
-  return preview?.thumbnailMediaObjectId === undefined
-    ? h.p([h.Class("px-4 text-sm text-muted")], ["Your saved pictures will gather here."])
-    : h.img([
-        h.Src(`/media/${preview.thumbnailMediaObjectId}`),
-        h.Alt(`Photo from ${preview.date}`),
-        h.Class("h-full w-full object-cover"),
-      ]);
+  if (preview?.thumbnailMediaObjectId === undefined)
+    return h.p(
+      [h.Class("grid min-h-0 grow place-items-center px-6 text-center text-sm text-muted")],
+      ["Your saved pictures will gather here."],
+    );
+  const src = `/media/${preview.thumbnailMediaObjectId}`;
+  return h.div(
+    [h.Class("min-h-0 grow")],
+    [
+      Button.view<AppMessage>({
+        onClick: calendar(OpenedPhotoPreview()),
+        toView: ({ button }) =>
+          h.button(
+            [
+              ...button,
+              h.AriaLabel(`Preview photo from ${preview.date}`),
+              h.Class("block size-full overflow-hidden text-left"),
+            ],
+            [
+              h.img([
+                h.Src(src),
+                h.Alt(`Photo from ${preview.date}`),
+                h.Class("size-full object-cover transition-transform duration-300 hover:scale-[1.02]"),
+              ]),
+            ],
+          ),
+      }),
+      photoPreviewOpen ? photoModal(h, preview.date, src) : null,
+    ],
+  );
 };
+
+const photoModal = (h: HtmlFactory, date: string, src: string) =>
+  h.div(
+    [h.Role("dialog"), h.AriaLabel(`Photo from ${date}`), h.Class("fixed inset-0 z-50")],
+    [
+      h.button(
+        [
+          h.OnClick(calendar(ClosedPhotoPreview())),
+          h.AriaLabel("Close photo preview"),
+          h.Class("absolute inset-0 bg-ink/55"),
+        ],
+        [],
+      ),
+      h.div(
+        [
+          h.Class(
+            "absolute top-1/2 left-1/2 w-[min(92vw,72rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[var(--radius)] border border-line bg-paper shadow-[var(--shadow)]",
+          ),
+        ],
+        [
+          h.div(
+            [h.Class("flex items-center justify-between border-b border-line px-4 py-3")],
+            [
+              h.div([], [
+                h.p([h.Class("font-display text-xl")], ["Our photo"]),
+                h.p([h.Class("font-note text-[10px] tracking-[.1em] text-muted uppercase")], [dateLabel(date)]),
+              ]),
+              h.div(
+                [h.Class("flex items-center gap-2")],
+                [
+                  h.a(
+                    [
+                      h.Href(src),
+                      h.Download(`dearly-${date}.webp`),
+                      h.Class(
+                        "flex items-center gap-2 rounded-full bg-primary px-4 py-2 font-note text-xs text-primary-foreground",
+                      ),
+                    ],
+                    [icon(h, Download, "Download photo"), "Download"],
+                  ),
+                  h.button(
+                    [
+                      h.OnClick(calendar(ClosedPhotoPreview())),
+                      h.AriaLabel("Close photo preview"),
+                      h.Class("grid size-9 place-items-center rounded-full hover:bg-rose/30"),
+                    ],
+                    [icon(h, X, "Close")],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          h.div(
+            [h.Class("max-h-[78vh] overflow-auto bg-canvas p-3 sm:p-5")],
+            [h.img([h.Src(src), h.Alt(`Photo from ${date}`), h.Class("mx-auto block max-h-[70vh] max-w-full object-contain")])],
+          ),
+        ],
+      ),
+    ],
+  );
 
 export const dateCard = (
   h: HtmlFactory,
