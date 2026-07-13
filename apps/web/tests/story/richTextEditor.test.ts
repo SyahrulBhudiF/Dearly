@@ -1,5 +1,9 @@
 import { Editor } from "@tiptap/core";
 import { expect, test } from "vitest";
+import { initialModel } from "../../src/core/model";
+import { ChangedTextDocument } from "../../src/core/message";
+import { CalendarRoute } from "../../src/core/route";
+import { update } from "../../src/core/update";
 import { applyFormat, richTextExtensions } from "../../src/core/richTextEditor";
 
 const editor = () =>
@@ -40,6 +44,38 @@ test("cursor-only formatting applies to the whole text Canvas Element", () => {
         ],
       },
     ],
+  });
+  instance.destroy();
+});
+
+test("formatted text document persists in its Canvas Element", () => {
+  const instance = editor();
+  applyFormat(instance, { kind: "bold" });
+  const [next] = update(
+    {
+      ...initialModel(CalendarRoute()),
+      elements: [
+        {
+          id: "text-1" as never,
+          payload: {
+            kind: "text",
+            document: { type: "doc", content: [{ type: "paragraph" }] },
+          },
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100,
+          rotation: 0,
+          layer: 0,
+        },
+      ],
+    },
+    ChangedTextDocument({ id: "text-1", document: instance.getJSON() }),
+  );
+
+  expect(next.elements[0]?.payload).toMatchObject({
+    kind: "text",
+    document: { content: [{ content: [{ marks: [{ type: "bold" }] }] }] },
   });
   instance.destroy();
 });
