@@ -125,6 +125,39 @@ test("one pointer gesture creates one undo step and supports redo", () => {
   );
 });
 
+test("undo reverses an image transform before an earlier text edit", () => {
+  const text = {
+    ...element("text", 0),
+    payload: {
+      kind: "text" as const,
+      document: { type: "doc" as const, content: [{ type: "paragraph" as const }] },
+    },
+  };
+  const image = { ...element("image", 1), x: 10 };
+  const changed = {
+    type: "doc" as const,
+    content: [{ type: "paragraph" as const, content: [{ type: "text" as const, text: "Hello" }] }],
+  };
+  Story.story(
+    update,
+    Story.with({
+      ...initialModel(CalendarRoute()),
+      canvas: { ...initialModel(CalendarRoute()).canvas, elements: [text, image] },
+    }),
+    Story.message(message(ChangedTextDocument({ id: "text", document: changed }))),
+    Story.message(message(StartedCanvasTransform())),
+    Story.message(message(MovedCanvasElement({ id: "image", x: 80, y: 0 }))),
+    Story.message(message(UndidCanvas())),
+    Story.model((model) => {
+      expect(model.canvas.elements.find(({ id }) => id === "image")?.x).toBe(10);
+      expect(model.canvas.elements.find(({ id }) => id === "text")?.payload).toEqual({
+        kind: "text",
+        document: changed,
+      });
+    }),
+  );
+});
+
 test("rich-text document changes share Canvas undo history", () => {
   const text = {
     ...element("text", 0),

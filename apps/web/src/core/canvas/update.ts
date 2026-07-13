@@ -20,6 +20,20 @@ import type { Model } from "./model";
 type UpdateResult = readonly [Model, ReadonlyArray<Command.Command<CanvasMessage>>];
 
 const undo = (model: Model): Model => {
+  const transaction = model.history.transaction;
+  if (transaction !== null)
+    return {
+      ...model,
+      elements: transaction,
+      selectedElementId: null,
+      toolbarMenu: null,
+      history: {
+        past: model.history.past,
+        future: [...model.history.future, model.elements],
+        transaction: null,
+        revision: model.history.revision + 1,
+      },
+    };
   const elements = model.history.past.at(-1);
   if (elements === undefined) return model;
   return {
