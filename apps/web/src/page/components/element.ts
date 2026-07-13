@@ -13,12 +13,29 @@ import { icon } from "./icon";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
+export const canvasElementZIndex = (layer: number, selected: boolean) =>
+  selected ? 10_000 : layer + 1;
+
+export const canvasControlsPlacement = ({
+  x,
+  y,
+  width,
+  height,
+}: Pick<CanvasElement, "x" | "y" | "width" | "height">): "top" | "right" | "bottom" | "left" => {
+  if (x < 8) return "right";
+  if (x + width > 1072) return "left";
+  if (y < 56) return "bottom";
+  if (y + height > 752) return "top";
+  return "top";
+};
+
 export const CanvasItem = (
   h: HtmlFactory,
   element: CanvasElement,
   selectedElementId: string | null,
   toolbarMenu: "font" | "size" | "color" | null,
   textFormat: TextFormat,
+  historyRevision: number,
 ) => {
   const isText = element.payload.kind === "text";
   const alt = isText
@@ -43,6 +60,7 @@ export const CanvasItem = (
         width: `${element.width}px`,
         height: `${element.height}px`,
         transform: `rotate(${element.rotation}deg)`,
+        zIndex: String(canvasElementZIndex(element.layer, isSelected)),
       }),
       h.DataAttribute("canvas-element", "true"),
       h.DataAttribute("canvas-x", String(element.x)),
@@ -51,12 +69,12 @@ export const CanvasItem = (
       h.DataAttribute("canvas-height", String(element.height)),
       h.DataAttribute("canvas-rotation", String(element.rotation)),
       h.Class(
-        `relative z-10 touch-none ${isSelected ? "outline-2 -outline-offset-2 outline-wine" : ""}`,
+        `relative touch-none ${isSelected ? "outline-2 -outline-offset-2 outline-wine" : ""}`,
       ),
     ],
     [
       isText
-        ? richTextElement(h, element.id, element.payload)
+        ? richTextElement(h, element.id, element.payload, historyRevision)
         : element.payload.kind === "shape"
           ? shapeElement(h, element.payload.shape, element.payload.color)
           : h.div(
@@ -84,7 +102,9 @@ export const CanvasItem = (
                     ]),
               ],
             ),
-      ...(isSelected ? canvasControls(h, alt, isText, toolbarMenu, textFormat) : []),
+      ...(isSelected
+        ? canvasControls(h, alt, isText, toolbarMenu, textFormat, canvasControlsPlacement(element))
+        : []),
     ],
   );
 };
@@ -116,11 +136,12 @@ const richTextElement = (
   h: HtmlFactory,
   id: string,
   payload: Extract<CanvasElement["payload"], { readonly kind: "text" }>,
+  historyRevision: number,
 ) => {
   return h.div(
     [
       h.OnMount({
-        name: `rich-text-${id}`,
+        name: `rich-text-${id}-${historyRevision}`,
         f: (node) => richTextEditor(id, payload.document, node).pipe(Stream.map(canvas)),
       }),
       h.Class("size-full bg-transparent font-display text-2xl leading-tight sm:text-3xl"),
@@ -320,18 +341,33 @@ const richTextToolbar = (
   ),
 ];
 
+const controlsPlacementClass = {
+  top: "bottom-[calc(100%+0.75rem)] left-0",
+  right: "left-[calc(100%+0.75rem)] top-0",
+  bottom: "top-[calc(100%+0.75rem)] left-0",
+  left: "right-[calc(100%+0.75rem)] top-0",
+} as const;
+
+const rotatePlacementClass = {
+  top: "left-1/2 -top-[4.75rem] -translate-x-1/2",
+  right: "top-1/2 -right-[6.75rem] -translate-y-1/2",
+  bottom: "left-1/2 -bottom-[4.75rem] -translate-x-1/2",
+  left: "top-1/2 -left-[6.75rem] -translate-y-1/2",
+} as const;
+
 const canvasControls = (
   h: HtmlFactory,
   alt: string,
   isText: boolean,
   toolbarMenu: "font" | "size" | "color" | null,
   textFormat: TextFormat,
+  placement: "top" | "right" | "bottom" | "left",
 ) => [
   h.div(
     [
       h.DataAttribute("canvas-controls", "true"),
       h.Class(
-        "absolute -top-11 left-0 z-20 flex gap-1 rounded-xl border border-line bg-paper p-1 shadow-[var(--shadow)]",
+        `absolute z-40 flex gap-1 rounded-xl border border-line bg-paper p-1 shadow-[var(--shadow)] ${controlsPlacementClass[placement]}`,
       ),
     ],
     [
@@ -365,7 +401,7 @@ const canvasControls = (
       h.DataAttribute("canvas-rotate", "true"),
       h.AriaLabel(`Rotate ${alt}`),
       h.Class(
-        "absolute z-30 left-1/2 -top-16 size-4 -translate-x-1/2 rounded-full border-2 border-wine bg-primary cursor-grab",
+        `absolute z-50 size-4 rounded-full border-2 border-wine bg-primary cursor-grab ${rotatePlacementClass[placement]}`,
       ),
     ],
     [],

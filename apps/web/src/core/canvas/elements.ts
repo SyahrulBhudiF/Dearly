@@ -27,19 +27,37 @@ export const changeLayer = (
   direction: "forward" | "backward",
 ) => {
   if (selectedElementId === null) return elements;
-  const selected = elements.find((element) => element.id === selectedElementId);
-  if (selected === undefined) return elements;
-  const adjacent = elements
-    .filter((element) =>
-      direction === "forward" ? element.layer > selected.layer : element.layer < selected.layer,
-    )
-    .sort((a, b) => (direction === "forward" ? a.layer - b.layer : b.layer - a.layer))[0];
-  if (adjacent === undefined) return elements;
-  return elements.map((element) => {
-    if (element.id === selected.id) return { ...element, layer: adjacent.layer };
-    if (element.id === adjacent.id) return { ...element, layer: selected.layer };
-    return element;
-  });
+  const ordered = [...elements].sort((a, b) => a.layer - b.layer);
+  const index = ordered.findIndex((element) => element.id === selectedElementId);
+  const target = direction === "forward" ? index + 1 : index - 1;
+  if (index < 0 || target < 0 || target >= ordered.length) return elements;
+  return reorderLayers(elements, ordered[index]!.id, ordered[target]!.id);
+};
+
+export const reorderLayers = (
+  elements: ReadonlyArray<CanvasElement>,
+  draggedId: string,
+  targetId: string,
+) => {
+  const ordered = [...elements].sort((a, b) => a.layer - b.layer);
+  const from = ordered.findIndex((element) => element.id === draggedId);
+  const to = ordered.findIndex((element) => element.id === targetId);
+  if (from < 0 || to < 0 || from === to) return elements;
+  const [dragged] = ordered.splice(from, 1);
+  if (dragged === undefined) return elements;
+  ordered.splice(to, 0, dragged);
+  const layers = new Map(ordered.map((element, layer) => [element.id, layer]));
+  return elements.map((element) => ({ ...element, layer: layers.get(element.id)! }));
+};
+
+export const moveLayerToEdge = (
+  elements: ReadonlyArray<CanvasElement>,
+  id: string,
+  edge: "front" | "back",
+) => {
+  const ordered = [...elements].sort((a, b) => a.layer - b.layer);
+  const target = edge === "front" ? ordered.at(-1) : ordered[0];
+  return target === undefined ? elements : reorderLayers(elements, id, target.id);
 };
 
 export const textElement = (text: string): CanvasElement => ({

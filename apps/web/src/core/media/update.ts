@@ -25,6 +25,7 @@ export const update = (model: Model, message: MediaMessage): UpdateResult =>
         ];
       },
       LoadedImages: ({ images }): UpdateResult => [{ ...model, images }, []],
+      FailedToLoadMedia: (): UpdateResult => [model, []],
       SelectedStoredImage: (): UpdateResult => [
         { ...model, imagePopover: Popover.close(model.imagePopover)[0] },
         [],

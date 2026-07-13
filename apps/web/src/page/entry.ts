@@ -38,7 +38,7 @@ export const entryPage = (model: Model): Html.Document => {
             h.div(
               [h.Class("min-w-0")],
               [
-                EntryHeader(h, model.calendar.selectedDate, model.entry.saveState),
+                EntryHeader(h, model.calendar.selectedDate, model.entry, model.canvas),
                 h.div(
                   [h.Class("flex justify-center")],
                   [canvasShell(h, model.canvas, model.media)],

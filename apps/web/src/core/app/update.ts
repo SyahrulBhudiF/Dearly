@@ -10,7 +10,7 @@ import { TextChanged, type EntryMessage } from "../entry/message";
 import * as Entry from "../entry/update";
 import { RequestedUpload, type MediaMessage } from "../media/message";
 import * as Media from "../media/update";
-import { EntryRoute } from "../route";
+import { CalendarRoute, EntryRoute } from "../route";
 import {
   GotCalendarMessage,
   GotCanvasMessage,
@@ -79,6 +79,20 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       },
       GotEntryMessage: ({ message: child }): UpdateResult => {
         const [entry, commands] = Entry.update(model.entry, child, model.calendar.selectedDate);
+        if (child._tag === "DiscardedDraft") {
+          return [
+            {
+              ...model,
+              route: CalendarRoute(),
+              entry,
+              canvas: {
+                ...Canvas.loadElements(model.canvas, []),
+                elements: [],
+              },
+            },
+            mapEntry(commands),
+          ];
+        }
         if (child._tag === "LoadedEntry") {
           return [
             {

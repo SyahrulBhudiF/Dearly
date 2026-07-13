@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { Dialog } from "@foldkit/ui";
 import { DiaryEntry } from "@dearly/domain";
 import { Message } from "foldkit";
 
@@ -10,6 +11,10 @@ export const SaveRequested = Message.m("SaveRequested");
 export const SavedEntry = Message.m("SavedEntry", { entry: DiaryEntry });
 export const FailedToSave = Message.m("FailedToSave");
 export const FailedToLoad = Message.m("EntryFailedToLoad");
+export const RequestedDiscard = Message.m("RequestedDiscard");
+export const GotDiscardDialogMessage = Message.m("GotDiscardDialogMessage", {
+  message: Dialog.Message,
+});
 export const DiscardedDraft = Message.m("DiscardedDraft");
 
 export const EntryMessage = Schema.Union([
@@ -21,6 +26,8 @@ export const EntryMessage = Schema.Union([
   SavedEntry,
   FailedToSave,
   FailedToLoad,
+  RequestedDiscard,
+  GotDiscardDialogMessage,
   DiscardedDraft,
 ]);
 export type EntryMessage = Schema.Schema.Type<typeof EntryMessage>;

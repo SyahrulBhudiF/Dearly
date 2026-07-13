@@ -40,7 +40,7 @@ test("pointering down on blank canvas deselects its element", () => {
       GotCanvasMessage({ message: DeselectedCanvasElement() }),
     ),
     Scene.Mount.resolve(
-      { name: "canvas-paste" },
+      { name: "canvas-input" },
       GotCanvasMessage({ message: DeselectedCanvasElement() }),
     ),
     Scene.pointerDown(Scene.selector('[data-canvas-background="true"]')),

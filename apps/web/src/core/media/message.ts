@@ -9,6 +9,7 @@ export const UploadedImage = Message.m("UploadedImage", {
   mediaObjectId: MediaObjectId,
   title: Schema.String,
 });
+export const FailedToLoadMedia = Message.m("FailedToLoadMedia");
 export const FailedToUpload = Message.m("FailedToUploadImage");
 export const UploadedSticker = Message.m("UploadedSticker", { sticker: Sticker });
 export const GotStickerFileDropMessage = Message.m("GotStickerFileDropMessage", {
@@ -50,6 +51,7 @@ export const GotFileDropMessage = Message.m("GotFileDropMessage", { message: Fil
 export const MediaMessage = Schema.Union([
   SelectedImage,
   UploadedImage,
+  FailedToLoadMedia,
   FailedToUpload,
   UploadedSticker,
   GotStickerFileDropMessage,

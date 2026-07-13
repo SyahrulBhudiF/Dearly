@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import { Command } from "foldkit";
 import * as rpc from "../rpc";
 import {
+  FailedToLoadMedia,
   FailedToUpload,
   LoadedImages,
   LoadedStickers,
@@ -12,22 +13,22 @@ import {
 export const loadStickers = Command.define(
   "loadStickers",
   LoadedStickers,
-  FailedToUpload,
+  FailedToLoadMedia,
 )(
   rpc.listStickers.pipe(
     Effect.map((stickers) => LoadedStickers({ stickers })),
-    Effect.catch(() => Effect.succeed(FailedToUpload())),
+    Effect.catch(() => Effect.succeed(FailedToLoadMedia())),
   ),
 );
 
 export const loadImages = Command.define(
   "loadImages",
   LoadedImages,
-  FailedToUpload,
+  FailedToLoadMedia,
 )(
   rpc.listImages.pipe(
     Effect.map((images) => LoadedImages({ images })),
-    Effect.catch(() => Effect.succeed(FailedToUpload())),
+    Effect.catch(() => Effect.succeed(FailedToLoadMedia())),
   ),
 );
 

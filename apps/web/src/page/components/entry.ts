@@ -2,7 +2,16 @@ import { Option, Stream } from "effect";
 import { Html } from "foldkit";
 import { Button, Dialog, FileDrop, Popover, VirtualList } from "@foldkit/ui";
 import EmojiConvertor from "emoji-js";
-import { ImageUp, Shapes, Sparkles, Type } from "lucide";
+import {
+  ArrowDownToLine,
+  ArrowUpToLine,
+  GripVertical,
+  ImageUp,
+  Layers3,
+  Shapes,
+  Sparkles,
+  Type,
+} from "lucide";
 import type { ShapeKind } from "@dearly/domain";
 import type { CanvasElement, MediaObject, Sticker } from "@dearly/domain";
 import type { AppMessage } from "../../core/app/message";
@@ -28,9 +37,13 @@ import {
   AddedTextCanvasElement,
   ChangedShapeColor,
   DeselectedCanvasElement,
+  MovedCanvasElementLayer,
+  SelectedCanvasElement,
+  ToggledLayersPanel,
   ToggledShapePicker,
 } from "../../core/canvas/message";
-import { canvasPaste } from "../../core/canvas/drag";
+import { canvasPaste, canvasShortcuts } from "../../core/canvas/drag";
+import { sortableLayers } from "../../core/canvas/layers";
 import { icon } from "./icon";
 import { CanvasItem } from "./element";
 import { DeleteDialog } from "./dialog";
@@ -108,6 +121,7 @@ export const toolRail = (h: HtmlFactory, mediaModel: MediaModel, canvasModel: Ca
       toolButton(h, "Text", icon(h, Type, "Text"), canvas(AddedTextCanvasElement())),
       imagePicker(h, imagePopover, images, imageSearch, fileDrop),
       shapePicker(h, canvasModel),
+      layersPicker(h, canvasModel),
       h.submodel({
         slotId: "sticker-picker",
         model: stickerPopover,
@@ -197,6 +211,181 @@ export const toolRail = (h: HtmlFactory, mediaModel: MediaModel, canvasModel: Ca
   );
 };
 
+const layersPicker = (h: HtmlFactory, model: CanvasModel) => {
+  const layers = [...model.elements].sort((a, b) => b.layer - a.layer);
+  return h.div(
+    [h.Class("relative")],
+    [
+      toolButton(h, "Layers", icon(h, Layers3, "Layers"), canvas(ToggledLayersPanel())),
+      model.layersPanelOpen
+        ? h.div(
+            [
+              h.OnClick(canvas(ToggledLayersPanel())),
+              h.AriaHidden(true),
+              h.Class("fixed inset-0 z-20"),
+            ],
+            [],
+          )
+        : null,
+      model.layersPanelOpen
+        ? h.aside(
+            [
+              h.OnMount({
+                name: "canvas-layers-sortable",
+                f: (node) => sortableLayers(node).pipe(Stream.map(canvas)),
+              }),
+              h.AriaLabel("Canvas layers"),
+              h.Class(
+                "absolute top-0 left-14 z-30 w-72 overflow-hidden rounded-[var(--radius)] border border-line bg-popover shadow-[var(--shadow)]",
+              ),
+            ],
+            [
+              h.div(
+                [h.Class("flex items-center justify-between border-b border-line px-4 py-3")],
+                [
+                  h.div(
+                    [],
+                    [
+                      h.p([h.Class("font-display text-lg leading-none")], ["Layers"]),
+                      h.p(
+                        [h.Class("mt-1 font-note text-[10px] text-muted")],
+                        ["Drag to arrange front to back"],
+                      ),
+                    ],
+                  ),
+                  h.span(
+                    [
+                      h.Class(
+                        "rounded-full bg-primary px-2 py-1 font-note text-[10px] text-primary-foreground",
+                      ),
+                    ],
+                    [String(layers.length)],
+                  ),
+                ],
+              ),
+              layers.length === 0
+                ? h.p(
+                    [h.Class("px-4 py-8 text-center font-note text-xs text-muted")],
+                    ["Canvas is empty."],
+                  )
+                : h.ol(
+                    [h.Class("max-h-80 divide-y divide-line overflow-y-auto p-2")],
+                    layers.map((element) => layerRow(h, element, model)),
+                  ),
+            ],
+          )
+        : null,
+    ],
+  );
+};
+
+const layerRow = (h: HtmlFactory, element: CanvasElement, model: CanvasModel) => {
+  const selected = model.selectedElementId === element.id;
+  const label = layerLabel(element);
+  return h.keyed("li")(
+    element.id,
+    [
+      h.DataAttribute("layer-id", element.id),
+      h.Class(
+        `group flex items-center gap-2 rounded-[calc(var(--radius)-0.4rem)] px-2 py-2 transition-colors duration-150 ${selected ? "bg-rose/35" : "hover:bg-card"}`,
+      ),
+    ],
+    [
+      h.button(
+        [
+          h.DataAttribute("layer-handle", "true"),
+          h.AriaLabel(`Drag ${label} layer`),
+          h.Class(
+            "grid size-8 shrink-0 cursor-grab touch-none place-items-center rounded-md text-muted active:cursor-grabbing active:scale-[.97]",
+          ),
+        ],
+        [icon(h, GripVertical, `Drag ${label} layer`)],
+      ),
+      h.button(
+        [
+          h.OnClick(canvas(SelectedCanvasElement({ id: element.id }))),
+          h.AriaPressed(String(selected)),
+          h.Class("flex min-w-0 grow items-center gap-3 text-left active:scale-[.99]"),
+        ],
+        [
+          layerThumbnail(h, element),
+          h.span(
+            [h.Class("min-w-0")],
+            [
+              h.span([h.Class("block truncate font-note text-sm text-ink")], [label]),
+              h.span(
+                [h.Class("block font-note text-[10px] text-muted")],
+                [`Layer ${element.layer + 1}`],
+              ),
+            ],
+          ),
+        ],
+      ),
+      h.div(
+        [h.Class("flex shrink-0")],
+        [
+          h.button(
+            [
+              h.OnClick(canvas(MovedCanvasElementLayer({ id: element.id, edge: "front" }))),
+              h.AriaLabel(`Move ${label} to front`),
+              h.Title("Move to front"),
+              h.Class(
+                "grid size-7 place-items-center rounded-md text-muted hover:bg-paper hover:text-wine",
+              ),
+            ],
+            [icon(h, ArrowUpToLine, "Move to front")],
+          ),
+          h.button(
+            [
+              h.OnClick(canvas(MovedCanvasElementLayer({ id: element.id, edge: "back" }))),
+              h.AriaLabel(`Move ${label} to back`),
+              h.Title("Move to back"),
+              h.Class(
+                "grid size-7 place-items-center rounded-md text-muted hover:bg-paper hover:text-wine",
+              ),
+            ],
+            [icon(h, ArrowDownToLine, "Move to back")],
+          ),
+        ],
+      ),
+    ],
+  );
+};
+
+const layerThumbnail = (h: HtmlFactory, element: CanvasElement) =>
+  h.span(
+    [
+      h.Class(
+        "grid size-9 shrink-0 place-items-center overflow-hidden rounded-[7px] border border-line bg-canvas font-display text-sm",
+      ),
+    ],
+    [
+      element.payload.kind === "image" ||
+      (element.payload.kind === "sticker" && element.payload.emoji === undefined)
+        ? h.img([
+            h.Src(`/media/${element.payload.mediaObjectId}`),
+            h.Alt(""),
+            h.Class("size-full object-cover"),
+          ])
+        : element.payload.kind === "sticker"
+          ? (element.payload.emoji ?? "")
+          : element.payload.kind === "shape"
+            ? shapePreview(h, element.payload.shape, element.payload.color)
+            : "T",
+    ],
+  );
+
+const layerLabel = (element: CanvasElement) =>
+  element.payload.kind === "text"
+    ? "Text"
+    : element.payload.kind === "image"
+      ? element.payload.alt?.trim() || "Image"
+      : element.payload.kind === "shape"
+        ? `${element.payload.shape[0]?.toUpperCase()}${element.payload.shape.slice(1)}`
+        : element.payload.emoji === undefined
+          ? "Sticker"
+          : "Emoji";
+
 const shapes: ReadonlyArray<{
   readonly kind: ShapeKind;
   readonly label: string;
@@ -223,6 +412,16 @@ const shapePicker = (h: HtmlFactory, model: CanvasModel) =>
     [h.Class("relative")],
     [
       toolButton(h, "Shape", icon(h, Shapes, "Shape"), canvas(ToggledShapePicker())),
+      model.shapePickerOpen
+        ? h.div(
+            [
+              h.OnClick(canvas(ToggledShapePicker())),
+              h.AriaHidden(true),
+              h.Class("fixed inset-0 z-20"),
+            ],
+            [],
+          )
+        : null,
       model.shapePickerOpen
         ? h.div(
             [
@@ -545,7 +744,10 @@ export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel
     [
       h.div(
         [
-          h.OnMount({ name: "canvas-paste", f: (node) => canvasPaste().pipe(Stream.map(canvas)) }),
+          h.OnMount({
+            name: "canvas-input",
+            f: () => Stream.merge(canvasPaste(), canvasShortcuts()).pipe(Stream.map(canvas)),
+          }),
           h.Class("relative h-[760px] w-[1080px] touch-pan-x bg-canvas overflow-hidden"),
         ],
         [
@@ -574,6 +776,7 @@ export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel
                 selectedElementId,
                 canvasModel.toolbarMenu,
                 canvasModel.textFormat,
+                canvasModel.history.revision,
               ),
             ),
           DeleteDialog(h, deleteDialog),

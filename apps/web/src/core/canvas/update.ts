@@ -5,7 +5,9 @@ import type { MediaObjectId, Sticker } from "@dearly/domain";
 import {
   changeLayer,
   moveElement,
+  moveLayerToEdge,
   nextLayer,
+  reorderLayers,
   resizeElement,
   setText,
   setTextDocument,
@@ -17,7 +19,91 @@ import type { Model } from "./model";
 
 type UpdateResult = readonly [Model, ReadonlyArray<Command.Command<CanvasMessage>>];
 
-export const update = (model: Model, message: CanvasMessage): UpdateResult =>
+const undo = (model: Model): Model => {
+  const elements = model.history.past.at(-1);
+  if (elements === undefined) return model;
+  return {
+    ...model,
+    elements,
+    selectedElementId: null,
+    toolbarMenu: null,
+    history: {
+      past: model.history.past.slice(0, -1),
+      future: [...model.history.future, model.elements],
+      transaction: null,
+      revision: model.history.revision + 1,
+    },
+  };
+};
+
+const redo = (model: Model): Model => {
+  const elements = model.history.future.at(-1);
+  if (elements === undefined) return model;
+  return {
+    ...model,
+    elements,
+    selectedElementId: null,
+    toolbarMenu: null,
+    history: {
+      past: [...model.history.past, model.elements],
+      future: model.history.future.slice(0, -1),
+      transaction: null,
+      revision: model.history.revision + 1,
+    },
+  };
+};
+
+const record = (model: Model, next: Model): Model =>
+  next.elements === model.elements || model.history.transaction !== null
+    ? next
+    : {
+        ...next,
+        history: {
+          past: [...model.history.past, model.elements],
+          future: [],
+          transaction: null,
+          revision: model.history.revision,
+        },
+      };
+
+export const update = (model: Model, message: CanvasMessage): UpdateResult => {
+  if (message._tag === "UndidCanvas") return [undo(model), []];
+  if (message._tag === "RedidCanvas") return [redo(model), []];
+  if (message._tag === "StartedCanvasTransform")
+    return [
+      {
+        ...model,
+        history: {
+          ...model.history,
+          transaction: model.history.transaction ?? model.elements,
+        },
+      },
+      [],
+    ];
+  if (message._tag === "FinishedCanvasTransform") {
+    const transaction = model.history.transaction;
+    if (transaction === null) return [model, []];
+    return [
+      {
+        ...model,
+        history: {
+          past:
+            transaction === model.elements
+              ? model.history.past
+              : [...model.history.past, transaction],
+          future: transaction === model.elements ? model.history.future : [],
+          transaction: null,
+          revision: model.history.revision,
+        },
+      },
+      [],
+    ];
+  }
+  const [next, commands] = updateDocument(model, message);
+  return [record(model, next), commands];
+};
+
+const updateDocument = (model: Model, message: CanvasMessage): UpdateResult =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       ChangedTextDocument: ({ id, document }): UpdateResult => [
@@ -106,6 +192,18 @@ export const update = (model: Model, message: CanvasMessage): UpdateResult =>
         { ...model, elements: changeLayer(model.elements, model.selectedElementId, direction) },
         [],
       ],
+      MovedCanvasElementLayer: ({ id, edge }): UpdateResult => [
+        { ...model, elements: moveLayerToEdge(model.elements, id, edge) },
+        [],
+      ],
+      ReorderedCanvasElements: ({ draggedId, targetId }): UpdateResult => [
+        { ...model, elements: reorderLayers(model.elements, draggedId, targetId) },
+        [],
+      ],
+      ToggledLayersPanel: (): UpdateResult => [
+        { ...model, layersPanelOpen: !model.layersPanelOpen },
+        [],
+      ],
       MovedCanvasElement: ({ id, x, y }): UpdateResult => [
         { ...model, elements: moveElement(model.elements, id, { x, y }) },
         [],
@@ -140,6 +238,10 @@ export const update = (model: Model, message: CanvasMessage): UpdateResult =>
       ],
       ChangedShapeColor: ({ color }): UpdateResult => [{ ...model, shapeColor: color }, []],
       AddedShape: ({ shape }): UpdateResult => addShape(model, shape),
+      StartedCanvasTransform: (): UpdateResult => [model, []],
+      FinishedCanvasTransform: (): UpdateResult => [model, []],
+      UndidCanvas: (): UpdateResult => [model, []],
+      RedidCanvas: (): UpdateResult => [model, []],
     }),
   );
 
@@ -149,66 +251,70 @@ export const loadElements = (model: Model, elements: Model["elements"]): Model =
   selectedElementId: null,
   resizing: null,
   toolbarMenu: null,
+  history: { past: [], future: [], transaction: null, revision: 0 },
 });
 
-export const addImage = (model: Model, mediaObjectId: MediaObjectId, title = ""): Model => ({
-  ...model,
-  elements: [
-    ...model.elements,
-    {
-      id: crypto.randomUUID() as never,
-      payload: { kind: "image", mediaObjectId, ...(title === "" ? {} : { alt: title }) },
-      x: 80,
-      y: 80,
-      width: 480,
-      height: 320,
-      rotation: 0,
-      layer: nextLayer(model.elements),
-    },
-  ],
-  selectedElementId: null,
-});
-
-export const addSticker = (model: Model, sticker: Sticker): Model => ({
-  ...model,
-  elements: [
-    ...model.elements,
-    {
-      id: crypto.randomUUID() as never,
-      payload: { kind: "sticker", stickerId: sticker.id, mediaObjectId: sticker.mediaObjectId },
-      x: 620,
-      y: 100,
-      width: 160,
-      height: 160,
-      rotation: 0,
-      layer: nextLayer(model.elements),
-    },
-  ],
-  selectedElementId: null,
-});
-
-export const addEmoji = (model: Model, emoji: string): Model => ({
-  ...model,
-  elements: [
-    ...model.elements,
-    {
-      id: crypto.randomUUID() as never,
-      payload: {
-        kind: "sticker",
-        stickerId: crypto.randomUUID() as never,
-        mediaObjectId: crypto.randomUUID() as never,
-        emoji,
+export const addImage = (model: Model, mediaObjectId: MediaObjectId, title = ""): Model =>
+  record(model, {
+    ...model,
+    elements: [
+      ...model.elements,
+      {
+        id: crypto.randomUUID() as never,
+        payload: { kind: "image", mediaObjectId, ...(title === "" ? {} : { alt: title }) },
+        x: 80,
+        y: 80,
+        width: 480,
+        height: 320,
+        rotation: 0,
+        layer: nextLayer(model.elements),
       },
-      x: 620,
-      y: 100,
-      width: 160,
-      height: 160,
-      rotation: 0,
-      layer: nextLayer(model.elements),
-    },
-  ],
-  selectedElementId: null,
-});
+    ],
+    selectedElementId: null,
+  });
+
+export const addSticker = (model: Model, sticker: Sticker): Model =>
+  record(model, {
+    ...model,
+    elements: [
+      ...model.elements,
+      {
+        id: crypto.randomUUID() as never,
+        payload: { kind: "sticker", stickerId: sticker.id, mediaObjectId: sticker.mediaObjectId },
+        x: 620,
+        y: 100,
+        width: 160,
+        height: 160,
+        rotation: 0,
+        layer: nextLayer(model.elements),
+      },
+    ],
+    selectedElementId: null,
+  });
+
+export const addEmoji = (model: Model, emoji: string): Model =>
+  record(model, {
+    ...model,
+    elements: [
+      ...model.elements,
+      {
+        id: crypto.randomUUID() as never,
+        payload: {
+          kind: "sticker",
+          stickerId: crypto.randomUUID() as never,
+          mediaObjectId: crypto.randomUUID() as never,
+          emoji,
+        },
+        x: 620,
+        y: 100,
+        width: 160,
+        height: 160,
+        rotation: 0,
+        layer: nextLayer(model.elements),
+      },
+    ],
+    selectedElementId: null,
+  });
 
 const addShape = (
   model: Model,

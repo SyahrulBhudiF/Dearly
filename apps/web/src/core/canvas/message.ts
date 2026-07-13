@@ -21,6 +21,10 @@ export const RequestedUpload = Message.m("CanvasRequestedUpload", {
 });
 export const SelectedCanvasElement = Message.m("SelectedCanvasElement", { id: Schema.String });
 export const DeselectedCanvasElement = Message.m("DeselectedCanvasElement");
+export const StartedCanvasTransform = Message.m("StartedCanvasTransform");
+export const FinishedCanvasTransform = Message.m("FinishedCanvasTransform");
+export const UndidCanvas = Message.m("UndidCanvas");
+export const RedidCanvas = Message.m("RedidCanvas");
 export const TransformedCanvasElement = Message.m("TransformedCanvasElement", {
   id: Schema.String,
   x: Schema.Number,
@@ -35,6 +39,15 @@ export const RotatedCanvasElement = Message.m("RotatedCanvasElement", { degrees:
 export const ChangedCanvasElementLayer = Message.m("ChangedCanvasElementLayer", {
   direction: Schema.Literals(["forward", "backward"]),
 });
+export const MovedCanvasElementLayer = Message.m("MovedCanvasElementLayer", {
+  id: Schema.String,
+  edge: Schema.Literals(["front", "back"]),
+});
+export const ReorderedCanvasElements = Message.m("ReorderedCanvasElements", {
+  draggedId: Schema.String,
+  targetId: Schema.String,
+});
+export const ToggledLayersPanel = Message.m("ToggledLayersPanel");
 export const GotDeleteDialogMessage = Message.m("GotDeleteDialogMessage", {
   message: Dialog.Message,
 });
@@ -73,11 +86,18 @@ export const CanvasMessage = Schema.Union([
   RequestedUpload,
   SelectedCanvasElement,
   DeselectedCanvasElement,
+  StartedCanvasTransform,
+  FinishedCanvasTransform,
+  UndidCanvas,
+  RedidCanvas,
   TransformedCanvasElement,
   RequestedDelete,
   DeletedCanvasElement,
   RotatedCanvasElement,
   ChangedCanvasElementLayer,
+  MovedCanvasElementLayer,
+  ReorderedCanvasElements,
+  ToggledLayersPanel,
   GotDeleteDialogMessage,
   MovedCanvasElement,
   StartedResize,

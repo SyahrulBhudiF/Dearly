@@ -12,7 +12,7 @@ import { ChangedTextDocument, ChangedTextFormat, ClosedToolbarMenu } from "./mes
 import type { TextFormat } from "./model";
 
 const extensions = [
-  StarterKit,
+  StarterKit.configure({ undoRedo: false }),
   TextStyle,
   FontFamily,
   FontSize,

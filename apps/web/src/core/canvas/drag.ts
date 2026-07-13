@@ -2,11 +2,15 @@ import { Effect, Queue, Stream } from "effect";
 import type { CanvasElement } from "@dearly/domain";
 import type { CanvasMessage } from "./message";
 import {
+  FinishedCanvasTransform,
   MovedCanvasElement,
   PastedCanvasText,
+  RedidCanvas,
   RequestedUpload,
   SelectedCanvasElement,
+  StartedCanvasTransform,
   TransformedCanvasElement,
+  UndidCanvas,
 } from "./message";
 
 type Handle =
@@ -40,6 +44,42 @@ const current = (
   height: Number(node.getAttribute("data-canvas-height")),
   rotation: Number(node.getAttribute("data-canvas-rotation")),
 });
+
+export const canvasShortcuts = (): Stream.Stream<CanvasMessage> =>
+  Stream.unwrap(
+    Effect.gen(function* () {
+      const messages = yield* Queue.bounded<CanvasMessage>(16);
+      const keydown = (event: KeyboardEvent) => {
+        if (event.isComposing || (!event.ctrlKey && !event.metaKey)) return;
+        const target = event.target;
+        if (
+          target instanceof Element &&
+          target.closest("input, textarea, select") !== null &&
+          target.closest("[data-rich-text-editor]") === null
+        )
+          return;
+        const key = event.key.toLowerCase();
+        const message =
+          key === "z" && !event.shiftKey
+            ? UndidCanvas()
+            : key === "y" || (key === "z" && event.shiftKey)
+              ? RedidCanvas()
+              : undefined;
+        if (message === undefined) return;
+        event.preventDefault();
+        Queue.offerUnsafe(messages, message);
+      };
+      document.addEventListener("keydown", keydown);
+      return Stream.fromQueue(messages).pipe(
+        Stream.ensuring(
+          Effect.sync(() => {
+            document.removeEventListener("keydown", keydown);
+            Queue.shutdown(messages);
+          }),
+        ),
+      );
+    }),
+  );
 
 export const canvasPaste = (): Stream.Stream<CanvasMessage> =>
   Stream.unwrap(
@@ -90,6 +130,7 @@ export const canvasElement = (
       const end = () => {
         if (pointerId !== undefined && node.hasPointerCapture(pointerId))
           node.releasePointerCapture(pointerId);
+        if (action !== undefined) Queue.offerUnsafe(messages, FinishedCanvasTransform());
         action = undefined;
         pointerId = undefined;
         start = undefined;
@@ -189,6 +230,7 @@ export const canvasElement = (
         event.preventDefault();
         const rect = node.getBoundingClientRect();
         Queue.offerUnsafe(messages, SelectedCanvasElement({ id: element.id }));
+        Queue.offerUnsafe(messages, StartedCanvasTransform());
         action = next;
         pointerId = event.pointerId;
         start = {
