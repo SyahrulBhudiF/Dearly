@@ -4,8 +4,11 @@ import { expect, test } from "vitest";
 import { GotCanvasMessage } from "../../src/core/app/message";
 import { initialModel } from "../../src/core/app/model";
 import { update } from "../../src/core/app/update";
+import { minimumCanvasSize } from "../../src/core/canvas/drag";
 import {
+  AddedShape,
   ChangedCanvasElementLayer,
+  ChangedShapeColor,
   DeletedCanvasElement,
   RotatedCanvasElement,
   SelectedCanvasElement,
@@ -24,6 +27,38 @@ const element = (id: string, layer: number): CanvasElement => ({
 });
 const message = (value: import("../../src/core/canvas/message").CanvasMessage) =>
   GotCanvasMessage({ message: value });
+
+test("emoji can resize below the normal Canvas minimum", () => {
+  expect(
+    minimumCanvasSize({
+      ...element("emoji", 0),
+      payload: {
+        kind: "sticker",
+        stickerId: "emoji-sticker" as never,
+        mediaObjectId: "emoji-media" as never,
+        emoji: "😂",
+      },
+    }),
+  ).toBe(32);
+  expect(minimumCanvasSize(element("image", 0))).toBe(80);
+});
+
+test("shape uses the selected color and becomes selected", () => {
+  Story.story(
+    update,
+    Story.with(initialModel(CalendarRoute())),
+    Story.message(message(ChangedShapeColor({ color: "#d98b7b" }))),
+    Story.message(message(AddedShape({ shape: "heart" }))),
+    Story.model((model) => {
+      expect(model.canvas.elements[0]?.payload).toEqual({
+        kind: "shape",
+        shape: "heart",
+        color: "#d98b7b",
+      });
+      expect(model.canvas.selectedElementId).toBe(model.canvas.elements[0]?.id);
+    }),
+  );
+});
 
 test("selected canvas element rotates, changes layer, and deletes", () => {
   Story.story(

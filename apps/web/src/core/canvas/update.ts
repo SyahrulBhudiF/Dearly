@@ -134,6 +134,12 @@ export const update = (model: Model, message: CanvasMessage): UpdateResult =>
       ],
       ClosedToolbarMenu: (): UpdateResult => [{ ...model, toolbarMenu: null }, []],
       ChangedTextFormat: ({ format }): UpdateResult => [{ ...model, textFormat: format }, []],
+      ToggledShapePicker: (): UpdateResult => [
+        { ...model, shapePickerOpen: !model.shapePickerOpen },
+        [],
+      ],
+      ChangedShapeColor: ({ color }): UpdateResult => [{ ...model, shapeColor: color }, []],
+      AddedShape: ({ shape }): UpdateResult => addShape(model, shape),
     }),
   );
 
@@ -203,6 +209,34 @@ export const addEmoji = (model: Model, emoji: string): Model => ({
   ],
   selectedElementId: null,
 });
+
+const addShape = (
+  model: Model,
+  shape: Extract<Model["elements"][number]["payload"], { kind: "shape" }>["shape"],
+): UpdateResult => {
+  const id = crypto.randomUUID() as never;
+  return [
+    {
+      ...model,
+      elements: [
+        ...model.elements,
+        {
+          id,
+          payload: { kind: "shape", shape, color: model.shapeColor },
+          x: 220,
+          y: 180,
+          width: 180,
+          height: 180,
+          rotation: 0,
+          layer: nextLayer(model.elements),
+        },
+      ],
+      selectedElementId: id,
+      shapePickerOpen: false,
+    },
+    [],
+  ];
+};
 
 const addText = (model: Model, text: string): UpdateResult => {
   const element = textElement(text);

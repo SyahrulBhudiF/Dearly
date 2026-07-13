@@ -37,6 +37,8 @@ export const Model = Schema.Struct({
     }),
   ),
   toolbarMenu: Schema.NullOr(Schema.Literals(["font", "size", "color"])),
+  shapePickerOpen: Schema.Boolean,
+  shapeColor: Schema.String,
   textFormat: TextFormat,
 });
 export type Model = Schema.Schema.Type<typeof Model>;
@@ -47,5 +49,7 @@ export const initialModel = (): Model => ({
   deleteDialog: Dialog.init({ id: "delete-canvas-element" }),
   resizing: null,
   toolbarMenu: null,
+  shapePickerOpen: false,
+  shapeColor: "var(--primary)",
   textFormat: defaultTextFormat(),
 });

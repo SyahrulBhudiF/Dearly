@@ -25,6 +25,10 @@ type UpdateResult = readonly [Model, ReadonlyArray<Command.Command<AppMessage>>]
 export const update = (model: Model, message: AppMessage): UpdateResult =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
+      DismissedNotification: ({ id }): UpdateResult => [
+        { ...model, notifications: model.notifications.filter((item) => item.id !== id) },
+        [],
+      ],
       ChangedRoute: ({ route }): UpdateResult => {
         if (route._tag !== "EntryRoute") return [{ ...model, route }, []];
         const date = route.date;
@@ -105,11 +109,17 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         }
         if (child._tag === "SavedEntry") {
           return [
-            { ...model, entry },
+            notify({ ...model, entry }, "success", "Diary entry saved"),
             [
               ...mapEntry(commands),
               ...mapCalendar([loadEntries({ month: child.entry.date.slice(0, 7) })]),
             ],
+          ];
+        }
+        if (child._tag === "FailedToSave") {
+          return [
+            notify({ ...model, entry }, "error", "Could not save diary entry"),
+            mapEntry(commands),
           ];
         }
         return [{ ...model, entry }, mapEntry(commands)];
@@ -126,10 +136,22 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
                 : child._tag === "SelectedEmoji"
                   ? Canvas.addEmoji(model.canvas, child.emoji)
                   : model.canvas;
-        return [{ ...model, media, canvas }, mapMedia(commands)];
+        const next = { ...model, media, canvas };
+        if (child._tag === "UploadedImage")
+          return [notify(next, "success", "Image added to canvas"), mapMedia(commands)];
+        if (child._tag === "UploadedSticker")
+          return [notify(next, "success", "Sticker uploaded"), mapMedia(commands)];
+        if (child._tag === "FailedToUploadImage")
+          return [notify(next, "error", "Image upload failed"), mapMedia(commands)];
+        return [next, mapMedia(commands)];
       },
     }),
   );
+
+const notify = (model: Model, kind: "success" | "error" | "loading", message: string): Model => ({
+  ...model,
+  notifications: [...model.notifications.slice(-2), { id: crypto.randomUUID(), kind, message }],
+});
 
 const mapCalendar = (commands: ReadonlyArray<Command.Command<CalendarMessage>>) =>
   Command.mapMessages(commands, (message) => GotCalendarMessage({ message }));

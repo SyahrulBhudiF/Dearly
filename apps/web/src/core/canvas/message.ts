@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { Dialog } from "@foldkit/ui";
-import { RichTextDocument } from "@dearly/domain";
+import { RichTextDocument, ShapeKind } from "@dearly/domain";
 import { Message } from "foldkit";
 import { TextFormat } from "./model";
 
@@ -60,6 +60,9 @@ export const ToggledToolbarMenu = Message.m("ToggledToolbarMenu", {
 });
 export const ClosedToolbarMenu = Message.m("ClosedToolbarMenu");
 export const ChangedTextFormat = Message.m("ChangedTextFormat", { format: TextFormat });
+export const ToggledShapePicker = Message.m("ToggledShapePicker");
+export const ChangedShapeColor = Message.m("ChangedShapeColor", { color: Schema.String });
+export const AddedShape = Message.m("AddedShape", { shape: ShapeKind });
 
 export const CanvasMessage = Schema.Union([
   ChangedText,
@@ -83,5 +86,8 @@ export const CanvasMessage = Schema.Union([
   ToggledToolbarMenu,
   ClosedToolbarMenu,
   ChangedTextFormat,
+  ToggledShapePicker,
+  ChangedShapeColor,
+  AddedShape,
 ]);
 export type CanvasMessage = Schema.Schema.Type<typeof CanvasMessage>;

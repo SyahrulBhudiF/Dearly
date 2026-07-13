@@ -1,7 +1,7 @@
 import { Button } from "@foldkit/ui";
 import { Html } from "foldkit";
 import { AlignCenter, AlignLeft, AlignRight, Grip, Trash2 } from "lucide";
-import type { CanvasElement } from "@dearly/domain";
+import type { CanvasElement, ShapeKind } from "@dearly/domain";
 import { Stream } from "effect";
 import { canvasElement as draggableCanvasElement } from "../../core/canvas/drag";
 import { richTextEditor } from "../../core/canvas/richText";
@@ -25,7 +25,9 @@ export const CanvasItem = (
     ? "Diary entry"
     : element.payload.kind === "image"
       ? (element.payload.alt ?? "Entry image")
-      : "Entry sticker";
+      : element.payload.kind === "shape"
+        ? `${element.payload.shape} shape`
+        : "Entry sticker";
   const isSelected = element.id === selectedElementId;
   return h.keyed("div")(
     element.id,
@@ -55,25 +57,60 @@ export const CanvasItem = (
     [
       isText
         ? richTextElement(h, element.id, element.payload)
-        : h.div(
-            [h.Class("size-full")],
-            [
-              element.payload.kind === "sticker" && element.payload.emoji !== undefined
-                ? h.span(
-                    [h.Class("grid size-full place-items-center text-8xl leading-none")],
-                    [element.payload.emoji],
-                  )
-                : h.img([
-                    h.Src(`/media/${element.payload.mediaObjectId}`),
-                    h.Alt(alt),
-                    h.Class("size-full object-contain"),
-                  ]),
-            ],
-          ),
+        : element.payload.kind === "shape"
+          ? shapeElement(h, element.payload.shape, element.payload.color)
+          : h.div(
+              [h.Class("size-full")],
+              [
+                element.payload.kind === "sticker" && element.payload.emoji !== undefined
+                  ? h.div(
+                      [h.Class("grid size-full place-items-center overflow-hidden")],
+                      [
+                        h.span(
+                          [
+                            h.Style({
+                              fontSize: `${Math.max(20, Math.min(element.width, element.height) * 0.72)}px`,
+                            }),
+                            h.Class("block leading-none"),
+                          ],
+                          [element.payload.emoji],
+                        ),
+                      ],
+                    )
+                  : h.img([
+                      h.Src(`/media/${element.payload.mediaObjectId}`),
+                      h.Alt(alt),
+                      h.Class("size-full object-contain"),
+                    ]),
+              ],
+            ),
       ...(isSelected ? canvasControls(h, alt, isText, toolbarMenu, textFormat) : []),
     ],
   );
 };
+
+const shapeElement = (h: HtmlFactory, shape: ShapeKind, color: string) =>
+  h.div(
+    [
+      h.Style({ backgroundColor: color }),
+      h.Class(
+        `size-full ${
+          shape === "circle"
+            ? "rounded-full"
+            : shape === "triangle"
+              ? "[clip-path:polygon(50%_0,100%_100%,0_100%)]"
+              : shape === "diamond"
+                ? "rotate-45 scale-75"
+                : shape === "star"
+                  ? "[clip-path:polygon(50%_0,61%_35%,98%_35%,68%_57%,79%_91%,50%_70%,21%_91%,32%_57%,2%_35%,39%_35%)]"
+                  : shape === "heart"
+                    ? "[clip-path:polygon(50%_88%,8%_47%,8%_25%,22%_10%,39%_10%,50%_23%,61%_10%,78%_10%,92%_25%,92%_47%)]"
+                    : "rounded-[8px]"
+        }`,
+      ),
+    ],
+    [],
+  );
 
 const richTextElement = (
   h: HtmlFactory,

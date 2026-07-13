@@ -6,19 +6,11 @@ import { GotEntryMessage } from "../core/app/message";
 import { SaveRequested } from "../core/entry/message";
 import { CalendarLink } from "./components/link";
 import { EntryHeader } from "./components/header";
+import { Notifications } from "./components/notifications";
 import { canvasShell, toolRail } from "./components/entry";
 
 export const entryPage = (model: Model): Html.Document => {
   const h = Html.html<AppMessage>();
-  const status =
-    model.entry.saveState === "saving"
-      ? "Saving draft"
-      : model.entry.saveState === "failed"
-        ? "Could not save"
-        : model.entry.text === model.entry.savedText
-          ? "Saved"
-          : "Local draft · unsaved";
-
   return {
     title: `Dearly — ${model.calendar.selectedDate}`,
     body: h.main(
@@ -37,15 +29,12 @@ export const entryPage = (model: Model): Html.Document => {
               "mx-auto flex max-w-6xl items-center justify-between border-b border-line pb-5",
             ),
           ],
-          [
-            CalendarLink(h),
-            h.p([h.Class("font-note text-[10px] tracking-[.13em] text-wine uppercase")], [status]),
-          ],
+          [CalendarLink(h), h.span([], [])],
         ),
         h.section(
           [h.Class("mx-auto grid max-w-6xl gap-8 py-10 lg:grid-cols-[72px_minmax(0,1fr)]")],
           [
-            toolRail(h, model.media),
+            toolRail(h, model.media, model.canvas),
             h.div(
               [h.Class("min-w-0")],
               [
@@ -58,6 +47,7 @@ export const entryPage = (model: Model): Html.Document => {
             ),
           ],
         ),
+        Notifications(h, model.notifications),
       ],
     ),
   };

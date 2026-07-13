@@ -3,7 +3,17 @@ import { CanvasElementId, MediaObjectId, StickerId } from "./ids";
 
 const PositiveNumber = Schema.Number.check(Schema.isGreaterThan(0));
 
-export const CanvasElementKind = Schema.Literals(["text", "image", "sticker"]);
+export const ShapeKind = Schema.Literals([
+  "rectangle",
+  "circle",
+  "triangle",
+  "diamond",
+  "star",
+  "heart",
+]);
+export type ShapeKind = Schema.Schema.Type<typeof ShapeKind>;
+
+export const CanvasElementKind = Schema.Literals(["text", "image", "sticker", "shape"]);
 export type CanvasElementKind = Schema.Schema.Type<typeof CanvasElementKind>;
 
 export const RichTextDocument = Schema.Struct({
@@ -27,6 +37,11 @@ export const CanvasElementPayload = Schema.Union([
     stickerId: StickerId,
     mediaObjectId: MediaObjectId,
     emoji: Schema.optional(Schema.String),
+  }),
+  Schema.Struct({
+    kind: Schema.Literal("shape"),
+    shape: ShapeKind,
+    color: Schema.String,
   }),
 ]);
 export type CanvasElementPayload = Schema.Schema.Type<typeof CanvasElementPayload>;

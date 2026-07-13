@@ -11,6 +11,7 @@ export const GotCalendarMessage = Message.m("GotCalendarMessage", { message: Cal
 export const GotEntryMessage = Message.m("GotEntryMessage", { message: EntryMessage });
 export const GotCanvasMessage = Message.m("GotCanvasMessage", { message: CanvasMessage });
 export const GotMediaMessage = Message.m("GotMediaMessage", { message: MediaMessage });
+export const DismissedNotification = Message.m("DismissedNotification", { id: Schema.String });
 
 export const AppMessage = Schema.Union([
   ChangedRoute,
@@ -18,5 +19,6 @@ export const AppMessage = Schema.Union([
   GotEntryMessage,
   GotCanvasMessage,
   GotMediaMessage,
+  DismissedNotification,
 ]);
 export type AppMessage = Schema.Schema.Type<typeof AppMessage>;

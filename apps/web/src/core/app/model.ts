@@ -5,6 +5,7 @@ import * as Calendar from "../calendar/model";
 import * as Canvas from "../canvas/model";
 import * as Entry from "../entry/model";
 import * as Media from "../media/model";
+import * as Notification from "../notification/model";
 
 export const Model = Schema.Struct({
   route: Schema.Union([CalendarRoute, EntryRoute, NotFoundRoute]),
@@ -12,6 +13,7 @@ export const Model = Schema.Struct({
   entry: Entry.Model,
   canvas: Canvas.Model,
   media: Media.Model,
+  notifications: Schema.Array(Notification.Model),
 });
 export type Model = Schema.Schema.Type<typeof Model>;
 
@@ -23,5 +25,6 @@ export const initialModel = (route: AppRoute): Model => {
     entry: Entry.initialModel(),
     canvas: Canvas.initialModel(),
     media: Media.initialModel(),
+    notifications: [],
   };
 };

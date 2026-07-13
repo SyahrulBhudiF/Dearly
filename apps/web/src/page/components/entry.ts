@@ -2,7 +2,8 @@ import { Option, Stream } from "effect";
 import { Html } from "foldkit";
 import { Button, Dialog, FileDrop, Popover, VirtualList } from "@foldkit/ui";
 import EmojiConvertor from "emoji-js";
-import { ImageUp, Sparkles, Type } from "lucide";
+import { ImageUp, Shapes, Sparkles, Type } from "lucide";
+import type { ShapeKind } from "@dearly/domain";
 import type { CanvasElement, MediaObject, Sticker } from "@dearly/domain";
 import type { AppMessage } from "../../core/app/message";
 import { GotCanvasMessage, GotMediaMessage } from "../../core/app/message";
@@ -22,7 +23,13 @@ import {
   SelectedStoredImage,
   SelectedSticker,
 } from "../../core/media/message";
-import { AddedTextCanvasElement, DeselectedCanvasElement } from "../../core/canvas/message";
+import {
+  AddedShape,
+  AddedTextCanvasElement,
+  ChangedShapeColor,
+  DeselectedCanvasElement,
+  ToggledShapePicker,
+} from "../../core/canvas/message";
 import { canvasPaste } from "../../core/canvas/drag";
 import { icon } from "./icon";
 import { CanvasItem } from "./element";
@@ -81,7 +88,7 @@ const emojis = Object.values(emoji.data)
     (left, right) => Number(faceEmojiNames.has(right.name)) - Number(faceEmojiNames.has(left.name)),
   );
 
-export const toolRail = (h: HtmlFactory, mediaModel: MediaModel) => {
+export const toolRail = (h: HtmlFactory, mediaModel: MediaModel, canvasModel: CanvasModel) => {
   const {
     imagePopover,
     images,
@@ -100,6 +107,7 @@ export const toolRail = (h: HtmlFactory, mediaModel: MediaModel) => {
     [
       toolButton(h, "Text", icon(h, Type, "Text"), canvas(AddedTextCanvasElement())),
       imagePicker(h, imagePopover, images, imageSearch, fileDrop),
+      shapePicker(h, canvasModel),
       h.submodel({
         slotId: "sticker-picker",
         model: stickerPopover,
@@ -188,6 +196,109 @@ export const toolRail = (h: HtmlFactory, mediaModel: MediaModel) => {
     ],
   );
 };
+
+const shapes: ReadonlyArray<{
+  readonly kind: ShapeKind;
+  readonly label: string;
+}> = [
+  { kind: "rectangle", label: "Rectangle" },
+  { kind: "circle", label: "Circle" },
+  { kind: "triangle", label: "Triangle" },
+  { kind: "diamond", label: "Diamond" },
+  { kind: "star", label: "Star" },
+  { kind: "heart", label: "Heart" },
+];
+
+const shapeColors = [
+  "var(--foreground)",
+  "var(--primary)",
+  "var(--secondary-foreground)",
+  "var(--accent-foreground)",
+  "#d98b7b",
+  "#7d94a8",
+] as const;
+
+const shapePicker = (h: HtmlFactory, model: CanvasModel) =>
+  h.div(
+    [h.Class("relative")],
+    [
+      toolButton(h, "Shape", icon(h, Shapes, "Shape"), canvas(ToggledShapePicker())),
+      model.shapePickerOpen
+        ? h.div(
+            [
+              h.Class(
+                "absolute top-0 left-14 z-30 w-64 rounded-[var(--radius)] border border-line bg-popover p-3 shadow-[var(--shadow)]",
+              ),
+            ],
+            [
+              h.p(
+                [h.Class("mb-2 font-note text-[10px] tracking-[.12em] text-muted uppercase")],
+                ["Shape"],
+              ),
+              h.div(
+                [h.Class("grid grid-cols-3 gap-2")],
+                shapes.map(({ kind, label }) =>
+                  Button.view<AppMessage>({
+                    onClick: canvas(AddedShape({ shape: kind })),
+                    toView: ({ button }) =>
+                      h.button(
+                        [
+                          ...button,
+                          h.AriaLabel(`Add ${label}`),
+                          h.Class(
+                            "grid aspect-square place-items-center rounded-[calc(var(--radius)-0.4rem)] bg-card hover:bg-rose/30",
+                          ),
+                        ],
+                        [shapePreview(h, kind, model.shapeColor)],
+                      ),
+                  }),
+                ),
+              ),
+              h.p(
+                [h.Class("mt-3 mb-2 font-note text-[10px] tracking-[.12em] text-muted uppercase")],
+                ["Color"],
+              ),
+              h.div(
+                [h.Class("flex gap-2")],
+                shapeColors.map((color) =>
+                  Button.view<AppMessage>({
+                    onClick: canvas(ChangedShapeColor({ color })),
+                    toView: ({ button }) =>
+                      h.button(
+                        [
+                          ...button,
+                          h.AriaLabel(`Use ${color} shape color`),
+                          h.Style({ backgroundColor: color }),
+                          h.Class(
+                            `size-7 rounded-[6px] ${model.shapeColor === color ? "outline-2 outline-offset-2 outline-wine" : ""}`,
+                          ),
+                        ],
+                        [],
+                      ),
+                  }),
+                ),
+              ),
+            ],
+          )
+        : null,
+    ],
+  );
+
+const shapePreview = (h: HtmlFactory, shape: ShapeKind, color: string) =>
+  h.div([h.Style({ backgroundColor: color }), h.Class(`size-8 ${shapeClass(shape)}`)], []);
+
+const shapeClass = (shape: ShapeKind) =>
+  shape === "circle"
+    ? "rounded-full"
+    : shape === "triangle"
+      ? "[clip-path:polygon(50%_0,100%_100%,0_100%)]"
+      : shape === "diamond"
+        ? "rotate-45 scale-75"
+        : shape === "star"
+          ? "[clip-path:polygon(50%_0,61%_35%,98%_35%,68%_57%,79%_91%,50%_70%,21%_91%,32%_57%,2%_35%,39%_35%)]"
+          : shape === "heart"
+            ? "[clip-path:polygon(50%_88%,8%_47%,8%_25%,22%_10%,39%_10%,50%_23%,61%_10%,78%_10%,92%_25%,92%_47%)]"
+            : "rounded-[5px]";
 
 const stickerTabs = (h: HtmlFactory, selectedTab: "stickers" | "emoji") =>
   h.div(
@@ -424,7 +535,7 @@ const imagePicker = (
 
 export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel: MediaModel) => {
   const { elements, selectedElementId, deleteDialog } = canvasModel;
-  const { fileDrop, uploadState } = mediaModel;
+  const { fileDrop } = mediaModel;
   return h.div(
     [
       h.Class(
@@ -467,17 +578,6 @@ export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel
             ),
           DeleteDialog(h, deleteDialog),
           UploadDialog(h, mediaModel),
-          uploadState === "uploading"
-            ? h.p(
-                [h.Class("relative mb-4 font-note text-[10px] text-muted uppercase")],
-                ["Uploading image…"],
-              )
-            : uploadState === "failed"
-              ? h.p(
-                  [h.Class("relative mb-4 font-note text-[10px] text-wine uppercase")],
-                  ["Image upload failed"],
-                )
-              : null,
         ],
       ),
     ],

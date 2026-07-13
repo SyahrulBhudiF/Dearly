@@ -10,10 +10,15 @@ import {
   WentToday,
 } from "../core/calendar/message";
 import type { AppMessage } from "../core/app/message";
+import type { Model as AppModel } from "../core/app/model";
 import type { Model } from "../core/calendar/model";
+import { Notifications } from "./components/notifications";
 import { dateCard, miniCalendar, monthHeader, previewFor, weekdays } from "./components/calendar";
 
-export const calendarPage = (model: Model): Html.Document => {
+export const calendarPage = (
+  model: Model,
+  notifications: AppModel["notifications"],
+): Html.Document => {
   const h = Html.html<AppMessage>();
   const { month, selectedDate } = model;
 
@@ -111,6 +116,7 @@ export const calendarPage = (model: Model): Html.Document => {
             ),
           ],
         ),
+        Notifications(h, notifications),
       ],
     ),
   };

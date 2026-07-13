@@ -28,6 +28,9 @@ type Start = Pick<CanvasElement, "x" | "y" | "width" | "height" | "rotation"> & 
 
 const normalizedAngle = (angle: number) => ((angle + 540) % 360) - 180;
 
+export const minimumCanvasSize = (element: CanvasElement) =>
+  element.payload.kind === "sticker" ? 32 : 80;
+
 const current = (
   node: Element,
 ): Pick<CanvasElement, "x" | "y" | "width" | "height" | "rotation"> => ({
@@ -136,20 +139,27 @@ export const canvasElement = (
         if (handle === undefined) return;
         const left = handle.includes("west") ? start.x + dx : start.x;
         const top = handle.includes("north") ? start.y + dy : start.y;
+        const minimumSize = minimumCanvasSize(element);
         const width = Math.max(
-          80,
+          minimumSize,
           start.width + (handle.includes("west") ? -dx : handle.includes("east") ? dx : 0),
         );
         const height = Math.max(
-          80,
+          minimumSize,
           start.height + (handle.includes("north") ? -dy : handle.includes("south") ? dy : 0),
         );
         Queue.offerUnsafe(
           messages,
           TransformedCanvasElement({
             id: element.id,
-            x: width === 80 && handle.includes("west") ? start.x + start.width - 80 : left,
-            y: height === 80 && handle.includes("north") ? start.y + start.height - 80 : top,
+            x:
+              width === minimumSize && handle.includes("west")
+                ? start.x + start.width - minimumSize
+                : left,
+            y:
+              height === minimumSize && handle.includes("north")
+                ? start.y + start.height - minimumSize
+                : top,
             width,
             height,
             rotation: start.rotation,
