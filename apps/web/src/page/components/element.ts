@@ -2,10 +2,13 @@ import { Button } from "@foldkit/ui";
 import { Html } from "foldkit";
 import { AlignCenter, AlignLeft, AlignRight, Grip, Trash2 } from "lucide";
 import type { CanvasElement } from "@dearly/domain";
-import { canvasElement as draggableCanvasElement } from "../../core/canvasDrag";
-import { richTextEditor } from "../../core/richTextEditor";
-import type { AppMessage } from "../../core/message";
-import { RequestedDelete } from "../../core/message";
+import { Stream } from "effect";
+import { canvasElement as draggableCanvasElement } from "../../core/canvas/drag";
+import { richTextEditor } from "../../core/canvas/richText";
+import type { AppMessage } from "../../core/app/message";
+import { GotCanvasMessage } from "../../core/app/message";
+import { RequestedDelete, ToggledToolbarMenu } from "../../core/canvas/message";
+import type { TextFormat } from "../../core/canvas/model";
 import { icon } from "./icon";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
@@ -14,6 +17,8 @@ export const CanvasItem = (
   h: HtmlFactory,
   element: CanvasElement,
   selectedElementId: string | null,
+  toolbarMenu: "font" | "size" | "color" | null,
+  textFormat: TextFormat,
 ) => {
   const isText = element.payload.kind === "text";
   const alt = isText
@@ -27,7 +32,7 @@ export const CanvasItem = (
     [
       h.OnMount({
         name: `canvas-${element.id}`,
-        f: (node) => draggableCanvasElement(element, node),
+        f: (node) => draggableCanvasElement(element, node).pipe(Stream.map(canvas)),
       }),
       h.Style({
         position: "absolute",
@@ -65,7 +70,7 @@ export const CanvasItem = (
                   ]),
             ],
           ),
-      ...(isSelected ? canvasControls(h, alt, isText) : []),
+      ...(isSelected ? canvasControls(h, alt, isText, toolbarMenu, textFormat) : []),
     ],
   );
 };
@@ -79,7 +84,7 @@ const richTextElement = (
     [
       h.OnMount({
         name: `rich-text-${id}`,
-        f: (node) => richTextEditor(id, payload.document, node),
+        f: (node) => richTextEditor(id, payload.document, node).pipe(Stream.map(canvas)),
       }),
       h.Class("size-full bg-transparent font-display text-2xl leading-tight sm:text-3xl"),
     ],
@@ -104,6 +109,9 @@ const richTextMenu = (
     readonly attribute: string;
     readonly value: string;
   }>,
+  activeValue: string,
+  menu: "font" | "size" | "color",
+  open: boolean,
   color = false,
 ) =>
   h.div(
@@ -112,19 +120,31 @@ const richTextMenu = (
       h.button(
         [
           h.DataAttribute("rich-text-menu", "true"),
+          h.OnClick(canvas(ToggledToolbarMenu({ menu }))),
           h.AriaLabel(label),
           h.DataAttribute("rich-text-menu-trigger", label.toLowerCase()),
           h.Class(
             "flex h-8 items-center justify-center gap-1 rounded-[calc(var(--radius)-0.65rem)] px-2 font-note text-xs hover:bg-rose/35",
           ),
         ],
-        [h.span([h.DataAttribute("rich-text-menu-label", "true")], [label]), h.span([], ["⌄"])],
+        [
+          ...(color
+            ? [
+                h.span(
+                  [h.Class("size-2.5 rounded-[2px]"), h.Style({ backgroundColor: activeValue })],
+                  [],
+                ),
+              ]
+            : []),
+          h.span([h.DataAttribute("rich-text-menu-label", "true")], [label]),
+          h.span([h.Class("text-[10px] text-muted")], ["⌄"]),
+        ],
       ),
       h.div(
         [
           h.DataAttribute("rich-text-menu-panel", "true"),
           h.Class(
-            "hidden absolute top-9 left-0 z-40 min-w-28 rounded-[var(--radius)] border border-line bg-paper p-1 shadow-[var(--shadow)]",
+            `${open ? "" : "hidden "}absolute top-9 left-0 z-40 min-w-28 rounded-[var(--radius)] border border-line bg-paper p-1 shadow-[var(--shadow)]`,
           ),
         ],
         options.map((option) =>
@@ -132,15 +152,16 @@ const richTextMenu = (
             [
               h.DataAttribute(option.attribute, option.value),
               h.Class(
-                "flex w-full items-center gap-2 rounded-[calc(var(--radius)-0.65rem)] px-2 py-1.5 text-left font-note text-xs hover:bg-rose/35",
+                `flex w-full items-center justify-between gap-3 rounded-[calc(var(--radius)-0.65rem)] px-2 py-1.5 text-left font-note text-xs hover:bg-rose/35 ${activeValue === option.value ? "bg-rose/35 text-wine" : ""}`,
               ),
               ...(color ? [h.Style({ color: option.value })] : []),
             ],
             [
-              ...(color
-                ? [h.span([h.Class("size-3 rounded-[3px] border border-line bg-current")], [])]
+              ...(color ? [h.span([h.Class("size-3 rounded-[2px] bg-current")], [])] : []),
+              h.span([h.Class("grow")], [option.label]),
+              ...(activeValue === option.value
+                ? [h.span([h.AriaHidden(true), h.Class("font-display text-sm")], ["✓"])]
                 : []),
-              option.label,
             ],
           ),
         ),
@@ -148,35 +169,84 @@ const richTextMenu = (
     ],
   );
 
-const richTextToolbar = (h: HtmlFactory) => [
-  richTextMenu(h, "Font", [
-    { label: "Dearly", attribute: "rich-text-font-family", value: "inherit" },
-    { label: "Gaegu", attribute: "rich-text-font-family", value: "'Gaegu', cursive" },
-    {
-      label: "Nanum pen",
-      attribute: "rich-text-font-family",
-      value: "'Nanum Pen Script', cursive",
-    },
-    { label: "Gowun", attribute: "rich-text-font-family", value: "'Gowun Dodum', sans-serif" },
-    { label: "Mono", attribute: "rich-text-font-family", value: "monospace" },
-  ]),
-  richTextMenu(h, "Size", [
-    { label: "12", attribute: "rich-text-font-size", value: "12px" },
-    { label: "16", attribute: "rich-text-font-size", value: "16px" },
-    { label: "20", attribute: "rich-text-font-size", value: "20px" },
-    { label: "24", attribute: "rich-text-font-size", value: "24px" },
-    { label: "32", attribute: "rich-text-font-size", value: "32px" },
-    { label: "40", attribute: "rich-text-font-size", value: "40px" },
-  ]),
+const fontLabel = (value: string) =>
+  value.includes("Gaegu")
+    ? "Gaegu"
+    : value.includes("Nanum")
+      ? "Nanum pen"
+      : value.includes("Gowun")
+        ? "Gowun"
+        : value === "monospace"
+          ? "Mono"
+          : "Dearly";
+
+const colorLabel = (value: string) =>
+  value === "var(--primary)"
+    ? "Rose"
+    : value === "var(--secondary-foreground)"
+      ? "Sage"
+      : value === "var(--accent-foreground)"
+        ? "Butter"
+        : "Ink";
+
+const richTextToolbar = (
+  h: HtmlFactory,
+  toolbarMenu: "font" | "size" | "color" | null,
+  textFormat: TextFormat,
+) => [
   richTextMenu(
     h,
-    "Color",
+    fontLabel(textFormat.font),
+    [
+      { label: "Dearly", attribute: "rich-text-font-family", value: "inherit" },
+      { label: "Gaegu", attribute: "rich-text-font-family", value: "'Gaegu', cursive" },
+      {
+        label: "Nanum pen",
+        attribute: "rich-text-font-family",
+        value: "'Nanum Pen Script', cursive",
+      },
+      { label: "Gowun", attribute: "rich-text-font-family", value: "'Gowun Dodum', sans-serif" },
+      { label: "Mono", attribute: "rich-text-font-family", value: "monospace" },
+    ],
+    textFormat.font,
+    "font",
+    toolbarMenu === "font",
+  ),
+  richTextMenu(
+    h,
+    textFormat.size.replace("px", ""),
+    [
+      { label: "10", attribute: "rich-text-font-size", value: "10px" },
+      { label: "12", attribute: "rich-text-font-size", value: "12px" },
+      { label: "14", attribute: "rich-text-font-size", value: "14px" },
+      { label: "16", attribute: "rich-text-font-size", value: "16px" },
+      { label: "18", attribute: "rich-text-font-size", value: "18px" },
+      { label: "20", attribute: "rich-text-font-size", value: "20px" },
+      { label: "24", attribute: "rich-text-font-size", value: "24px" },
+      { label: "28", attribute: "rich-text-font-size", value: "28px" },
+      { label: "32", attribute: "rich-text-font-size", value: "32px" },
+      { label: "36", attribute: "rich-text-font-size", value: "36px" },
+      { label: "40", attribute: "rich-text-font-size", value: "40px" },
+      { label: "48", attribute: "rich-text-font-size", value: "48px" },
+      { label: "56", attribute: "rich-text-font-size", value: "56px" },
+      { label: "64", attribute: "rich-text-font-size", value: "64px" },
+    ],
+    textFormat.size,
+    "size",
+    toolbarMenu === "size",
+  ),
+  richTextMenu(
+    h,
+    colorLabel(textFormat.color),
     [
       { label: "Ink", attribute: "rich-text-color", value: "var(--foreground)" },
       { label: "Rose", attribute: "rich-text-color", value: "var(--primary)" },
       { label: "Sage", attribute: "rich-text-color", value: "var(--secondary-foreground)" },
       { label: "Butter", attribute: "rich-text-color", value: "var(--accent-foreground)" },
     ],
+    textFormat.color,
+    "color",
+    toolbarMenu === "color",
     true,
   ),
   ...(["left", "center", "right"] as const).map((align) =>
@@ -184,8 +254,9 @@ const richTextToolbar = (h: HtmlFactory) => [
       [
         h.DataAttribute("rich-text-align", align),
         h.AriaLabel(`Align ${align}`),
+        h.AriaPressed(String(textFormat.align === align)),
         h.Class(
-          "grid size-8 place-items-center rounded-[calc(var(--radius)-0.65rem)] font-note text-xs hover:bg-rose/35",
+          `grid size-8 place-items-center rounded-[calc(var(--radius)-0.65rem)] font-note text-xs hover:bg-rose/35 ${textFormat.align === align ? "bg-wine text-paper" : ""}`,
         ),
       ],
       [
@@ -202,14 +273,23 @@ const richTextToolbar = (h: HtmlFactory) => [
       [
         h.DataAttribute("rich-text-action", action),
         h.AriaLabel(action),
-        h.Class("grid size-8 place-items-center font-display text-sm hover:bg-rose/35"),
+        h.AriaPressed(String(textFormat[action])),
+        h.Class(
+          `grid size-8 place-items-center rounded-[calc(var(--radius)-0.65rem)] font-display text-sm hover:bg-rose/35 ${textFormat[action] ? "bg-wine text-paper" : ""}`,
+        ),
       ],
       [action === "bold" ? "B" : action === "italic" ? "I" : "U"],
     ),
   ),
 ];
 
-const canvasControls = (h: HtmlFactory, alt: string, isText: boolean) => [
+const canvasControls = (
+  h: HtmlFactory,
+  alt: string,
+  isText: boolean,
+  toolbarMenu: "font" | "size" | "color" | null,
+  textFormat: TextFormat,
+) => [
   h.div(
     [
       h.DataAttribute("canvas-controls", "true"),
@@ -218,7 +298,7 @@ const canvasControls = (h: HtmlFactory, alt: string, isText: boolean) => [
       ),
     ],
     [
-      ...(isText ? richTextToolbar(h) : []),
+      ...(isText ? richTextToolbar(h, toolbarMenu, textFormat) : []),
       h.span(
         [
           h.DataAttribute("canvas-grab", "true"),
@@ -230,7 +310,7 @@ const canvasControls = (h: HtmlFactory, alt: string, isText: boolean) => [
         [icon(h, Grip, "Drag element")],
       ),
       Button.view<AppMessage>({
-        onClick: RequestedDelete(),
+        onClick: canvas(RequestedDelete()),
         toView: ({ button }) =>
           h.button(
             [
@@ -275,3 +355,6 @@ const canvasControls = (h: HtmlFactory, alt: string, isText: boolean) => [
     ),
   ),
 ];
+
+const canvas = (message: import("../../core/canvas/message").CanvasMessage): AppMessage =>
+  GotCanvasMessage({ message });

@@ -1,6 +1,6 @@
 import { Effect, Queue, Stream } from "effect";
 import type { CanvasElement } from "@dearly/domain";
-import type { AppMessage } from "./message";
+import type { CanvasMessage } from "./message";
 import {
   MovedCanvasElement,
   PastedCanvasText,
@@ -38,10 +38,10 @@ const current = (
   rotation: Number(node.getAttribute("data-canvas-rotation")),
 });
 
-export const canvasPaste = (): Stream.Stream<AppMessage> =>
+export const canvasPaste = (): Stream.Stream<CanvasMessage> =>
   Stream.unwrap(
     Effect.gen(function* () {
-      const messages = yield* Queue.bounded<AppMessage>(16);
+      const messages = yield* Queue.bounded<CanvasMessage>(16);
       const paste = (event: ClipboardEvent) => {
         const target = event.target;
         if (target instanceof Element && target.closest("input, textarea, [contenteditable=true]"))
@@ -73,10 +73,13 @@ export const canvasPaste = (): Stream.Stream<AppMessage> =>
     }),
   );
 
-export const canvasElement = (element: CanvasElement, node: Element): Stream.Stream<AppMessage> =>
+export const canvasElement = (
+  element: CanvasElement,
+  node: Element,
+): Stream.Stream<CanvasMessage> =>
   Stream.unwrap(
     Effect.gen(function* () {
-      const messages = yield* Queue.bounded<AppMessage>(16);
+      const messages = yield* Queue.bounded<CanvasMessage>(16);
       let action: Action | undefined;
       let pointerId: number | undefined;
       let start: Start | undefined;

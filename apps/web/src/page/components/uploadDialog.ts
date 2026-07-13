@@ -1,8 +1,13 @@
 import { Button, Dialog } from "@foldkit/ui";
 import { Html } from "foldkit";
-import type { AppMessage } from "../../core/message";
-import { ChangedUploadTitle, ConfirmedUpload, GotUploadDialogMessage } from "../../core/message";
-import type { Model } from "../../core/model";
+import type { AppMessage } from "../../core/app/message";
+import { GotMediaMessage } from "../../core/app/message";
+import {
+  ChangedUploadTitle,
+  ConfirmedUpload,
+  GotUploadDialogMessage,
+} from "../../core/media/message";
+import type { Model } from "../../core/media/model";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
@@ -11,7 +16,7 @@ export const UploadDialog = (h: HtmlFactory, model: Model): ReturnType<HtmlFacto
     slotId: "upload-title",
     model: model.uploadDialog,
     view: Dialog.view,
-    toParentMessage: (message) => GotUploadDialogMessage({ message }),
+    toParentMessage: (message) => GotMediaMessage({ message: GotUploadDialogMessage({ message }) }),
     viewInputs: {
       toView: ({
         dialog,
@@ -57,7 +62,9 @@ export const UploadDialog = (h: HtmlFactory, model: Model): ReturnType<HtmlFacto
                           h.Type("text"),
                           h.Value(model.pendingUpload.title),
                           h.AriaLabel("Title"),
-                          h.OnInput((value) => ChangedUploadTitle({ title: value })),
+                          h.OnInput((value) =>
+                            GotMediaMessage({ message: ChangedUploadTitle({ title: value }) }),
+                          ),
                           h.Class(
                             "mt-5 w-full rounded-[var(--radius)] border border-line bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none",
                           ),
@@ -70,7 +77,7 @@ export const UploadDialog = (h: HtmlFactory, model: Model): ReturnType<HtmlFacto
                               ["Cancel"],
                             ),
                             Button.view<AppMessage>({
-                              onClick: ConfirmedUpload(),
+                              onClick: GotMediaMessage({ message: ConfirmedUpload() }),
                               toView: ({ button }) =>
                                 h.button(
                                   [

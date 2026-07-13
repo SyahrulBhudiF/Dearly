@@ -1,10 +1,11 @@
 import { expect, test } from "vitest";
 import { Scene } from "foldkit";
 import type { CanvasElement } from "@dearly/domain";
-import { initialModel } from "../../src/core/model";
-import { DeselectedCanvasElement } from "../../src/core/message";
+import { initialModel } from "../../src/core/app/model";
+import { GotCanvasMessage } from "../../src/core/app/message";
+import { DeselectedCanvasElement } from "../../src/core/canvas/message";
 import { EntryRoute } from "../../src/core/route";
-import { update } from "../../src/core/update";
+import { update } from "../../src/core/app/update";
 import { view } from "../../src/view";
 
 const element: CanvasElement = {
@@ -23,16 +24,25 @@ const element: CanvasElement = {
 
 const model = {
   ...initialModel(EntryRoute({ date: "2026-07-13" as never })),
-  elements: [element],
-  selectedElementId: element.id,
+  canvas: {
+    ...initialModel(EntryRoute({ date: "2026-07-13" as never })).canvas,
+    elements: [element],
+    selectedElementId: element.id,
+  },
 };
 
 test("pointering down on blank canvas deselects its element", () => {
   Scene.scene(
     { update, view },
     Scene.with(model),
-    Scene.Mount.resolve({ name: `canvas-${element.id}` }, DeselectedCanvasElement()),
-    Scene.Mount.resolve({ name: "canvas-paste" }, DeselectedCanvasElement()),
+    Scene.Mount.resolve(
+      { name: `canvas-${element.id}` },
+      GotCanvasMessage({ message: DeselectedCanvasElement() }),
+    ),
+    Scene.Mount.resolve(
+      { name: "canvas-paste" },
+      GotCanvasMessage({ message: DeselectedCanvasElement() }),
+    ),
     Scene.pointerDown(Scene.selector('[data-canvas-background="true"]')),
     Scene.tap((scene) => {
       expect(Scene.find(scene.html, '[data-canvas-controls="true"]')._tag).toBe("None");

@@ -1,16 +1,17 @@
-import { Option } from "effect";
+import { Option, Stream } from "effect";
 import { Html } from "foldkit";
 import { Button, Dialog, FileDrop, Popover, VirtualList } from "@foldkit/ui";
 import EmojiConvertor from "emoji-js";
 import { ImageUp, Sparkles, Type } from "lucide";
 import type { CanvasElement, MediaObject, Sticker } from "@dearly/domain";
-import type { AppMessage } from "../../core/message";
+import type { AppMessage } from "../../core/app/message";
+import { GotCanvasMessage, GotMediaMessage } from "../../core/app/message";
+import type { Model as CanvasModel } from "../../core/canvas/model";
+import type { Model as MediaModel } from "../../core/media/model";
 import {
-  AddedTextCanvasElement,
   ChangedEmojiSearch,
   ChangedImageSearch,
   ChangedStickerSearch,
-  DeselectedCanvasElement,
   GotEmojiListMessage,
   GotFileDropMessage,
   GotImagePopoverMessage,
@@ -20,8 +21,9 @@ import {
   SelectedStickerTab,
   SelectedStoredImage,
   SelectedSticker,
-} from "../../core/message";
-import { canvasPaste } from "../../core/canvasDrag";
+} from "../../core/media/message";
+import { AddedTextCanvasElement, DeselectedCanvasElement } from "../../core/canvas/message";
+import { canvasPaste } from "../../core/canvas/drag";
 import { icon } from "./icon";
 import { CanvasItem } from "./element";
 import { DeleteDialog } from "./dialog";
@@ -79,30 +81,30 @@ const emojis = Object.values(emoji.data)
     (left, right) => Number(faceEmojiNames.has(right.name)) - Number(faceEmojiNames.has(left.name)),
   );
 
-export const toolRail = (
-  h: HtmlFactory,
-  imagePopover: Popover.Model,
-  images: ReadonlyArray<MediaObject>,
-  imageSearch: string,
-  stickerPopover: Popover.Model,
-  stickers: ReadonlyArray<Sticker>,
-  stickerSearch: string,
-  stickerTab: "stickers" | "emoji",
-  emojiSearch: string,
-  emojiList: VirtualList.Model,
-  stickerFileDrop: FileDrop.Model,
-  fileDrop: FileDrop.Model,
-) =>
-  h.nav(
+export const toolRail = (h: HtmlFactory, mediaModel: MediaModel) => {
+  const {
+    imagePopover,
+    images,
+    imageSearch,
+    stickerPopover,
+    stickers,
+    stickerSearch,
+    stickerTab,
+    emojiSearch,
+    emojiList,
+    stickerFileDrop,
+    fileDrop,
+  } = mediaModel;
+  return h.nav(
     [h.Class("flex gap-2 lg:flex-col")],
     [
-      toolButton(h, "Text", icon(h, Type, "Text"), AddedTextCanvasElement()),
+      toolButton(h, "Text", icon(h, Type, "Text"), canvas(AddedTextCanvasElement())),
       imagePicker(h, imagePopover, images, imageSearch, fileDrop),
       h.submodel({
         slotId: "sticker-picker",
         model: stickerPopover,
         view: Popover.view,
-        toParentMessage: (message) => GotStickerPopoverMessage({ message }),
+        toParentMessage: (message) => media(GotStickerPopoverMessage({ message })),
         viewInputs: {
           anchor: { placement: "right-start", gap: 8 },
           ariaLabel: "Choose sticker",
@@ -138,14 +140,14 @@ export const toolRail = (
                                   [h.Class("mt-3 grid grid-cols-4 justify-items-center gap-2")],
                                   [
                                     searchInput(h, "Search stickers", stickerSearch, (value) =>
-                                      ChangedStickerSearch({ value }),
+                                      media(ChangedStickerSearch({ value })),
                                     ),
                                     h.submodel({
                                       slotId: "sticker-media-upload",
                                       model: stickerFileDrop,
                                       view: FileDrop.view,
                                       toParentMessage: (message) =>
-                                        GotStickerFileDropMessage({ message }),
+                                        media(GotStickerFileDropMessage({ message })),
                                       viewInputs: {
                                         accept: [
                                           "image/jpeg",
@@ -185,13 +187,14 @@ export const toolRail = (
       }),
     ],
   );
+};
 
 const stickerTabs = (h: HtmlFactory, selectedTab: "stickers" | "emoji") =>
   h.div(
     [h.Class("grid grid-cols-2 rounded-[var(--radius)] bg-primary p-1")],
     (["stickers", "emoji"] as const).map((tab) =>
       Button.view<AppMessage>({
-        onClick: SelectedStickerTab({ tab }),
+        onClick: media(SelectedStickerTab({ tab })),
         toView: ({ button }) =>
           h.button(
             [
@@ -219,7 +222,7 @@ const stickerItems = (h: HtmlFactory, stickers: ReadonlyArray<Sticker>, search: 
       ]
     : matchingStickers.map((sticker) =>
         Button.view<AppMessage>({
-          onClick: SelectedSticker({ sticker }),
+          onClick: media(SelectedSticker({ sticker })),
           toView: ({ button }) =>
             h.button(
               [
@@ -249,12 +252,12 @@ const emojiPicker = (h: HtmlFactory, search: string, emojiList: VirtualList.Mode
   return h.div(
     [h.Class("mt-3")],
     [
-      searchInput(h, "Search emoji", search, (value) => ChangedEmojiSearch({ value })),
+      searchInput(h, "Search emoji", search, (value) => media(ChangedEmojiSearch({ value }))),
       h.submodel({
         slotId: "emoji-picker-list",
         model: emojiList,
         view: VirtualList.view<ReadonlyArray<(typeof emojis)[number]>>(),
-        toParentMessage: (message) => GotEmojiListMessage({ message }),
+        toParentMessage: (message) => media(GotEmojiListMessage({ message })),
         viewInputs: {
           items: rows,
           itemToKey: (_row, index) => String(index),
@@ -272,7 +275,7 @@ const emojiPicker = (h: HtmlFactory, search: string, emojiList: VirtualList.Mode
 
 const emojiButton = (h: HtmlFactory, value: string, name: string) =>
   Button.view<AppMessage>({
-    onClick: SelectedEmoji({ emoji: value }),
+    onClick: media(SelectedEmoji({ emoji: value })),
     toView: ({ button }) =>
       h.button(
         [
@@ -314,7 +317,7 @@ const imagePicker = (
     slotId: "image-picker",
     model: imagePopover,
     view: Popover.view,
-    toParentMessage: (message) => GotImagePopoverMessage({ message }),
+    toParentMessage: (message) => media(GotImagePopoverMessage({ message })),
     viewInputs: {
       anchor: { placement: "right-start", gap: 8 },
       ariaLabel: "Choose image",
@@ -345,13 +348,13 @@ const imagePicker = (
                       ],
                       [
                         searchInput(h, "Search images", search, (value) =>
-                          ChangedImageSearch({ value }),
+                          media(ChangedImageSearch({ value })),
                         ),
                         h.submodel({
                           slotId: "entry-media-upload",
                           model: fileDrop,
                           view: FileDrop.view,
-                          toParentMessage: (message) => GotFileDropMessage({ message }),
+                          toParentMessage: (message) => media(GotFileDropMessage({ message })),
                           viewInputs: {
                             accept: ["image/jpeg", "image/png", "image/webp", "image/gif"],
                             multiple: true,
@@ -386,9 +389,9 @@ const imagePicker = (
                                 )
                                 .map((image) =>
                                   Button.view<AppMessage>({
-                                    onClick: SelectedStoredImage({
-                                      mediaObjectId: image.id,
-                                    }),
+                                    onClick: media(
+                                      SelectedStoredImage({ mediaObjectId: image.id }),
+                                    ),
                                     toView: ({ button: imageButton }) =>
                                       h.button(
                                         [
@@ -419,16 +422,10 @@ const imagePicker = (
     },
   });
 
-export const canvasShell = (
-  h: HtmlFactory,
-  fileDrop: FileDrop.Model,
-  elements: ReadonlyArray<CanvasElement>,
-  selectedElementId: string | null,
-  deleteDialog: Dialog.Model,
-  uploadDialogModel: import("../../core/model").Model,
-  uploadState: "idle" | "uploading" | "failed",
-) =>
-  h.div(
+export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel: MediaModel) => {
+  const { elements, selectedElementId, deleteDialog } = canvasModel;
+  const { fileDrop, uploadState } = mediaModel;
+  return h.div(
     [
       h.Class(
         "w-full min-w-0 max-w-[1080px] overflow-x-auto overflow-y-hidden border border-line bg-canvas",
@@ -437,14 +434,14 @@ export const canvasShell = (
     [
       h.div(
         [
-          h.OnMount({ name: "canvas-paste", f: canvasPaste }),
+          h.OnMount({ name: "canvas-paste", f: (node) => canvasPaste().pipe(Stream.map(canvas)) }),
           h.Class("relative h-[760px] w-[1080px] touch-pan-x bg-canvas overflow-hidden"),
         ],
         [
           h.div(
             [
               h.DataAttribute("canvas-background", "true"),
-              h.OnPointerDown(() => Option.some(DeselectedCanvasElement())),
+              h.OnPointerDown(() => Option.some(canvas(DeselectedCanvasElement()))),
               h.Class("absolute inset-0 z-0"),
             ],
             [],
@@ -459,9 +456,17 @@ export const canvasShell = (
           ),
           ...[...elements]
             .sort((a, b) => a.layer - b.layer)
-            .map((element) => CanvasItem(h, element, selectedElementId)),
+            .map((element) =>
+              CanvasItem(
+                h,
+                element,
+                selectedElementId,
+                canvasModel.toolbarMenu,
+                canvasModel.textFormat,
+              ),
+            ),
           DeleteDialog(h, deleteDialog),
-          UploadDialog(h, uploadDialogModel),
+          UploadDialog(h, mediaModel),
           uploadState === "uploading"
             ? h.p(
                 [h.Class("relative mb-4 font-note text-[10px] text-muted uppercase")],
@@ -477,6 +482,7 @@ export const canvasShell = (
       ),
     ],
   );
+};
 
 const toolButton = (
   h: HtmlFactory,
@@ -498,3 +504,8 @@ const toolButton = (
         [content],
       ),
   });
+
+const canvas = (message: import("../../core/canvas/message").CanvasMessage): AppMessage =>
+  GotCanvasMessage({ message });
+const media = (message: import("../../core/media/message").MediaMessage): AppMessage =>
+  GotMediaMessage({ message });

@@ -8,20 +8,13 @@ import {
   ToggledPicker,
   PickedYear,
   WentToday,
-} from "../core/message";
-import type { Model } from "../core/model";
+} from "../core/calendar/message";
+import type { AppMessage } from "../core/app/message";
+import type { Model } from "../core/calendar/model";
 import { dateCard, miniCalendar, monthHeader, previewFor, weekdays } from "./components/calendar";
 
 export const calendarPage = (model: Model): Html.Document => {
-  const h = Html.html<
-    | ReturnType<typeof SelectedDate>
-    | ReturnType<typeof PreviewedDate>
-    | ReturnType<typeof ToggledPicker>
-    | ReturnType<typeof ClosedPicker>
-    | ReturnType<typeof PickedYear>
-    | ReturnType<typeof WentToday>
-    | ReturnType<typeof ChangedMonth>
-  >();
+  const h = Html.html<AppMessage>();
   const { month, selectedDate } = model;
 
   return {
@@ -62,8 +55,8 @@ export const calendarPage = (model: Model): Html.Document => {
                   month,
                   selectedDate,
                   model.entries,
-                  model.miniCalendarPickerOpen,
-                  model.miniCalendarPickerYear,
+                  model.pickerOpen,
+                  model.pickerYear,
                 ),
                 h.div(
                   [h.Class("min-w-0")],

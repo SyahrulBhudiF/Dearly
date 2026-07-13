@@ -1,8 +1,8 @@
 import { Button } from "@foldkit/ui";
 import { Html } from "foldkit";
 import { ArrowLeft } from "lucide";
-import type { AppMessage } from "../../core/message";
-import { ChangedRoute } from "../../core/message";
+import type { AppMessage } from "../../core/app/message";
+import { ChangedRoute } from "../../core/app/message";
 import { CalendarRoute } from "../../core/route";
 import { icon } from "./icon";
 

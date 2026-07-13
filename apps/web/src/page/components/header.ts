@@ -1,7 +1,8 @@
 import { Button } from "@foldkit/ui";
 import { Html } from "foldkit";
-import type { AppMessage } from "../../core/message";
-import { DiscardedDraft, SaveRequested } from "../../core/message";
+import type { AppMessage } from "../../core/app/message";
+import { GotEntryMessage } from "../../core/app/message";
+import { DiscardedDraft, SaveRequested } from "../../core/entry/message";
 import { dateLabel, weekdayLabel } from "../../libs/date";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
@@ -28,7 +29,7 @@ export const EntryHeader = (
         [h.Class("flex items-center gap-3")],
         [
           Button.view<AppMessage>({
-            onClick: DiscardedDraft(),
+            onClick: GotEntryMessage({ message: DiscardedDraft() }),
             toView: ({ button }) =>
               h.button(
                 [
@@ -41,7 +42,7 @@ export const EntryHeader = (
               ),
           }),
           Button.view<AppMessage>({
-            onClick: SaveRequested(),
+            onClick: GotEntryMessage({ message: SaveRequested() }),
             isDisabled: saveState === "saving",
             toView: ({ button }) =>
               h.button(

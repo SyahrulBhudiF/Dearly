@@ -7,8 +7,9 @@ import Underline from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
 import { Effect, Queue, Stream } from "effect";
 import type { RichTextDocument } from "@dearly/domain";
-import type { AppMessage } from "./message";
-import { ChangedTextDocument } from "./message";
+import type { CanvasMessage } from "./message";
+import { ChangedTextDocument, ChangedTextFormat, ClosedToolbarMenu } from "./message";
+import type { TextFormat } from "./model";
 
 const extensions = [
   StarterKit,
@@ -58,14 +59,31 @@ export const applyFormat = (editor: Editor, format: Format) => {
 
 export const richTextExtensions = extensions;
 
+export const readTextFormat = (editor: Editor): TextFormat => {
+  const style = editor.getAttributes("textStyle");
+  const paragraph = editor.getAttributes("paragraph");
+  return {
+    font: typeof style.fontFamily === "string" ? style.fontFamily : "inherit",
+    size: typeof style.fontSize === "string" ? style.fontSize : "24px",
+    color: typeof style.color === "string" ? style.color : "var(--foreground)",
+    align:
+      paragraph.textAlign === "center" || paragraph.textAlign === "right"
+        ? paragraph.textAlign
+        : "left",
+    bold: editor.isActive("bold"),
+    italic: editor.isActive("italic"),
+    underline: editor.isActive("underline"),
+  };
+};
+
 export const richTextEditor = (
   id: string,
   content: RichTextDocument,
   node: Element,
-): Stream.Stream<AppMessage> =>
+): Stream.Stream<CanvasMessage> =>
   Stream.unwrap(
     Effect.gen(function* () {
-      const messages = yield* Queue.bounded<AppMessage>(16);
+      const messages = yield* Queue.bounded<CanvasMessage>(16);
       const editorNode = node.querySelector<HTMLElement>("[data-rich-text-editor]");
       const host = node.closest<HTMLElement>("[data-canvas-element]");
       if (editorNode === null || host === null) return Stream.empty;
@@ -79,28 +97,17 @@ export const richTextEditor = (
             spellcheck: "false",
           },
         },
-        onUpdate: ({ editor }) =>
-          Queue.offerUnsafe(messages, ChangedTextDocument({ id, document: editor.getJSON() })),
+        onUpdate: ({ editor }) => {
+          Queue.offerUnsafe(messages, ChangedTextDocument({ id, document: editor.getJSON() }));
+          Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
+        },
+        onSelectionUpdate: ({ editor }) =>
+          Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) })),
       });
-      const closeMenus = (except?: HTMLElement) =>
-        host.querySelectorAll<HTMLElement>("[data-rich-text-menu-panel]").forEach((panel) => {
-          if (panel !== except) panel.classList.add("hidden");
-        });
+      Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
       const format = (event: Event) => {
         const target = event.target;
         if (!(target instanceof Element)) return;
-        const menu = target.closest<HTMLButtonElement>("[data-rich-text-menu]");
-        if (menu !== null) {
-          event.preventDefault();
-          const panel = menu.parentElement?.querySelector<HTMLElement>(
-            "[data-rich-text-menu-panel]",
-          );
-          if (panel === null || panel === undefined) return;
-          const isOpening = panel.classList.contains("hidden");
-          closeMenus(panel);
-          panel.classList.toggle("hidden", !isOpening);
-          return;
-        }
         const action =
           target.closest<HTMLButtonElement>("[data-rich-text-action]")?.dataset.richTextAction;
         const family = target.closest<HTMLButtonElement>("[data-rich-text-font-family]")?.dataset
@@ -122,35 +129,13 @@ export const richTextEditor = (
         event.preventDefault();
         if (action !== undefined)
           applyFormat(editor, { kind: action as "bold" | "italic" | "underline" });
-        if (family !== undefined) {
-          applyFormat(editor, { kind: "fontFamily", value: family });
-          const label = host.querySelector<HTMLElement>(
-            "[data-rich-text-menu-trigger='font'] [data-rich-text-menu-label]",
-          );
-          if (label !== null)
-            label.textContent =
-              target.closest<HTMLButtonElement>("[data-rich-text-font-family]")?.textContent ??
-              "Font";
-        }
-        if (size !== undefined) {
-          applyFormat(editor, { kind: "fontSize", value: size });
-          const label = host.querySelector<HTMLElement>(
-            "[data-rich-text-menu-trigger='size'] [data-rich-text-menu-label]",
-          );
-          if (label !== null) label.textContent = size.replace("px", "");
-        }
-        if (color !== undefined) {
-          applyFormat(editor, { kind: "color", value: color });
-          const label = host.querySelector<HTMLElement>(
-            "[data-rich-text-menu-trigger='color'] [data-rich-text-menu-label]",
-          );
-          if (label !== null)
-            label.textContent =
-              target.closest<HTMLButtonElement>("[data-rich-text-color]")?.textContent ?? "Color";
-        }
+        if (family !== undefined) applyFormat(editor, { kind: "fontFamily", value: family });
+        if (size !== undefined) applyFormat(editor, { kind: "fontSize", value: size });
+        if (color !== undefined) applyFormat(editor, { kind: "color", value: color });
         if (align !== undefined)
           applyFormat(editor, { kind: "align", value: align as "left" | "center" | "right" });
-        closeMenus();
+        Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
+        Queue.offerUnsafe(messages, ClosedToolbarMenu());
       };
       const outside = (event: PointerEvent) => {
         if (!(event.target instanceof Node)) return;
@@ -158,7 +143,7 @@ export const richTextEditor = (
           event.target instanceof Element
             ? event.target.closest("[data-rich-text-menu-panel], [data-rich-text-menu]")
             : null;
-        if (menu === null || !host.contains(menu)) closeMenus();
+        if (menu === null || !host.contains(menu)) Queue.offerUnsafe(messages, ClosedToolbarMenu());
       };
       host.addEventListener("click", format);
       document.addEventListener("pointerdown", outside, true);

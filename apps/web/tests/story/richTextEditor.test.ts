@@ -1,10 +1,11 @@
 import { Editor } from "@tiptap/core";
 import { expect, test } from "vitest";
-import { initialModel } from "../../src/core/model";
-import { ChangedTextDocument } from "../../src/core/message";
+import { initialModel } from "../../src/core/app/model";
+import { GotCanvasMessage } from "../../src/core/app/message";
+import { ChangedTextDocument } from "../../src/core/canvas/message";
 import { CalendarRoute } from "../../src/core/route";
-import { update } from "../../src/core/update";
-import { applyFormat, richTextExtensions } from "../../src/core/richTextEditor";
+import { update } from "../../src/core/app/update";
+import { applyFormat, readTextFormat, richTextExtensions } from "../../src/core/canvas/richText";
 
 const editor = () =>
   new Editor({
@@ -23,6 +24,15 @@ test("cursor-only formatting applies to the whole text Canvas Element", () => {
   applyFormat(instance, { kind: "color", value: "rgb(1, 2, 3)" });
   applyFormat(instance, { kind: "align", value: "center" });
 
+  expect(readTextFormat(instance)).toEqual({
+    font: "'Gaegu', cursive",
+    size: "12px",
+    color: "rgb(1, 2, 3)",
+    align: "center",
+    bold: true,
+    italic: false,
+    underline: false,
+  });
   expect(instance.getJSON()).toMatchObject({
     content: [
       {
@@ -54,26 +64,31 @@ test("formatted text document persists in its Canvas Element", () => {
   const [next] = update(
     {
       ...initialModel(CalendarRoute()),
-      elements: [
-        {
-          id: "text-1" as never,
-          payload: {
-            kind: "text",
-            document: { type: "doc", content: [{ type: "paragraph" }] },
+      canvas: {
+        ...initialModel(CalendarRoute()).canvas,
+        elements: [
+          {
+            id: "text-1" as never,
+            payload: {
+              kind: "text",
+              document: { type: "doc", content: [{ type: "paragraph" }] },
+            },
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            layer: 0,
           },
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 100,
-          rotation: 0,
-          layer: 0,
-        },
-      ],
+        ],
+      },
     },
-    ChangedTextDocument({ id: "text-1", document: instance.getJSON() }),
+    GotCanvasMessage({
+      message: ChangedTextDocument({ id: "text-1", document: instance.getJSON() }),
+    }),
   );
 
-  expect(next.elements[0]?.payload).toMatchObject({
+  expect(next.canvas.elements[0]?.payload).toMatchObject({
     kind: "text",
     document: { content: [{ content: [{ marks: [{ type: "bold" }] }] }] },
   });

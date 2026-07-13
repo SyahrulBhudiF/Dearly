@@ -1,9 +1,10 @@
 import type { EntryPreview } from "@dearly/domain";
+import { Stream } from "effect";
 import { Html } from "foldkit";
 import { ArrowLeft, ArrowRight, ChevronDown } from "lucide";
 import { Button } from "@foldkit/ui";
 import { monthDays, monthLabel, nextMonth, previousMonth, today } from "../../libs/date";
-import { miniCalendarPicker } from "../../core/miniCalendarPicker";
+import { miniCalendarPicker } from "../../core/calendar/picker";
 import {
   ChangedMonth,
   ClosedPicker,
@@ -12,18 +13,12 @@ import {
   ToggledPicker,
   PickedYear,
   WentToday,
-} from "../../core/message";
+} from "../../core/calendar/message";
+import type { AppMessage } from "../../core/app/message";
+import { GotCalendarMessage } from "../../core/app/message";
 import { icon } from "./icon";
 
-type Message =
-  | ReturnType<typeof ClosedPicker>
-  | ReturnType<typeof SelectedDate>
-  | ReturnType<typeof PreviewedDate>
-  | ReturnType<typeof ToggledPicker>
-  | ReturnType<typeof PickedYear>
-  | ReturnType<typeof WentToday>
-  | ReturnType<typeof ChangedMonth>;
-type HtmlFactory = ReturnType<typeof Html.html<Message>>;
+type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
 export const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -36,8 +31,8 @@ export const monthHeader = (h: HtmlFactory, month: string, _selectedDate: string
       h.div(
         [h.Class("flex items-center gap-3")],
         [
-          Button.view<Message>({
-            onClick: ChangedMonth({ month: previous }),
+          Button.view<AppMessage>({
+            onClick: calendar(ChangedMonth({ month: previous })),
             toView: ({ button }) =>
               h.button(
                 [
@@ -51,8 +46,8 @@ export const monthHeader = (h: HtmlFactory, month: string, _selectedDate: string
         ],
       ),
       h.h2([h.Class("font-display text-3xl")], [monthLabel(month)]),
-      Button.view<Message>({
-        onClick: ChangedMonth({ month: next }),
+      Button.view<AppMessage>({
+        onClick: calendar(ChangedMonth({ month: next })),
         toView: ({ button }) =>
           h.button(
             [
@@ -83,13 +78,16 @@ export const miniCalendar = (
         [
           h.div(
             [
-              h.OnMount({ name: "mini-calendar-picker", f: miniCalendarPicker }),
+              h.OnMount({
+                name: "mini-calendar-picker",
+                f: () => miniCalendarPicker().pipe(Stream.map(calendar)),
+              }),
               h.DataAttribute("mini-calendar-picker", "true"),
               h.Class("relative"),
             ],
             [
-              Button.view<Message>({
-                onClick: ToggledPicker(),
+              Button.view<AppMessage>({
+                onClick: calendar(ToggledPicker()),
                 toView: ({ button }) =>
                   h.button(
                     [
@@ -114,8 +112,8 @@ export const miniCalendar = (
             [
               ...weekdays.map((weekday) => h.span([], [weekday.slice(0, 1)])),
               ...monthDays(month).map((date) =>
-                Button.view<Message>({
-                  onClick: PreviewedDate({ date }),
+                Button.view<AppMessage>({
+                  onClick: calendar(PreviewedDate({ date })),
                   toView: ({ button }) =>
                     h.button(
                       [
@@ -132,8 +130,8 @@ export const miniCalendar = (
             ],
           ),
           month !== today().slice(0, 7)
-            ? Button.view<Message>({
-                onClick: WentToday(),
+            ? Button.view<AppMessage>({
+                onClick: calendar(WentToday()),
                 toView: ({ button }) =>
                   h.button(
                     [
@@ -173,8 +171,8 @@ const monthPicker = (h: HtmlFactory, selectedMonth: string, year: number) =>
       h.div(
         [h.Class("mb-3 flex items-center justify-between")],
         [
-          Button.view<Message>({
-            onClick: PickedYear({ year: year - 1 }),
+          Button.view<AppMessage>({
+            onClick: calendar(PickedYear({ year: year - 1 })),
             toView: ({ button }) =>
               h.button(
                 [
@@ -186,8 +184,8 @@ const monthPicker = (h: HtmlFactory, selectedMonth: string, year: number) =>
               ),
           }),
           h.p([h.Class("font-display text-lg")], [String(year)]),
-          Button.view<Message>({
-            onClick: PickedYear({ year: year + 1 }),
+          Button.view<AppMessage>({
+            onClick: calendar(PickedYear({ year: year + 1 })),
             toView: ({ button }) =>
               h.button(
                 [...button, h.AriaLabel("Next year"), h.Class("p-1 text-muted hover:text-wine")],
@@ -200,8 +198,8 @@ const monthPicker = (h: HtmlFactory, selectedMonth: string, year: number) =>
         [h.Class("grid grid-cols-3 gap-1")],
         Array.from({ length: 12 }, (_month, index) => {
           const month = `${year}-${String(index + 1).padStart(2, "0")}`;
-          return Button.view<Message>({
-            onClick: ChangedMonth({ month }),
+          return Button.view<AppMessage>({
+            onClick: calendar(ChangedMonth({ month })),
             toView: ({ button }) =>
               h.button(
                 [
@@ -241,8 +239,8 @@ export const dateCard = (
   selectedDate: string,
   preview: EntryPreview | undefined,
 ) =>
-  Button.view<Message>({
-    onClick: SelectedDate({ date }),
+  Button.view<AppMessage>({
+    onClick: calendar(SelectedDate({ date })),
     toView: ({ button }) =>
       h.button(
         [
@@ -272,3 +270,6 @@ export const dateCard = (
 
 export const previewFor = (entries: ReadonlyArray<EntryPreview>, date: string) =>
   entries.find((entry) => entry.date === date);
+
+const calendar = (message: import("../../core/calendar/message").CalendarMessage): AppMessage =>
+  GotCalendarMessage({ message });

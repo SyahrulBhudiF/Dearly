@@ -1,15 +1,19 @@
 import { expect, test } from "vitest";
-import { initialModel } from "../../src/core/model";
-import { PastedCanvasText } from "../../src/core/message";
+import { initialModel } from "../../src/core/app/model";
+import { GotCanvasMessage } from "../../src/core/app/message";
+import { PastedCanvasText } from "../../src/core/canvas/message";
 import { EntryRoute } from "../../src/core/route";
-import { update } from "../../src/core/update";
+import { update } from "../../src/core/app/update";
 
 test("pasted text creates a separate text Canvas Element", () => {
   const model = initialModel(EntryRoute({ date: "2026-07-13" as never }));
-  const [next] = update(model, PastedCanvasText({ text: "Copied note" }));
+  const [next] = update(
+    model,
+    GotCanvasMessage({ message: PastedCanvasText({ text: "Copied note" }) }),
+  );
 
-  expect(next.elements).toHaveLength(1);
-  expect(next.elements[0]?.payload).toMatchObject({
+  expect(next.canvas.elements).toHaveLength(1);
+  expect(next.canvas.elements[0]?.payload).toMatchObject({
     kind: "text",
     document: { content: [{ content: [{ text: "Copied note" }] }] },
   });

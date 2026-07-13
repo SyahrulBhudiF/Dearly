@@ -1,7 +1,8 @@
 import { Button, Dialog } from "@foldkit/ui";
 import { Html } from "foldkit";
-import type { AppMessage } from "../../core/message";
-import { DeletedCanvasElement, GotDeleteDialogMessage } from "../../core/message";
+import type { AppMessage } from "../../core/app/message";
+import { GotCanvasMessage } from "../../core/app/message";
+import { DeletedCanvasElement, GotDeleteDialogMessage } from "../../core/canvas/message";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
@@ -13,7 +14,8 @@ export const DeleteDialog = (
     slotId: "delete-canvas-element",
     model: deleteDialog,
     view: Dialog.view,
-    toParentMessage: (message) => GotDeleteDialogMessage({ message }),
+    toParentMessage: (message) =>
+      GotCanvasMessage({ message: GotDeleteDialogMessage({ message }) }),
     viewInputs: {
       toView: ({
         dialog,
@@ -55,7 +57,7 @@ export const DeleteDialog = (
                               ["Cancel"],
                             ),
                             Button.view<AppMessage>({
-                              onClick: DeletedCanvasElement(),
+                              onClick: GotCanvasMessage({ message: DeletedCanvasElement() }),
                               toView: ({ button }) =>
                                 h.button(
                                   [
