@@ -5,9 +5,15 @@ import { Message } from "foldkit";
 import { TextFormat } from "./model";
 
 export const ChangedText = Message.m("ChangedText", { id: Schema.String, text: Schema.String });
-export const ChangedTextDocument = Message.m("ChangedTextDocument", {
+export const StartedTextSession = Message.m("StartedTextSession", {
   id: Schema.String,
+  sessionId: Schema.String,
+});
+export const CommittedTextSession = Message.m("CommittedTextSession", {
+  id: Schema.String,
+  sessionId: Schema.String,
   document: RichTextDocument,
+  direction: Schema.Literals(["commit", "undo", "redo"]),
 });
 export const ChangedImageTitle = Message.m("ChangedImageTitle", {
   id: Schema.String,
@@ -79,7 +85,8 @@ export const AddedShape = Message.m("AddedShape", { shape: ShapeKind });
 
 export const CanvasMessage = Schema.Union([
   ChangedText,
-  ChangedTextDocument,
+  StartedTextSession,
+  CommittedTextSession,
   ChangedImageTitle,
   AddedTextCanvasElement,
   PastedCanvasText,

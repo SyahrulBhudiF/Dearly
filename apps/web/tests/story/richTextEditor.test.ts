@@ -2,7 +2,7 @@ import { Editor } from "@tiptap/core";
 import { expect, test } from "vitest";
 import { initialModel } from "../../src/core/app/model";
 import { GotCanvasMessage } from "../../src/core/app/message";
-import { ChangedTextDocument } from "../../src/core/canvas/message";
+import { CommittedTextSession } from "../../src/core/canvas/message";
 import { CalendarRoute } from "../../src/core/route";
 import { update } from "../../src/core/app/update";
 import { applyFormat, readTextFormat, richTextExtensions } from "../../src/core/canvas/richText";
@@ -84,7 +84,12 @@ test("formatted text document persists in its Canvas Element", () => {
       },
     },
     GotCanvasMessage({
-      message: ChangedTextDocument({ id: "text-1", document: instance.getJSON() }),
+      message: CommittedTextSession({
+        id: "text-1",
+        sessionId: "formatting",
+        document: instance.getJSON(),
+        direction: "commit",
+      }),
     }),
   );
 

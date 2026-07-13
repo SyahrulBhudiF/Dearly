@@ -8,7 +8,7 @@ import { minimumCanvasSize } from "../../src/core/canvas/drag";
 import {
   AddedShape,
   ChangedCanvasElementLayer,
-  ChangedTextDocument,
+  CommittedTextSession,
   ChangedShapeColor,
   DeletedCanvasElement,
   FinishedCanvasTransform,
@@ -17,6 +17,7 @@ import {
   RedidCanvas,
   ReorderedCanvasElements,
   RotatedCanvasElement,
+  TransformedCanvasElement,
   SelectedCanvasElement,
   StartedCanvasTransform,
   UndidCanvas,
@@ -125,50 +126,19 @@ test("one pointer gesture creates one undo step and supports redo", () => {
   );
 });
 
-test("undo reverses an image transform before an earlier text edit", () => {
+test("committed text session creates one Canvas history entry", () => {
+  const document = (value: string) => ({
+    type: "doc" as const,
+    content: [
+      {
+        type: "paragraph" as const,
+        ...(value === "" ? {} : { content: [{ type: "text" as const, text: value }] }),
+      },
+    ],
+  });
   const text = {
     ...element("text", 0),
-    payload: {
-      kind: "text" as const,
-      document: { type: "doc" as const, content: [{ type: "paragraph" as const }] },
-    },
-  };
-  const image = { ...element("image", 1), x: 10 };
-  const changed = {
-    type: "doc" as const,
-    content: [{ type: "paragraph" as const, content: [{ type: "text" as const, text: "Hello" }] }],
-  };
-  Story.story(
-    update,
-    Story.with({
-      ...initialModel(CalendarRoute()),
-      canvas: { ...initialModel(CalendarRoute()).canvas, elements: [text, image] },
-    }),
-    Story.message(message(ChangedTextDocument({ id: "text", document: changed }))),
-    Story.message(message(StartedCanvasTransform())),
-    Story.message(message(MovedCanvasElement({ id: "image", x: 80, y: 0 }))),
-    Story.message(message(UndidCanvas())),
-    Story.model((model) => {
-      expect(model.canvas.elements.find(({ id }) => id === "image")?.x).toBe(10);
-      expect(model.canvas.elements.find(({ id }) => id === "text")?.payload).toEqual({
-        kind: "text",
-        document: changed,
-      });
-    }),
-  );
-});
-
-test("rich-text document changes share Canvas undo history", () => {
-  const text = {
-    ...element("text", 0),
-    payload: {
-      kind: "text" as const,
-      document: { type: "doc" as const, content: [{ type: "paragraph" as const }] },
-    },
-  };
-  const changed = {
-    type: "doc" as const,
-    content: [{ type: "paragraph" as const, content: [{ type: "text" as const, text: "Hello" }] }],
+    payload: { kind: "text" as const, document: document("") },
   };
   Story.story(
     update,
@@ -176,13 +146,207 @@ test("rich-text document changes share Canvas undo history", () => {
       ...initialModel(CalendarRoute()),
       canvas: { ...initialModel(CalendarRoute()).canvas, elements: [text] },
     }),
-    Story.message(message(ChangedTextDocument({ id: "text", document: changed }))),
+    Story.message(
+      message(
+        CommittedTextSession({
+          id: "text",
+          sessionId: "typing-1",
+          document: document("typed quickly"),
+          direction: "commit",
+        }),
+      ),
+    ),
+    Story.model((model) => {
+      expect(model.canvas.history.past).toHaveLength(1);
+      expect(model.canvas.elements[0]?.payload).toEqual({
+        kind: "text",
+        document: document("typed quickly"),
+      });
+    }),
     Story.message(message(UndidCanvas())),
     Story.model((model) => {
-      expect(model.canvas.elements[0]?.payload).toEqual(text.payload);
-      expect(model.canvas.history.revision).toBe(1);
+      expect(model.canvas.elements[0]?.payload).toEqual({ kind: "text", document: document("") });
     }),
   );
+});
+
+test("committed text session and undo are atomic", () => {
+  const empty = { type: "doc" as const, content: [{ type: "paragraph" as const }] };
+  const typed = {
+    type: "doc" as const,
+    content: [{ type: "paragraph" as const, content: [{ type: "text" as const, text: "abc" }] }],
+  };
+  const text = { ...element("text", 0), payload: { kind: "text" as const, document: empty } };
+  Story.story(
+    update,
+    Story.with({
+      ...initialModel(CalendarRoute()),
+      canvas: { ...initialModel(CalendarRoute()).canvas, elements: [text] },
+    }),
+    Story.message(
+      message(
+        CommittedTextSession({
+          id: "text",
+          sessionId: "typing-1",
+          document: typed,
+          direction: "undo",
+        }),
+      ),
+    ),
+    Story.model((model) => {
+      expect(model.canvas.elements[0]?.payload).toEqual({ kind: "text", document: empty });
+      expect(model.canvas.history.future).toHaveLength(1);
+    }),
+  );
+});
+
+test("50 real-world mixed actions undo and redo every full Canvas snapshot", () => {
+  const document = (value: string) => ({
+    type: "doc" as const,
+    content: [
+      {
+        type: "paragraph" as const,
+        ...(value === "" ? {} : { content: [{ type: "text" as const, text: value }] }),
+      },
+    ],
+  });
+  const text: CanvasElement = {
+    ...element("text", 0),
+    payload: { kind: "text", document: document("") },
+  };
+  const sticker: CanvasElement = {
+    ...element("sticker", 1),
+    payload: {
+      kind: "sticker",
+      stickerId: "sticker-id" as never,
+      mediaObjectId: "sticker-media" as never,
+      emoji: "😁",
+    },
+  };
+  const image = element("image", 2);
+  const shape: CanvasElement = {
+    ...element("shape", 3),
+    payload: { kind: "shape", shape: "rectangle", color: "#fda4af" },
+  };
+  let model = {
+    ...initialModel(CalendarRoute()),
+    canvas: {
+      ...initialModel(CalendarRoute()).canvas,
+      elements: [text, sticker, image, shape],
+    },
+  };
+  const snapshots: ReadonlyArray<CanvasElement>[] = [structuredClone(model.canvas.elements)];
+  const apply = (...messages: ReadonlyArray<Parameters<typeof message>[0]>) => {
+    for (const value of messages) [model] = update(model, message(value));
+    snapshots.push(structuredClone(model.canvas.elements));
+  };
+
+  const schedule = [
+    "sticker",
+    "layer",
+    "text",
+    "image",
+    "layer",
+    "layer",
+    "image",
+    "sticker",
+    "text",
+    "layer",
+    "image",
+    "layer",
+    "sticker",
+    "layer",
+    "text",
+    "sticker",
+    "image",
+    "layer",
+    "layer",
+    "text",
+    "layer",
+    "sticker",
+    "text",
+    "image",
+    "layer",
+    "image",
+    "layer",
+    "text",
+    "sticker",
+    "layer",
+    "text",
+    "layer",
+    "image",
+    "sticker",
+    "layer",
+    "layer",
+    "sticker",
+    "image",
+    "text",
+    "layer",
+    "image",
+    "text",
+    "layer",
+    "sticker",
+    "layer",
+    "sticker",
+    "layer",
+    "text",
+    "image",
+    "layer",
+  ] as const;
+  const counts = { text: 0, sticker: 0, image: 0, layer: 0 };
+  for (const kind of schedule) {
+    const index = counts[kind]++;
+    if (kind === "text") {
+      apply(
+        CommittedTextSession({
+          id: "text",
+          sessionId: `text-${index}`,
+          document: document(`entry ${index}`),
+          direction: "commit",
+        }),
+      );
+    } else if (kind === "layer") {
+      const ordered = [...model.canvas.elements].sort((a, b) => a.layer - b.layer);
+      apply(ReorderedCanvasElements({ draggedId: ordered[0]!.id, targetId: ordered.at(-1)!.id }));
+    } else {
+      const offset = index * 10;
+      apply(
+        StartedCanvasTransform(),
+        TransformedCanvasElement({
+          id: kind,
+          x: (kind === "sticker" ? 20 : 40) + offset,
+          y: (kind === "sticker" ? 30 : 50) + offset,
+          width: (kind === "sticker" ? 100 : 140) + index,
+          height: (kind === "sticker" ? 110 : 150) + index,
+          rotation: index * (kind === "sticker" ? 3 : 5),
+        }),
+        FinishedCanvasTransform(),
+      );
+    }
+    if (snapshots.length % 7 === 0) {
+      const current = snapshots.at(-1)!;
+      const previous = snapshots.at(-2)!;
+      [model] = update(model, message(UndidCanvas()));
+      expect(model.canvas.elements).toEqual(previous);
+      [model] = update(model, message(RedidCanvas()));
+      expect(model.canvas.elements).toEqual(current);
+    }
+  }
+  expect(counts).toEqual({ text: 10, sticker: 10, image: 10, layer: 20 });
+
+  expect(snapshots).toHaveLength(51);
+  expect(model.canvas.history.past).toHaveLength(50);
+  for (let index = 49; index >= 0; index -= 1) {
+    [model] = update(model, message(UndidCanvas()));
+    expect(model.canvas.elements).toEqual(snapshots[index]);
+  }
+  expect(model.canvas.history.future).toHaveLength(50);
+  for (let index = 1; index <= 50; index += 1) {
+    [model] = update(model, message(RedidCanvas()));
+    expect(model.canvas.elements).toEqual(snapshots[index]);
+  }
+  expect(model.canvas.history.past).toHaveLength(50);
+  expect(model.canvas.history.future).toHaveLength(0);
 });
 
 test("a new canvas edit clears redo history", () => {

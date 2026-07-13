@@ -82,12 +82,17 @@ export const setTextDocument = (
   elements: ReadonlyArray<CanvasElement>,
   id: string,
   document: RichTextDocument,
-) =>
-  elements.map((element) =>
-    element.id === id && element.payload.kind === "text"
-      ? { ...element, payload: { ...element.payload, document } }
-      : element,
+) => {
+  const element = elements.find((candidate) => candidate.id === id);
+  if (
+    element?.payload.kind !== "text" ||
+    JSON.stringify(element.payload.document) === JSON.stringify(document)
+  )
+    return elements;
+  return elements.map((candidate) =>
+    candidate.id === id ? { ...candidate, payload: { ...candidate.payload, document } } : candidate,
   );
+};
 
 export const nextLayer = (elements: ReadonlyArray<CanvasElement>) =>
   elements.reduce((layer, element) => Math.max(layer, element.layer), -1) + 1;

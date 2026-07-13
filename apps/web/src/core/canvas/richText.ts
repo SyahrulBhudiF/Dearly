@@ -3,12 +3,16 @@ import FontFamily from "@tiptap/extension-font-family";
 import Placeholder from "@tiptap/extension-placeholder";
 import TextAlign from "@tiptap/extension-text-align";
 import { Color, FontSize, TextStyle } from "@tiptap/extension-text-style";
-import Underline from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
 import { Effect, Queue, Stream } from "effect";
 import type { RichTextDocument } from "@dearly/domain";
 import type { CanvasMessage } from "./message";
-import { ChangedTextDocument, ChangedTextFormat, ClosedToolbarMenu } from "./message";
+import {
+  ChangedTextFormat,
+  ClosedToolbarMenu,
+  CommittedTextSession,
+  StartedTextSession,
+} from "./message";
 import type { TextFormat } from "./model";
 
 const extensions = [
@@ -17,7 +21,6 @@ const extensions = [
   FontFamily,
   FontSize,
   Color,
-  Underline,
   Placeholder.configure({ placeholder: "Write something lovely…" }),
   TextAlign.configure({ types: ["paragraph"] }),
 ];
@@ -83,10 +86,21 @@ export const richTextEditor = (
 ): Stream.Stream<CanvasMessage> =>
   Stream.unwrap(
     Effect.gen(function* () {
-      const messages = yield* Queue.bounded<CanvasMessage>(16);
+      const messages = yield* Queue.unbounded<CanvasMessage>();
       const editorNode = node.querySelector<HTMLElement>("[data-rich-text-editor]");
       const host = node.closest<HTMLElement>("[data-canvas-element]");
       if (editorNode === null || host === null) return Stream.empty;
+      let sessionId = crypto.randomUUID();
+      let dirty = false;
+      const commit = (direction: "commit" | "undo" | "redo") => {
+        if (!dirty) return;
+        Queue.offerUnsafe(
+          messages,
+          CommittedTextSession({ id, sessionId, document: editor.getJSON(), direction }),
+        );
+        dirty = false;
+        sessionId = crypto.randomUUID();
+      };
       const editor = new Editor({
         element: editorNode,
         extensions,
@@ -97,8 +111,14 @@ export const richTextEditor = (
             spellcheck: "false",
           },
         },
+        onBlur: () => {
+          if (dirty) commit("commit");
+        },
         onUpdate: ({ editor }) => {
-          Queue.offerUnsafe(messages, ChangedTextDocument({ id, document: editor.getJSON() }));
+          if (!dirty) {
+            dirty = true;
+            Queue.offerUnsafe(messages, StartedTextSession({ id, sessionId }));
+          }
           Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
         },
         onSelectionUpdate: ({ editor }) =>
@@ -145,12 +165,25 @@ export const richTextEditor = (
             : null;
         if (menu === null || !host.contains(menu)) Queue.offerUnsafe(messages, ClosedToolbarMenu());
       };
+      const history = (event: MouseEvent) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const button = target.closest<HTMLButtonElement>(
+          '[aria-label="Undo"], [aria-label="Redo"]',
+        );
+        if (button === null || !dirty) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        commit(button.ariaLabel === "Undo" ? "undo" : "redo");
+      };
       host.addEventListener("click", format);
+      document.addEventListener("click", history, true);
       document.addEventListener("pointerdown", outside, true);
       return Stream.fromQueue(messages).pipe(
         Stream.ensuring(
           Effect.sync(() => {
             host.removeEventListener("click", format);
+            document.removeEventListener("click", history, true);
             document.removeEventListener("pointerdown", outside, true);
             editor.destroy();
             Queue.shutdown(messages);

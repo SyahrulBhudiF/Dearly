@@ -63,6 +63,7 @@ export const CanvasItem = (
         zIndex: String(canvasElementZIndex(element.layer, isSelected)),
       }),
       h.DataAttribute("canvas-element", "true"),
+      h.DataAttribute("canvas-id", element.id),
       h.DataAttribute("canvas-x", String(element.x)),
       h.DataAttribute("canvas-y", String(element.y)),
       h.DataAttribute("canvas-width", String(element.width)),

@@ -19,21 +19,22 @@ import type { Model } from "./model";
 
 type UpdateResult = readonly [Model, ReadonlyArray<Command.Command<CanvasMessage>>];
 
-const undo = (model: Model): Model => {
-  const transaction = model.history.transaction;
-  if (transaction !== null)
-    return {
-      ...model,
-      elements: transaction,
-      selectedElementId: null,
-      toolbarMenu: null,
-      history: {
-        past: model.history.past,
-        future: [...model.history.future, model.elements],
-        transaction: null,
-        revision: model.history.revision + 1,
-      },
-    };
+const finishTransactions = (model: Model): Model => {
+  const pointerTransaction = model.history.pointerTransaction;
+  if (pointerTransaction === null || pointerTransaction === model.elements) return model;
+  return {
+    ...model,
+    history: {
+      ...model.history,
+      past: [...model.history.past, pointerTransaction],
+      future: [],
+      pointerTransaction: null,
+    },
+  };
+};
+
+const undo = (input: Model): Model => {
+  const model = finishTransactions(input);
   const elements = model.history.past.at(-1);
   if (elements === undefined) return model;
   return {
@@ -42,9 +43,9 @@ const undo = (model: Model): Model => {
     selectedElementId: null,
     toolbarMenu: null,
     history: {
+      ...model.history,
       past: model.history.past.slice(0, -1),
       future: [...model.history.future, model.elements],
-      transaction: null,
       revision: model.history.revision + 1,
     },
   };
@@ -59,55 +60,88 @@ const redo = (model: Model): Model => {
     selectedElementId: null,
     toolbarMenu: null,
     history: {
+      ...model.history,
       past: [...model.history.past, model.elements],
       future: model.history.future.slice(0, -1),
-      transaction: null,
       revision: model.history.revision + 1,
     },
   };
 };
 
-const record = (model: Model, next: Model): Model =>
-  next.elements === model.elements || model.history.transaction !== null
-    ? next
-    : {
-        ...next,
-        history: {
-          past: [...model.history.past, model.elements],
-          future: [],
-          transaction: null,
-          revision: model.history.revision,
-        },
-      };
+const record = (model: Model, next: Model): Model => {
+  if (next.elements === model.elements || model.history.pointerTransaction !== null) return next;
+  return {
+    ...next,
+    history: {
+      ...model.history,
+      past: [...model.history.past, model.elements],
+      future: [],
+    },
+  };
+};
 
 export const update = (model: Model, message: CanvasMessage): UpdateResult => {
   if (message._tag === "UndidCanvas") return [undo(model), []];
   if (message._tag === "RedidCanvas") return [redo(model), []];
-  if (message._tag === "StartedCanvasTransform")
+  if (message._tag === "StartedTextSession") {
     return [
       {
         ...model,
         history: {
           ...model.history,
-          transaction: model.history.transaction ?? model.elements,
+          activeTextSession: { sessionId: message.sessionId, elementId: message.id },
         },
       },
       [],
     ];
+  }
+  if (message._tag === "CommittedTextSession") {
+    const elements = setTextDocument(model.elements, message.id, message.document);
+    const committed =
+      elements === model.elements
+        ? {
+            ...model,
+            history: { ...model.history, activeTextSession: null },
+          }
+        : {
+            ...model,
+            elements,
+            history: {
+              ...model.history,
+              past: [...model.history.past, model.elements],
+              future: [],
+              activeTextSession: null,
+            },
+          };
+    if (message.direction === "undo") return [undo(committed), []];
+    if (message.direction === "redo")
+      return [elements === model.elements ? redo(model) : committed, []];
+    return [committed, []];
+  }
+  if (message._tag === "StartedCanvasTransform") {
+    if (model.history.pointerTransaction !== null) return [model, []];
+    return [
+      {
+        ...model,
+        history: { ...model.history, pointerTransaction: model.elements },
+      },
+      [],
+    ];
+  }
   if (message._tag === "FinishedCanvasTransform") {
-    const transaction = model.history.transaction;
+    const transaction = model.history.pointerTransaction;
     if (transaction === null) return [model, []];
     return [
       {
         ...model,
         history: {
+          ...model.history,
           past:
             transaction === model.elements
               ? model.history.past
               : [...model.history.past, transaction],
+          pointerTransaction: null,
           future: transaction === model.elements ? model.history.future : [],
-          transaction: null,
-          revision: model.history.revision,
         },
       },
       [],
@@ -120,10 +154,8 @@ export const update = (model: Model, message: CanvasMessage): UpdateResult => {
 const updateDocument = (model: Model, message: CanvasMessage): UpdateResult =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
-      ChangedTextDocument: ({ id, document }): UpdateResult => [
-        { ...model, elements: setTextDocument(model.elements, id, document) },
-        [],
-      ],
+      StartedTextSession: (): UpdateResult => [model, []],
+      CommittedTextSession: (): UpdateResult => [model, []],
       ChangedText: ({ id, text }): UpdateResult => [
         { ...model, elements: setText(model.elements, id, text) },
         [],
@@ -265,7 +297,13 @@ export const loadElements = (model: Model, elements: Model["elements"]): Model =
   selectedElementId: null,
   resizing: null,
   toolbarMenu: null,
-  history: { past: [], future: [], transaction: null, revision: 0 },
+  history: {
+    past: [],
+    future: [],
+    pointerTransaction: null,
+    activeTextSession: null,
+    revision: 0,
+  },
 });
 
 export const addImage = (model: Model, mediaObjectId: MediaObjectId, title = ""): Model =>

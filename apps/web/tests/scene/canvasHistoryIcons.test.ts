@@ -33,21 +33,25 @@ const model = {
   },
 };
 
-test("Ctrl+Z and Ctrl+Y use Canvas history from the page root", () => {
+const mounts = [
+  Scene.Mount.resolve(
+    { name: "canvas-00000000-0000-4000-8000-000000000001" },
+    GotCanvasMessage({ message: DeselectedCanvasElement() }),
+  ),
+  Scene.Mount.resolve(
+    { name: "canvas-paste" },
+    GotCanvasMessage({ message: DeselectedCanvasElement() }),
+  ),
+] as const;
+
+test("Undo and Redo icons use Canvas history", () => {
   Scene.scene(
     { update, view },
     Scene.with(model),
-    Scene.Mount.resolve(
-      { name: "canvas-00000000-0000-4000-8000-000000000001" },
-      GotCanvasMessage({ message: DeselectedCanvasElement() }),
-    ),
-    Scene.Mount.resolve(
-      { name: "canvas-paste" },
-      GotCanvasMessage({ message: DeselectedCanvasElement() }),
-    ),
-    Scene.keydown(Scene.selector("main"), "z", { ctrlKey: true }),
+    ...mounts,
+    Scene.click(Scene.role("button", { name: "Undo" })),
     Scene.expect(Scene.selector('[data-canvas-x="0"]')).toExist(),
-    Scene.keydown(Scene.selector("main"), "y", { ctrlKey: true }),
+    Scene.click(Scene.role("button", { name: "Redo" })),
     Scene.expect(Scene.selector('[data-canvas-x="40"]')).toExist(),
   );
 });

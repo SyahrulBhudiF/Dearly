@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "check": "tsc --noEmit",
-    "test": "vitest run --environment happy-dom"
+    "test": "vitest run --environment happy-dom --exclude 'tests/e2e/**'",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@dearly/domain": "workspace:*",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@foldkit/vite-plugin": "^0.10.0",
+    "@playwright/test": "^1.61.1",
     "happy-dom": "^20.10.6",
     "typescript": "7.0.2",
     "vite": "8.1.4",

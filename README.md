@@ -4,17 +4,28 @@ A private diary for composing dated memories on a freeform canvas.
 
 ## Screenshots
 
-| Calendar                                     | Canvas                                   |
-| -------------------------------------------- | ---------------------------------------- |
-| ![Calendar](public/screenshots/calendar.png) | ![Canvas](public/screenshots/canvas.png) |
+| Calendar                                     | Canvas toolbar                                                   |
+| -------------------------------------------- | ---------------------------------------------------------------- |
+| ![Calendar](public/screenshots/calendar.png) | ![Canvas toolbar](public/screenshots/canvas-toolbar.png) |
 
 | Image picker                                         | Stickers & emoji                                         |
 | ---------------------------------------------------- | -------------------------------------------------------- |
 | ![Image picker](public/screenshots/image-picker.png) | ![Sticker picker](public/screenshots/sticker-picker.png) |
 
-| Emoji picker                                         | Canvas element                                           |
-| ---------------------------------------------------- | -------------------------------------------------------- |
-| ![Emoji picker](public/screenshots/emoji-picker.png) | ![Canvas element](public/screenshots/canvas-element.png) |
+| Canvas layers                                                      | Emoji picker                                           |
+| ------------------------------------------------------------------ | ------------------------------------------------------ |
+| ![Canvas layers panel](public/screenshots/canvas-layers.png) | ![Emoji picker](public/screenshots/emoji-picker.png) |
+
+## Features
+
+- Private daily diary with calendar navigation.
+- Freeform canvas for mixing text, images, stickers, emoji, and shapes.
+- Rich text formatting with font, size, color, alignment, bold, italic, and underline.
+- Layer ordering to control what sits in front or behind.
+- Move, resize, rotate, and delete canvas elements.
+- Canvas-wide Undo and Redo.
+- Copy and paste text and images directly into the canvas.
+- Local draft saving before final save.
 
 ## Stack
 

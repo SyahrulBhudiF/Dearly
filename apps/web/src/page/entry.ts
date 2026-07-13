@@ -2,8 +2,7 @@ import { Option } from "effect";
 import { Html } from "foldkit";
 import type { Model } from "../core/app/model";
 import type { AppMessage } from "../core/app/message";
-import { GotCanvasMessage, GotEntryMessage } from "../core/app/message";
-import { RedidCanvas, UndidCanvas } from "../core/canvas/message";
+import { GotEntryMessage } from "../core/app/message";
 import { SaveRequested } from "../core/entry/message";
 import { CalendarLink } from "./components/link";
 import { EntryHeader } from "./components/header";
@@ -20,13 +19,7 @@ export const entryPage = (model: Model): Html.Document => {
           if (!modifiers.metaKey && !modifiers.ctrlKey) return Option.none();
           const normalized = key.toLowerCase();
           if (normalized === "s") return Option.some(GotEntryMessage({ message: SaveRequested() }));
-          if (normalized === "z")
-            return Option.some(
-              GotCanvasMessage({ message: modifiers.shiftKey ? RedidCanvas() : UndidCanvas() }),
-            );
-          return normalized === "y"
-            ? Option.some(GotCanvasMessage({ message: RedidCanvas() }))
-            : Option.none();
+          return Option.none();
         }),
         h.Class("paper-grain min-h-screen bg-paper px-5 py-7 text-ink sm:px-10 lg:px-16"),
       ],

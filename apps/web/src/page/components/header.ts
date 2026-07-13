@@ -34,8 +34,20 @@ export const EntryHeader = (h: HtmlFactory, date: string, entry: EntryModel, can
       h.div(
         [h.Class("flex items-center gap-2")],
         [
-          historyButton(h, "Undo", UndidCanvas(), canvas.history.past.length === 0, Undo2),
-          historyButton(h, "Redo", RedidCanvas(), canvas.history.future.length === 0, Redo2),
+          historyButton(
+            h,
+            "Undo",
+            UndidCanvas(),
+            canvas.history.past.length === 0 && canvas.history.activeTextSession === null,
+            Undo2,
+          ),
+          historyButton(
+            h,
+            "Redo",
+            RedidCanvas(),
+            canvas.history.future.length === 0 && canvas.history.activeTextSession === null,
+            Redo2,
+          ),
           Button.view<AppMessage>({
             onClick: GotEntryMessage({ message: RequestedDiscard() }),
             toView: ({ button }) =>

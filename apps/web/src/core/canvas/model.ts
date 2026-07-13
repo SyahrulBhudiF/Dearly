@@ -26,7 +26,10 @@ export const defaultTextFormat = (): TextFormat => ({
 const CanvasHistory = Schema.Struct({
   past: Schema.Array(Schema.Array(CanvasElement)),
   future: Schema.Array(Schema.Array(CanvasElement)),
-  transaction: Schema.NullOr(Schema.Array(CanvasElement)),
+  pointerTransaction: Schema.NullOr(Schema.Array(CanvasElement)),
+  activeTextSession: Schema.NullOr(
+    Schema.Struct({ sessionId: Schema.String, elementId: Schema.String }),
+  ),
   revision: Schema.Number,
 });
 
@@ -54,7 +57,13 @@ export type Model = Schema.Schema.Type<typeof Model>;
 
 export const initialModel = (): Model => ({
   elements: [],
-  history: { past: [], future: [], transaction: null, revision: 0 },
+  history: {
+    past: [],
+    future: [],
+    pointerTransaction: null,
+    activeTextSession: null,
+    revision: 0,
+  },
   selectedElementId: null,
   deleteDialog: Dialog.init({ id: "delete-canvas-element" }),
   resizing: null,

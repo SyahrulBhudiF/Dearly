@@ -3,3 +3,7 @@ dist
 .turbo
 *.tsbuildinfo
 .alchemy/
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/
