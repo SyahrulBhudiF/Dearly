@@ -1,10 +1,11 @@
-import { Button, Textarea } from "@foldkit/ui";
+import { Button } from "@foldkit/ui";
 import { Html } from "foldkit";
-import { Grip, Trash2 } from "lucide";
+import { AlignCenter, AlignLeft, AlignRight, Grip, Trash2 } from "lucide";
 import type { CanvasElement } from "@dearly/domain";
 import { canvasElement as draggableCanvasElement } from "../../core/canvasDrag";
+import { richTextEditor } from "../../core/richTextEditor";
 import type { AppMessage } from "../../core/message";
-import { ChangedText, DeleteCanvasElementRequested } from "../../core/message";
+import { RequestedDelete } from "../../core/message";
 import { icon } from "./icon";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
@@ -48,25 +49,7 @@ export const CanvasItem = (
     ],
     [
       isText
-        ? Textarea.view({
-            id: `entry-text-${element.id}`,
-            value: textValue(element),
-            rows: 6,
-            placeholder: "What deserves a place on this page?",
-            onInput: (value) => ChangedText({ id: element.id, text: value }),
-            toView: ({ textarea }) =>
-              h.textarea(
-                [
-                  ...textarea,
-                  h.AriaLabel("Diary entry"),
-                  h.Class(
-                    "size-full resize-none bg-transparent font-display text-2xl leading-tight placeholder:text-muted/70 focus:outline-none sm:text-3xl",
-                  ),
-                  h.DataAttribute("canvas-editable", "true"),
-                ],
-                [],
-              ),
-          })
+        ? richTextElement(h, element.id, element.payload)
         : h.div(
             [h.Class("size-full")],
             [
@@ -82,28 +65,160 @@ export const CanvasItem = (
                   ]),
             ],
           ),
-      ...(isSelected ? canvasControls(h, alt) : []),
+      ...(isSelected ? canvasControls(h, alt, isText) : []),
     ],
   );
 };
 
-const textValue = (element: CanvasElement) => {
-  if (element.payload.kind !== "text") return "";
-  const paragraph = element.payload.document.content?.[0];
-  const content = paragraph?.["content"];
-  const value = Array.isArray(content) && content[0];
-  return typeof value === "object" && value !== null && typeof value["text"] === "string"
-    ? value["text"]
-    : "";
+const richTextElement = (
+  h: HtmlFactory,
+  id: string,
+  payload: Extract<CanvasElement["payload"], { readonly kind: "text" }>,
+) => {
+  return h.div(
+    [
+      h.OnMount({
+        name: `rich-text-${id}`,
+        f: (node) => richTextEditor(id, payload.document, node),
+      }),
+      h.Class("size-full bg-transparent font-display text-2xl leading-tight sm:text-3xl"),
+    ],
+    [
+      h.div(
+        [
+          h.DataAttribute("rich-text-editor", "true"),
+          h.AriaLabel("Diary entry"),
+          h.Class("size-full overflow-auto [overflow-wrap:anywhere]"),
+        ],
+        [],
+      ),
+    ],
+  );
 };
 
-const canvasControls = (h: HtmlFactory, alt: string) => [
+const richTextMenu = (
+  h: HtmlFactory,
+  label: string,
+  options: ReadonlyArray<{
+    readonly label: string;
+    readonly attribute: string;
+    readonly value: string;
+  }>,
+  color = false,
+) =>
+  h.div(
+    [h.Class("relative")],
+    [
+      h.button(
+        [
+          h.DataAttribute("rich-text-menu", "true"),
+          h.AriaLabel(label),
+          h.DataAttribute("rich-text-menu-trigger", label.toLowerCase()),
+          h.Class(
+            "flex h-8 items-center justify-center gap-1 rounded-[calc(var(--radius)-0.65rem)] px-2 font-note text-xs hover:bg-rose/35",
+          ),
+        ],
+        [h.span([h.DataAttribute("rich-text-menu-label", "true")], [label]), h.span([], ["⌄"])],
+      ),
+      h.div(
+        [
+          h.DataAttribute("rich-text-menu-panel", "true"),
+          h.Class(
+            "hidden absolute top-9 left-0 z-40 min-w-28 rounded-[var(--radius)] border border-line bg-paper p-1 shadow-[var(--shadow)]",
+          ),
+        ],
+        options.map((option) =>
+          h.button(
+            [
+              h.DataAttribute(option.attribute, option.value),
+              h.Class(
+                "flex w-full items-center gap-2 rounded-[calc(var(--radius)-0.65rem)] px-2 py-1.5 text-left font-note text-xs hover:bg-rose/35",
+              ),
+              ...(color ? [h.Style({ color: option.value })] : []),
+            ],
+            [
+              ...(color
+                ? [h.span([h.Class("size-3 rounded-[3px] border border-line bg-current")], [])]
+                : []),
+              option.label,
+            ],
+          ),
+        ),
+      ),
+    ],
+  );
+
+const richTextToolbar = (h: HtmlFactory) => [
+  richTextMenu(h, "Font", [
+    { label: "Dearly", attribute: "rich-text-font-family", value: "inherit" },
+    { label: "Gaegu", attribute: "rich-text-font-family", value: "'Gaegu', cursive" },
+    {
+      label: "Nanum pen",
+      attribute: "rich-text-font-family",
+      value: "'Nanum Pen Script', cursive",
+    },
+    { label: "Gowun", attribute: "rich-text-font-family", value: "'Gowun Dodum', sans-serif" },
+    { label: "Mono", attribute: "rich-text-font-family", value: "monospace" },
+  ]),
+  richTextMenu(h, "Size", [
+    { label: "12", attribute: "rich-text-font-size", value: "12px" },
+    { label: "16", attribute: "rich-text-font-size", value: "16px" },
+    { label: "20", attribute: "rich-text-font-size", value: "20px" },
+    { label: "24", attribute: "rich-text-font-size", value: "24px" },
+    { label: "32", attribute: "rich-text-font-size", value: "32px" },
+    { label: "40", attribute: "rich-text-font-size", value: "40px" },
+  ]),
+  richTextMenu(
+    h,
+    "Color",
+    [
+      { label: "Ink", attribute: "rich-text-color", value: "var(--foreground)" },
+      { label: "Rose", attribute: "rich-text-color", value: "var(--primary)" },
+      { label: "Sage", attribute: "rich-text-color", value: "var(--secondary-foreground)" },
+      { label: "Butter", attribute: "rich-text-color", value: "var(--accent-foreground)" },
+    ],
+    true,
+  ),
+  ...(["left", "center", "right"] as const).map((align) =>
+    h.button(
+      [
+        h.DataAttribute("rich-text-align", align),
+        h.AriaLabel(`Align ${align}`),
+        h.Class(
+          "grid size-8 place-items-center rounded-[calc(var(--radius)-0.65rem)] font-note text-xs hover:bg-rose/35",
+        ),
+      ],
+      [
+        icon(
+          h,
+          align === "left" ? AlignLeft : align === "center" ? AlignCenter : AlignRight,
+          `Align ${align}`,
+        ),
+      ],
+    ),
+  ),
+  ...(["bold", "italic", "underline"] as const).map((action) =>
+    h.button(
+      [
+        h.DataAttribute("rich-text-action", action),
+        h.AriaLabel(action),
+        h.Class("grid size-8 place-items-center font-display text-sm hover:bg-rose/35"),
+      ],
+      [action === "bold" ? "B" : action === "italic" ? "I" : "U"],
+    ),
+  ),
+];
+
+const canvasControls = (h: HtmlFactory, alt: string, isText: boolean) => [
   h.div(
     [
       h.DataAttribute("canvas-controls", "true"),
-      h.Class("absolute -top-11 left-0 z-20 flex gap-1 border border-line bg-paper p-1"),
+      h.Class(
+        "absolute -top-11 left-0 z-20 flex gap-1 rounded-xl border border-line bg-paper p-1 shadow-[var(--shadow)]",
+      ),
     ],
     [
+      ...(isText ? richTextToolbar(h) : []),
       h.span(
         [
           h.DataAttribute("canvas-grab", "true"),
@@ -115,7 +230,7 @@ const canvasControls = (h: HtmlFactory, alt: string) => [
         [icon(h, Grip, "Drag element")],
       ),
       Button.view<AppMessage>({
-        onClick: DeleteCanvasElementRequested(),
+        onClick: RequestedDelete(),
         toView: ({ button }) =>
           h.button(
             [

@@ -31,6 +31,7 @@ import {
   nextLayer,
   resizeElement,
   setText,
+  setTextDocument,
   textElement,
   transformSelectedElement,
 } from "./elements";
@@ -125,7 +126,10 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             ...model,
             savedText,
             entryText: model.localDraft ?? savedText,
-            elements: entry === null ? [textElement("")] : entry.document.elements,
+            elements:
+              entry === null || entry.document.elements.length === 0
+                ? [textElement("")]
+                : entry.document.elements,
             selectedElementId: null,
             resizing: null,
             saveState: "idle",
@@ -358,7 +362,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         },
         [],
       ],
-      DeleteCanvasElementRequested: (): UpdateResult => {
+      RequestedDelete: (): UpdateResult => {
         if (model.selectedElementId === null) return [model, []];
         const [deleteDialog, commands] = Dialog.open(model.deleteDialog);
         return [
@@ -435,6 +439,14 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       FinishedResize: (): UpdateResult => [{ ...model, resizing: null }, []],
       FailedToUploadImage: (): UpdateResult => [{ ...model, uploadState: "failed" }, []],
       FailedToLoad: (): UpdateResult => [{ ...model, loadState: "failed" }, []],
+      ChangedTextDocument: ({ id, document }): UpdateResult => [
+        {
+          ...model,
+          elements: setTextDocument(model.elements, id, document),
+          saveState: "idle",
+        },
+        [],
+      ],
       ChangedText: ({ id, text }): UpdateResult => [
         {
           ...model,

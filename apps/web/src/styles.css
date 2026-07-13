@@ -1,4 +1,12 @@
-@import url("https://fonts.googleapis.com/css2?family=Jua&family=DM+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Gaegu:wght@400;700&family=Gowun+Dodum&family=Jua&family=Nanum+Pen+Script&display=swap");
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));

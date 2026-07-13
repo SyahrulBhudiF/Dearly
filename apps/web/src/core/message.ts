@@ -6,6 +6,7 @@ import {
   MediaObject,
   MediaObjectId,
   OwnerSession,
+  RichTextDocument,
   Sticker,
 } from "@dearly/domain";
 import { File } from "foldkit/file";
@@ -27,6 +28,10 @@ export const FailedToLoad = Message.m("FailedToLoad");
 export const ChangedText = Message.m("ChangedText", {
   id: Schema.String,
   text: Schema.String,
+});
+export const ChangedTextDocument = Message.m("ChangedTextDocument", {
+  id: Schema.String,
+  document: RichTextDocument,
 });
 export const ChangedImageTitle = Message.m("ChangedImageTitle", {
   id: Schema.String,
@@ -82,7 +87,7 @@ export const TransformedCanvasElement = Message.m("TransformedCanvasElement", {
   height: Schema.Number,
   rotation: Schema.Number,
 });
-export const DeleteCanvasElementRequested = Message.m("DeleteCanvasElementRequested");
+export const RequestedDelete = Message.m("RequestedDelete");
 export const DeletedCanvasElement = Message.m("DeletedCanvasElement");
 export const RotatedCanvasElement = Message.m("RotatedCanvasElement", { degrees: Schema.Number });
 export const ChangedCanvasElementLayer = Message.m("ChangedCanvasElementLayer", {
@@ -133,6 +138,7 @@ export const AppMessage = Schema.Union([
   LoadedEntry,
   FailedToLoad,
   ChangedText,
+  ChangedTextDocument,
   ChangedImageTitle,
   SaveRequested,
   SavedEntry,
@@ -162,7 +168,7 @@ export const AppMessage = Schema.Union([
   SelectedCanvasElement,
   DeselectedCanvasElement,
   TransformedCanvasElement,
-  DeleteCanvasElementRequested,
+  RequestedDelete,
   DeletedCanvasElement,
   RotatedCanvasElement,
   ChangedCanvasElementLayer,

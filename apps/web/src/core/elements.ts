@@ -1,4 +1,4 @@
-import type { CanvasElement } from "@dearly/domain";
+import type { CanvasElement, RichTextDocument } from "@dearly/domain";
 
 export const moveElement = (
   elements: ReadonlyArray<CanvasElement>,
@@ -60,6 +60,17 @@ export const setText = (elements: ReadonlyArray<CanvasElement>, id: string, text
       : element,
   );
 
+export const setTextDocument = (
+  elements: ReadonlyArray<CanvasElement>,
+  id: string,
+  document: RichTextDocument,
+) =>
+  elements.map((element) =>
+    element.id === id && element.payload.kind === "text"
+      ? { ...element, payload: { ...element.payload, document } }
+      : element,
+  );
+
 export const nextLayer = (elements: ReadonlyArray<CanvasElement>) =>
   elements.reduce((layer, element) => Math.max(layer, element.layer), -1) + 1;
 
@@ -67,6 +78,9 @@ const textPayload = (text: string) => ({
   kind: "text" as const,
   document: {
     type: "doc" as const,
-    content: text === "" ? [] : [{ type: "paragraph", content: [{ type: "text", text }] }],
+    content:
+      text === ""
+        ? [{ type: "paragraph" }]
+        : [{ type: "paragraph", content: [{ type: "text", text }] }],
   },
 });
