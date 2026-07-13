@@ -39,6 +39,7 @@ export const DiscardedDraft = Message.m("DiscardedDraft");
 export const LoadedDraft = Message.m("LoadedDraft", { text: Schema.NullOr(Schema.String) });
 export const StoredDraft = Message.m("StoredDraft");
 export const AddedTextCanvasElement = Message.m("AddedTextCanvasElement");
+export const PastedCanvasText = Message.m("PastedCanvasText", { text: Schema.String });
 export const SelectedImage = Message.m("SelectedImage", { file: File });
 export const UploadedImage = Message.m("UploadedImage", {
   mediaObjectId: MediaObjectId,
@@ -140,6 +141,7 @@ export const AppMessage = Schema.Union([
   LoadedDraft,
   StoredDraft,
   AddedTextCanvasElement,
+  PastedCanvasText,
   SelectedImage,
   UploadedImage,
   FailedToUploadImage,

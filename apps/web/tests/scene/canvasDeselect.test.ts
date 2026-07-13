@@ -32,6 +32,7 @@ test("pointering down on blank canvas deselects its element", () => {
     { update, view },
     Scene.with(model),
     Scene.Mount.resolve({ name: `canvas-${element.id}` }, DeselectedCanvasElement()),
+    Scene.Mount.resolve({ name: "canvas-paste" }, DeselectedCanvasElement()),
     Scene.pointerDown(Scene.selector('[data-canvas-background="true"]')),
     Scene.tap((scene) => {
       expect(Scene.find(scene.html, '[data-canvas-controls="true"]')._tag).toBe("None");

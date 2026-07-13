@@ -1,7 +1,13 @@
 import { Effect, Queue, Stream } from "effect";
 import type { CanvasElement } from "@dearly/domain";
 import type { AppMessage } from "./message";
-import { MovedCanvasElement, SelectedCanvasElement, TransformedCanvasElement } from "./message";
+import {
+  MovedCanvasElement,
+  PastedCanvasText,
+  RequestedUpload,
+  SelectedCanvasElement,
+  TransformedCanvasElement,
+} from "./message";
 
 type Handle =
   | "north-west"
@@ -31,6 +37,41 @@ const current = (
   height: Number(node.getAttribute("data-canvas-height")),
   rotation: Number(node.getAttribute("data-canvas-rotation")),
 });
+
+export const canvasPaste = (): Stream.Stream<AppMessage> =>
+  Stream.unwrap(
+    Effect.gen(function* () {
+      const messages = yield* Queue.bounded<AppMessage>(16);
+      const paste = (event: ClipboardEvent) => {
+        const target = event.target;
+        if (target instanceof Element && target.closest("input, textarea, [contenteditable=true]"))
+          return;
+        const clipboard = event.clipboardData;
+        const image =
+          [...(clipboard?.files ?? [])].find((file) => file.type.startsWith("image/")) ??
+          [...(clipboard?.items ?? [])].find((item) => item.type.startsWith("image/"))?.getAsFile();
+        if (image !== undefined) {
+          event.preventDefault();
+          Queue.offerUnsafe(messages, RequestedUpload({ file: image, kind: "image" }));
+          return;
+        }
+        const text = clipboard?.getData("text/plain").trim();
+        if (text !== undefined && text !== "") {
+          event.preventDefault();
+          Queue.offerUnsafe(messages, PastedCanvasText({ text }));
+        }
+      };
+      document.addEventListener("paste", paste);
+      return Stream.fromQueue(messages).pipe(
+        Stream.ensuring(
+          Effect.sync(() => {
+            document.removeEventListener("paste", paste);
+            Queue.shutdown(messages);
+          }),
+        ),
+      );
+    }),
+  );
 
 export const canvasElement = (element: CanvasElement, node: Element): Stream.Stream<AppMessage> =>
   Stream.unwrap(

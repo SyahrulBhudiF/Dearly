@@ -21,6 +21,7 @@ import {
   SelectedStoredImage,
   SelectedSticker,
 } from "../../core/message";
+import { canvasPaste } from "../../core/canvasDrag";
 import { icon } from "./icon";
 import { CanvasItem } from "./element";
 import { DeleteDialog } from "./dialog";
@@ -435,7 +436,10 @@ export const canvasShell = (
     ],
     [
       h.div(
-        [h.Class("relative h-[760px] w-[1080px] touch-pan-x bg-canvas overflow-hidden")],
+        [
+          h.OnMount({ name: "canvas-paste", f: canvasPaste }),
+          h.Class("relative h-[760px] w-[1080px] touch-pan-x bg-canvas overflow-hidden"),
+        ],
         [
           h.div(
             [

@@ -333,17 +333,8 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         },
         [],
       ],
-      AddedTextCanvasElement: (): UpdateResult => {
-        const element = textElement("");
-        return [
-          {
-            ...model,
-            elements: [...model.elements, { ...element, layer: nextLayer(model.elements) }],
-            selectedElementId: element.id,
-          },
-          [],
-        ];
-      },
+      AddedTextCanvasElement: (): UpdateResult => addTextElement(model, ""),
+      PastedCanvasText: ({ text }): UpdateResult => addTextElement(model, text),
       SelectedImage: ({ file }): UpdateResult =>
         update(model, RequestedUpload({ file, kind: "image" })),
       UploadedImage: ({ mediaObjectId, title }): UpdateResult => [
@@ -474,6 +465,19 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
       ],
     }),
   );
+
+const addTextElement = (model: Model, text: string): UpdateResult => {
+  const element = textElement(text);
+  return [
+    {
+      ...model,
+      elements: [...model.elements, { ...element, layer: nextLayer(model.elements) }],
+      selectedElementId: element.id,
+      saveState: "idle",
+    },
+    [],
+  ];
+};
 
 const requestUpload = (args: { readonly file: unknown; readonly kind: "image" | "sticker" }) => ({
   name: "requestUpload",
