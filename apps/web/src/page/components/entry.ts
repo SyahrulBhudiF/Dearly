@@ -42,7 +42,7 @@ import {
   ToggledLayersPanel,
   ToggledShapePicker,
 } from "../../core/canvas/message";
-import { canvasPaste, canvasShortcuts } from "../../core/canvas/drag";
+import { canvasPaste } from "../../core/canvas/drag";
 import { sortableLayers } from "../../core/canvas/layers";
 import { icon } from "./icon";
 import { CanvasItem } from "./element";
@@ -745,8 +745,8 @@ export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel
       h.div(
         [
           h.OnMount({
-            name: "canvas-input",
-            f: () => Stream.merge(canvasPaste(), canvasShortcuts()).pipe(Stream.map(canvas)),
+            name: "canvas-paste",
+            f: () => canvasPaste().pipe(Stream.map(canvas)),
           }),
           h.Class("relative h-[760px] w-[1080px] touch-pan-x bg-canvas overflow-hidden"),
         ],
