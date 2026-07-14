@@ -1,5 +1,6 @@
 import { Option, Stream } from "effect";
 import { Html } from "foldkit";
+import { createKeyedLazy, createLazy } from "foldkit/html";
 import { Button, Dialog, FileDrop, Popover, VirtualList } from "@foldkit/ui";
 import EmojiConvertor from "emoji-js";
 import {
@@ -100,6 +101,105 @@ const emojis = Object.values(emoji.data)
   .sort(
     (left, right) => Number(faceEmojiNames.has(right.name)) - Number(faceEmojiNames.has(left.name)),
   );
+const lazyImagePicker = createLazy();
+const lazyStickerPicker = createLazy();
+const lazyCanvasItem = createKeyedLazy();
+
+const stickerPickerView = (
+  h: HtmlFactory,
+  stickerPopover: Popover.Model,
+  stickers: ReadonlyArray<Sticker>,
+  stickerSearch: string,
+  stickerTab: "stickers" | "emoji",
+  emojiSearch: string,
+  emojiList: VirtualList.Model,
+  stickerFileDrop: FileDrop.Model,
+) =>
+  h.submodel({
+    slotId: "sticker-picker",
+    model: stickerPopover,
+    view: Popover.view,
+    toParentMessage: (message) => media(GotStickerPopoverMessage({ message })),
+    viewInputs: {
+      anchor: { placement: "right-start", gap: 8 },
+      ariaLabel: "Choose sticker",
+      toView: ({ button, panel, backdrop, isVisible }) =>
+        h.div(
+          [],
+          [
+            h.button(
+              [
+                ...button,
+                h.Class(
+                  "grid size-11 place-items-center rounded-full border border-line bg-paper hover:border-wine hover:text-wine",
+                ),
+              ],
+              [icon(h, Sparkles, "Sticker")],
+            ),
+            isVisible
+              ? h.div(
+                  [],
+                  [
+                    h.div([...backdrop, h.Class("fixed inset-0 z-10")], []),
+                    h.div(
+                      [
+                        ...panel,
+                        h.Class(
+                          "z-20 w-72 rounded-[var(--radius)] border border-line bg-popover p-3 shadow-[var(--shadow)]",
+                        ),
+                      ],
+                      [
+                        stickerTabs(h, stickerTab),
+                        stickerTab === "stickers"
+                          ? h.div(
+                              [h.Class("mt-3 grid grid-cols-4 justify-items-center gap-2")],
+                              [
+                                searchInput(h, "Search stickers", stickerSearch, (value) =>
+                                  media(ChangedStickerSearch({ value })),
+                                ),
+                                h.submodel({
+                                  slotId: "sticker-media-upload",
+                                  model: stickerFileDrop,
+                                  view: FileDrop.view,
+                                  toParentMessage: (message) =>
+                                    media(GotStickerFileDropMessage({ message })),
+                                  viewInputs: {
+                                    accept: [
+                                      "image/jpeg",
+                                      "image/png",
+                                      "image/webp",
+                                      "image/gif",
+                                    ],
+                                    multiple: true,
+                                    toView: ({ root, input }) =>
+                                      h.label(
+                                        [
+                                          ...root,
+                                          h.Class(
+                                            "col-span-full mb-1 flex cursor-pointer items-center justify-center gap-2 rounded-[var(--radius)] bg-secondary px-3 py-2 font-note text-xs text-secondary-foreground",
+                                          ),
+                                        ],
+                                        [
+                                          icon(h, ImageUp, "Upload sticker"),
+                                          "Upload sticker",
+                                          h.input([...input, h.Class("sr-only")]),
+                                        ],
+                                      ),
+                                  },
+                                }),
+                                ...stickerItems(h, stickers, stickerSearch),
+                              ],
+                            )
+                          : emojiPicker(h, emojiSearch, emojiList),
+                      ],
+                    ),
+                  ],
+                )
+              : null,
+          ],
+        ),
+    },
+  });
 
 export const toolRail = (h: HtmlFactory, mediaModel: MediaModel, canvasModel: CanvasModel) => {
   const {
@@ -119,94 +219,19 @@ export const toolRail = (h: HtmlFactory, mediaModel: MediaModel, canvasModel: Ca
     [h.Class("flex gap-2 lg:flex-col")],
     [
       toolButton(h, "Text", icon(h, Type, "Text"), canvas(AddedTextCanvasElement())),
-      imagePicker(h, imagePopover, images, imageSearch, fileDrop),
+      lazyImagePicker(imagePicker, [h, imagePopover, images, imageSearch, fileDrop]),
       shapePicker(h, canvasModel),
       layersPicker(h, canvasModel),
-      h.submodel({
-        slotId: "sticker-picker",
-        model: stickerPopover,
-        view: Popover.view,
-        toParentMessage: (message) => media(GotStickerPopoverMessage({ message })),
-        viewInputs: {
-          anchor: { placement: "right-start", gap: 8 },
-          ariaLabel: "Choose sticker",
-          toView: ({ button, panel, backdrop, isVisible }) =>
-            h.div(
-              [],
-              [
-                h.button(
-                  [
-                    ...button,
-                    h.Class(
-                      "grid size-11 place-items-center rounded-full border border-line bg-paper hover:border-wine hover:text-wine",
-                    ),
-                  ],
-                  [icon(h, Sparkles, "Sticker")],
-                ),
-                isVisible
-                  ? h.div(
-                      [],
-                      [
-                        h.div([...backdrop, h.Class("fixed inset-0 z-10")], []),
-                        h.div(
-                          [
-                            ...panel,
-                            h.Class(
-                              "z-20 w-72 rounded-[var(--radius)] border border-line bg-popover p-3 shadow-[var(--shadow)]",
-                            ),
-                          ],
-                          [
-                            stickerTabs(h, stickerTab),
-                            stickerTab === "stickers"
-                              ? h.div(
-                                  [h.Class("mt-3 grid grid-cols-4 justify-items-center gap-2")],
-                                  [
-                                    searchInput(h, "Search stickers", stickerSearch, (value) =>
-                                      media(ChangedStickerSearch({ value })),
-                                    ),
-                                    h.submodel({
-                                      slotId: "sticker-media-upload",
-                                      model: stickerFileDrop,
-                                      view: FileDrop.view,
-                                      toParentMessage: (message) =>
-                                        media(GotStickerFileDropMessage({ message })),
-                                      viewInputs: {
-                                        accept: [
-                                          "image/jpeg",
-                                          "image/png",
-                                          "image/webp",
-                                          "image/gif",
-                                        ],
-                                        multiple: true,
-                                        toView: ({ root, input }) =>
-                                          h.label(
-                                            [
-                                              ...root,
-                                              h.Class(
-                                                "col-span-full mb-1 flex cursor-pointer items-center justify-center gap-2 rounded-[var(--radius)] bg-secondary px-3 py-2 font-note text-xs text-secondary-foreground",
-                                              ),
-                                            ],
-                                            [
-                                              icon(h, ImageUp, "Upload sticker"),
-                                              "Upload sticker",
-                                              h.input([...input, h.Class("sr-only")]),
-                                            ],
-                                          ),
-                                      },
-                                    }),
-                                    ...stickerItems(h, stickers, stickerSearch),
-                                  ],
-                                )
-                              : emojiPicker(h, emojiSearch, emojiList),
-                          ],
-                        ),
-                      ],
-                    )
-                  : null,
-              ],
-            ),
-        },
-      }),
+      lazyStickerPicker(stickerPickerView, [
+        h,
+        stickerPopover,
+        stickers,
+        stickerSearch,
+        stickerTab,
+        emojiSearch,
+        emojiList,
+        stickerFileDrop,
+      ]),
     ],
   );
 };
@@ -772,14 +797,14 @@ export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel
           ...[...elements]
             .sort((a, b) => a.layer - b.layer)
             .map((element) =>
-              CanvasItem(
+              lazyCanvasItem(element.id, CanvasItem, [
                 h,
                 element,
                 selectedElementId,
                 canvasModel.toolbarMenu,
                 canvasModel.textFormat,
                 canvasModel.history.revision,
-              ),
+              ]),
             ),
           DeleteDialog(h, deleteDialog),
           UploadDialog(h, mediaModel),
