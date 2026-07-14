@@ -1,4 +1,5 @@
 import { Runtime, Subscription, type Url } from "foldkit";
+import { overlay } from "@foldkit/devtools";
 import { VirtualList } from "@foldkit/ui";
 import type { UrlRequest } from "foldkit/navigation";
 import { AppMessage, ChangedRoute, GotMediaMessage } from "./core/app/message";
@@ -28,5 +29,5 @@ export const application = Runtime.makeApplication({
         : ChangedRoute({ route: parseRoute({ pathname: "/" } as never) }),
     onUrlChange: (url: Url.Url) => ChangedRoute({ route: parseRoute(url) }),
   },
-  devTools: { Message: AppMessage },
+  devTools: { Message: AppMessage, overlay },
 });

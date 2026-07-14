@@ -8,12 +8,16 @@ export const ChangedText = Message.m("ChangedText", { id: Schema.String, text: S
 export const StartedTextSession = Message.m("StartedTextSession", {
   id: Schema.String,
   sessionId: Schema.String,
+  document: RichTextDocument,
 });
 export const CommittedTextSession = Message.m("CommittedTextSession", {
   id: Schema.String,
   sessionId: Schema.String,
   document: RichTextDocument,
-  direction: Schema.Literals(["commit", "undo", "redo"]),
+});
+export const UpdatedTextDocument = Message.m("UpdatedTextDocument", {
+  id: Schema.String,
+  document: RichTextDocument,
 });
 export const ChangedImageTitle = Message.m("ChangedImageTitle", {
   id: Schema.String,
@@ -84,6 +88,7 @@ export const ChangedShapeColor = Message.m("ChangedShapeColor", { color: Schema.
 export const AddedShape = Message.m("AddedShape", { shape: ShapeKind });
 
 export const CanvasMessage = Schema.Union([
+  UpdatedTextDocument,
   ChangedText,
   StartedTextSession,
   CommittedTextSession,

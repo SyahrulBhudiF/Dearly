@@ -2,7 +2,7 @@ import { Scene } from "foldkit";
 import { test } from "vitest";
 import { loadEntries } from "../../src/core/calendar/command";
 import { GotCalendarMessage } from "../../src/core/app/message";
-import { ClosedPicker } from "../../src/core/calendar/message";
+import { ClosedPicker, LoadedEntries } from "../../src/core/calendar/message";
 import { initialModel } from "../../src/core/app/model";
 import { CalendarRoute } from "../../src/core/route";
 import { update } from "../../src/core/app/update";
@@ -21,7 +21,7 @@ test("calendar month controls render and navigate", () => {
     Scene.Command.expectHas(loadEntries),
     Scene.Command.resolve(
       loadEntries,
-      GotCalendarMessage({ message: { _tag: "LoadedEntries", entries: [] } }),
+      LoadedEntries({ entries: [] }),
     ),
   );
 });

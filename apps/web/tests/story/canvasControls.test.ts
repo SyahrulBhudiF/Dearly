@@ -152,7 +152,6 @@ test("committed text session creates one Canvas history entry", () => {
           id: "text",
           sessionId: "typing-1",
           document: document("typed quickly"),
-          direction: "commit",
         }),
       ),
     ),
@@ -189,10 +188,10 @@ test("committed text session and undo are atomic", () => {
           id: "text",
           sessionId: "typing-1",
           document: typed,
-          direction: "undo",
         }),
       ),
     ),
+    Story.message(message(UndidCanvas())),
     Story.model((model) => {
       expect(model.canvas.elements[0]?.payload).toEqual({ kind: "text", document: empty });
       expect(model.canvas.history.future).toHaveLength(1);
@@ -302,7 +301,6 @@ test("50 real-world mixed actions undo and redo every full Canvas snapshot", () 
           id: "text",
           sessionId: `text-${index}`,
           document: document(`entry ${index}`),
-          direction: "commit",
         }),
       );
     } else if (kind === "layer") {

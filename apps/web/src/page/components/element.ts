@@ -139,7 +139,8 @@ const richTextElement = (
   payload: Extract<CanvasElement["payload"], { readonly kind: "text" }>,
   historyRevision: number,
 ) => {
-  return h.div(
+  return h.keyed("div")(
+    `rich-text-${id}-${historyRevision}`,
     [
       h.OnMount({
         name: `rich-text-${id}-${historyRevision}`,

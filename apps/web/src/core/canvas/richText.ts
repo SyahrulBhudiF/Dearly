@@ -11,7 +11,10 @@ import {
   ChangedTextFormat,
   ClosedToolbarMenu,
   CommittedTextSession,
+  RedidCanvas,
   StartedTextSession,
+  UndidCanvas,
+  UpdatedTextDocument,
 } from "./message";
 import type { TextFormat } from "./model";
 
@@ -92,11 +95,12 @@ export const richTextEditor = (
       if (editorNode === null || host === null) return Stream.empty;
       let sessionId = crypto.randomUUID();
       let dirty = false;
-      const commit = (direction: "commit" | "undo" | "redo") => {
+      let keydownHandledUndo = false;
+      const commit = () => {
         if (!dirty) return;
         Queue.offerUnsafe(
           messages,
-          CommittedTextSession({ id, sessionId, document: editor.getJSON(), direction }),
+          CommittedTextSession({ id, sessionId, document: editor.getJSON() }),
         );
         dirty = false;
         sessionId = crypto.randomUUID();
@@ -110,14 +114,49 @@ export const richTextEditor = (
             class: "size-full outline-none",
             spellcheck: "false",
           },
+          handleKeyDown: (_view, event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === "z") {
+              event.preventDefault();
+              commit();
+              Queue.offerUnsafe(
+                messages,
+                event.shiftKey ? RedidCanvas() : UndidCanvas(),
+              );
+              keydownHandledUndo = true;
+              return true;
+            }
+            keydownHandledUndo = false;
+            return false;
+          },
+          handleDOMEvents: {
+            beforeinput: (_view, event) => {
+              if (event.inputType === "historyUndo" || event.inputType === "historyRedo") {
+                if (keydownHandledUndo) {
+                  keydownHandledUndo = false;
+                  return false;
+                }
+                event.preventDefault();
+                commit();
+                Queue.offerUnsafe(
+                  messages,
+                  event.inputType === "historyUndo" ? UndidCanvas() : RedidCanvas(),
+                );
+                return true;
+              }
+              return false;
+            },
+          },
         },
         onBlur: () => {
-          if (dirty) commit("commit");
+          if (dirty) commit();
         },
         onUpdate: ({ editor }) => {
+          const document = editor.getJSON();
           if (!dirty) {
             dirty = true;
-            Queue.offerUnsafe(messages, StartedTextSession({ id, sessionId }));
+            Queue.offerUnsafe(messages, StartedTextSession({ id, sessionId, document }));
+          } else {
+            Queue.offerUnsafe(messages, UpdatedTextDocument({ id, document }));
           }
           Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
         },
@@ -155,10 +194,10 @@ export const richTextEditor = (
         if (align !== undefined)
           applyFormat(editor, { kind: "align", value: align as "left" | "center" | "right" });
         Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
-        Queue.offerUnsafe(messages, ClosedToolbarMenu());
       };
       const outside = (event: PointerEvent) => {
         if (!(event.target instanceof Node)) return;
+        if (host.querySelector("[data-rich-text-menu-panel]:not(.hidden)") === null) return;
         const menu =
           event.target instanceof Element
             ? event.target.closest("[data-rich-text-menu-panel], [data-rich-text-menu]")
@@ -171,10 +210,14 @@ export const richTextEditor = (
         const button = target.closest<HTMLButtonElement>(
           '[aria-label="Undo"], [aria-label="Redo"]',
         );
-        if (button === null || !dirty) return;
+        if (button === null) return;
         event.preventDefault();
         event.stopImmediatePropagation();
-        commit(button.ariaLabel === "Undo" ? "undo" : "redo");
+        commit();
+        Queue.offerUnsafe(
+          messages,
+          button.ariaLabel === "Undo" ? UndidCanvas() : RedidCanvas(),
+        );
       };
       host.addEventListener("click", format);
       document.addEventListener("click", history, true);

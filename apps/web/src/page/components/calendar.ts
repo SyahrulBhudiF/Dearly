@@ -166,6 +166,7 @@ export const miniCalendar = (
 const monthPicker = (h: HtmlFactory, selectedMonth: string, year: number) =>
   h.div(
     [
+      h.DataAttribute("mini-calendar-picker-open", "true"),
       h.Class(
         "absolute left-1/2 z-20 mt-2 w-[260px] -translate-x-1/2 rounded-[var(--radius)] border border-line bg-card p-3 shadow-[var(--shadow)]",
       ),
