@@ -2,8 +2,9 @@ import { Option } from "effect";
 import { Html } from "foldkit";
 import type { Model } from "../core/app/model";
 import type { AppMessage } from "../core/app/message";
-import { GotEntryMessage } from "../core/app/message";
+import { GotCanvasMessage, GotEntryMessage } from "../core/app/message";
 import { SaveRequested } from "../core/entry/message";
+import { RedidCanvas, UndidCanvas } from "../core/canvas/message";
 import { CalendarLink } from "./components/link";
 import { EntryHeader } from "./components/header";
 import { Notifications } from "./components/notifications";
@@ -19,6 +20,18 @@ export const entryPage = (model: Model): Html.Document => {
           if (!modifiers.metaKey && !modifiers.ctrlKey) return Option.none();
           const normalized = key.toLowerCase();
           if (normalized === "s") return Option.some(GotEntryMessage({ message: SaveRequested() }));
+          if (normalized === "z") {
+            const target = document.activeElement;
+            if (
+              target?.closest?.(".ProseMirror") ||
+              target instanceof HTMLInputElement ||
+              target instanceof HTMLTextAreaElement
+            )
+              return Option.none();
+            return Option.some(
+              GotCanvasMessage({ message: modifiers.shiftKey ? RedidCanvas() : UndidCanvas() }),
+            );
+          }
           return Option.none();
         }),
         h.Class("paper-grain min-h-screen bg-paper px-5 py-7 text-ink sm:px-10 lg:px-16"),

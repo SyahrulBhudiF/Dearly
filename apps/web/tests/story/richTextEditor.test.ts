@@ -88,7 +88,6 @@ test("formatted text document persists in its Canvas Element", () => {
         id: "text-1",
         sessionId: "formatting",
         document: instance.getJSON(),
-        direction: "commit",
       }),
     }),
   );

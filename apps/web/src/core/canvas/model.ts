@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { Dialog } from "@foldkit/ui";
-import { CanvasElement } from "@dearly/domain";
+import { CanvasElement, RichTextDocument } from "@dearly/domain";
 
 export const TextFormat = Schema.Struct({
   font: Schema.String,
@@ -28,7 +28,11 @@ const CanvasHistory = Schema.Struct({
   future: Schema.Array(Schema.Array(CanvasElement)),
   pointerTransaction: Schema.NullOr(Schema.Array(CanvasElement)),
   activeTextSession: Schema.NullOr(
-    Schema.Struct({ sessionId: Schema.String, elementId: Schema.String }),
+    Schema.Struct({
+      sessionId: Schema.String,
+      elementId: Schema.String,
+      document: Schema.NullOr(RichTextDocument),
+    }),
   ),
   revision: Schema.Number,
 });
