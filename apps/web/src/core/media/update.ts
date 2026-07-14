@@ -133,11 +133,14 @@ const updateFileDrop = (
   const [fileDrop, _commands, outMessage] = FileDrop.update(model[key], message);
   const next = { ...model, [key]: fileDrop };
   return Option.match(outMessage, {
-    onNone: () => [next, []],
+    onNone: () => [next, []] as UpdateResult,
     onSome: (out) =>
-      out._tag === "ReceivedFiles"
-        ? [next, out.files.map((file) => requestUpload({ file, kind }))]
-        : [next, []],
+      Match.value(out).pipe(
+        Match.tagsExhaustive({
+          ReceivedFiles: ({ files }) => [next, files.map((file) => requestUpload({ file, kind }))] as UpdateResult,
+          RejectedNonFiles: () => [next, []] as UpdateResult,
+        }),
+      ),
   });
 };
 

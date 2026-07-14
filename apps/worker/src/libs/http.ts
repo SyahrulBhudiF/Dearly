@@ -8,7 +8,7 @@ import {
   Unauthorized,
   UnsupportedMediaType,
 } from "@dearly/domain";
-import { Effect } from "effect";
+import { Effect, Match } from "effect";
 
 const securityHeaders = {
   "x-content-type-options": "nosniff",
@@ -42,20 +42,17 @@ export const notFound = (): WorkerEffect<Response> =>
 
 export const notImplemented = (message: string) => json(501, { error: "NotImplemented", message });
 
-export const appErrorToResponse = (error: AppError) => {
-  switch (error._tag) {
-    case "BadRequest":
-      return jsonResponse(400, error);
-    case "Unauthorized":
-      return jsonResponse(401, error);
-    case "EntryNotFound":
-    case "MediaNotFound":
-    case "NotFound":
-    case "StickerNotFound":
-      return jsonResponse(404, error);
-    case "MediaTooLarge":
-      return jsonResponse(413, error);
-    case "UnsupportedMediaType":
-      return jsonResponse(415, error);
-  }
-};
+export const appErrorToResponse = (error: AppError) =>
+  Match.value(error).pipe(
+    Match.withReturnType<Response>(),
+    Match.tagsExhaustive({
+      BadRequest: () => jsonResponse(400, error),
+      Unauthorized: () => jsonResponse(401, error),
+      EntryNotFound: () => jsonResponse(404, error),
+      MediaNotFound: () => jsonResponse(404, error),
+      NotFound: () => jsonResponse(404, error),
+      StickerNotFound: () => jsonResponse(404, error),
+      MediaTooLarge: () => jsonResponse(413, error),
+      UnsupportedMediaType: () => jsonResponse(415, error),
+    }),
+  );

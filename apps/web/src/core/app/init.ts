@@ -1,3 +1,4 @@
+import { Match } from "effect";
 import { Command } from "foldkit";
 import { loadEntries, loadSession } from "../calendar/command";
 import type { CalendarMessage } from "../calendar/message";
@@ -10,24 +11,32 @@ import type { Model } from "./model";
 
 export const init = (
   model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<AppMessage>>] => [
-  {
-    ...model,
-    calendar: { ...model.calendar, loadState: "loading" },
-    entry:
-      model.route._tag === "EntryRoute" ? { ...model.entry, loadState: "loading" } : model.entry,
-  },
-  [
-    ...mapCalendar([loadSession(), loadEntries({ month: model.calendar.month })]),
-    ...mapMedia([loadStickers(), loadImages()]),
-    ...(model.route._tag === "EntryRoute"
-      ? mapEntry([
-          loadEntry({ date: model.calendar.selectedDate }),
-          loadDraft({ date: model.calendar.selectedDate }),
-        ])
-      : []),
-  ],
-];
+): readonly [Model, ReadonlyArray<Command.Command<AppMessage>>] => {
+  const isEntry = Match.value(model.route).pipe(
+    Match.tagsExhaustive({
+      EntryRoute: () => true as const,
+      CalendarRoute: () => false as const,
+      NotFoundRoute: () => false as const,
+    }),
+  );
+  return [
+    {
+      ...model,
+      calendar: { ...model.calendar, loadState: "loading" },
+      entry: isEntry ? { ...model.entry, loadState: "loading" } : model.entry,
+    },
+    [
+      ...mapCalendar([loadSession(), loadEntries({ month: model.calendar.month })]),
+      ...mapMedia([loadStickers(), loadImages()]),
+      ...(isEntry
+        ? mapEntry([
+            loadEntry({ date: model.calendar.selectedDate }),
+            loadDraft({ date: model.calendar.selectedDate }),
+          ])
+        : []),
+    ],
+  ];
+};
 
 const mapCalendar = (commands: ReadonlyArray<Command.Command<CalendarMessage>>) =>
   Command.mapMessages(commands, (message) => GotCalendarMessage({ message }));

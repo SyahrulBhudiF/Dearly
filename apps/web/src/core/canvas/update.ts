@@ -118,109 +118,117 @@ const record = (model: Model, next: Model): Model => {
     },
   };
 };
-export const update = (model: Model, message: CanvasMessage): UpdateResult => {
-  if (message._tag === "UndidCanvas") return [undo(commitPendingText(model)), []];
-  if (message._tag === "RedidCanvas") return [redo(commitPendingText(model)), []];
-  if (message._tag === "StartedTextSession") {
-    return [
-      {
-        ...model,
-        history: {
-          ...model.history,
-          activeTextSession: {
-            sessionId: message.sessionId,
-            elementId: message.id,
-            document: message.document,
+export const update = (model: Model, message: CanvasMessage): UpdateResult =>
+  Match.value(message).pipe(
+    Match.withReturnType<UpdateResult>(),
+    Match.tagsExhaustive({
+      UndidCanvas: () => [undo(commitPendingText(model)), []],
+      RedidCanvas: () => [redo(commitPendingText(model)), []],
+      StartedTextSession: ({ sessionId, id, document }) => [
+        {
+          ...model,
+          history: {
+            ...model.history,
+            activeTextSession: { sessionId, elementId: id, document },
           },
         },
+        [],
+      ],
+      UpdatedTextDocument: ({ id, document }) => {
+        const session = model.history.activeTextSession;
+        if (session === null || session.elementId !== id) return [model, []];
+        return [
+          {
+            ...model,
+            history: { ...model.history, activeTextSession: { ...session, document } },
+          },
+          [],
+        ];
       },
-      [],
-    ];
-  }
-  if (message._tag === "UpdatedTextDocument") {
-    const session = model.history.activeTextSession;
-    if (session === null || session.elementId !== message.id) return [model, []];
-    return [
-      {
-        ...model,
-        history: { ...model.history, activeTextSession: { ...session, document: message.document } },
+      CommittedTextSession: ({ id, document }) => {
+        const elements = setTextDocument(model.elements, id, document);
+        if (elements === model.elements) {
+          return [{ ...model, history: { ...model.history, activeTextSession: null } }, []];
+        }
+        return [
+          {
+            ...model,
+            elements,
+            history: {
+              ...model.history,
+              past: [...model.history.past, model.elements],
+              future: [],
+              activeTextSession: null,
+            },
+          },
+          [],
+        ];
       },
-      [],
-    ];
-  }
-  if (message._tag === "CommittedTextSession") {
-    const elements = setTextDocument(model.elements, message.id, message.document);
-    if (elements === model.elements) {
-      return [{ ...model, history: { ...model.history, activeTextSession: null } }, []];
-    }
-    return [
-      {
-        ...model,
-        elements,
-        history: {
-          ...model.history,
-          past: [...model.history.past, model.elements],
-          future: [],
-          activeTextSession: null,
-        },
+      StartedCanvasTransform: () => {
+        const m = commitPendingText(model);
+        if (m.history.pointerTransaction !== null) return [m, []];
+        return [
+          { ...m, history: { ...m.history, pointerTransaction: m.elements } },
+          [],
+        ];
       },
-      [],
-    ];
-  }
-  const commitsText = Match.value(message).pipe(
-    Match.tag("StartedCanvasTransform", () => true),
-    Match.tag("FinishedCanvasTransform", () => true),
-    Match.tag("AddedShape", () => true),
-    Match.tag("AddedTextCanvasElement", () => true),
-    Match.tag("PastedCanvasText", () => true),
-    Match.tag("DeletedCanvasElement", () => true),
-    Match.tag("RequestedDelete", () => true),
-    Match.tag("TransformedCanvasElement", () => true),
-    Match.tag("MovedCanvasElement", () => true),
-    Match.tag("ResizedCanvasElement", () => true),
-    Match.tag("RotatedCanvasElement", () => true),
-    Match.tag("ChangedCanvasElementLayer", () => true),
-    Match.tag("MovedCanvasElementLayer", () => true),
-    Match.tag("ReorderedCanvasElements", () => true),
-    Match.tag("ChangedText", () => true),
-    Match.tag("ChangedImageTitle", () => true),
-    Match.orElse(() => false),
+      FinishedCanvasTransform: () => {
+        const m = commitPendingText(model);
+        const tx = m.history.pointerTransaction;
+        if (tx === null) return [m, []];
+        return [
+          {
+            ...m,
+            history: {
+              ...m.history,
+              past: tx === m.elements ? m.history.past : [...m.history.past, tx],
+              pointerTransaction: null,
+              future: tx === m.elements ? m.history.future : [],
+            },
+          },
+          [],
+        ];
+      },
+      // Element-modifying: commit text, dispatch to updateDocument, record history
+      ChangedText: () => afterDocument(model, message),
+      ChangedImageTitle: () => afterDocument(model, message),
+      AddedTextCanvasElement: () => afterDocument(model, message),
+      PastedCanvasText: () => afterDocument(model, message),
+      DeletedCanvasElement: () => afterDocument(model, message),
+      RequestedDelete: () => afterDocument(model, message),
+      TransformedCanvasElement: () => afterDocument(model, message),
+      MovedCanvasElement: () => afterDocument(model, message),
+      ResizedCanvasElement: () => afterDocument(model, message),
+      RotatedCanvasElement: () => afterDocument(model, message),
+      ChangedCanvasElementLayer: () => afterDocument(model, message),
+      MovedCanvasElementLayer: () => afterDocument(model, message),
+      ReorderedCanvasElements: () => afterDocument(model, message),
+      AddedShape: () => afterDocument(model, message),
+      // UI-only: no commit, just dispatch to updateDocument
+      SelectedCanvasElement: () => withoutDocument(model, message),
+      DeselectedCanvasElement: () => withoutDocument(model, message),
+      ToggledLayersPanel: () => withoutDocument(model, message),
+      StartedResize: () => withoutDocument(model, message),
+      FinishedResize: () => withoutDocument(model, message),
+      ToggledToolbarMenu: () => withoutDocument(model, message),
+      ClosedToolbarMenu: () => withoutDocument(model, message),
+      ChangedTextFormat: () => withoutDocument(model, message),
+      ToggledShapePicker: () => withoutDocument(model, message),
+      ChangedShapeColor: () => withoutDocument(model, message),
+      GotDeleteDialogMessage: () => withoutDocument(model, message),
+      CanvasRequestedUpload: () => withoutDocument(model, message),
+    }),
   );
-  const committedModel = commitsText ? commitPendingText(model) : model;
-  if (message._tag === "StartedCanvasTransform") {
-    if (committedModel.history.pointerTransaction !== null) return [committedModel, []];
-    return [
-      {
-        ...committedModel,
-        history: { ...committedModel.history, pointerTransaction: committedModel.elements },
-      },
-      [],
-    ];
-  }
-  if (message._tag === "FinishedCanvasTransform") {
-    const transaction = committedModel.history.pointerTransaction;
-    if (transaction === null) return [committedModel, []];
-    return [
-      {
-        ...committedModel,
-        history: {
-          ...committedModel.history,
-          past:
-            transaction === committedModel.elements
-              ? committedModel.history.past
-              : [...committedModel.history.past, transaction],
-          pointerTransaction: null,
-          future:
-            transaction === committedModel.elements
-              ? committedModel.history.future
-              : [],
-        },
-      },
-      [],
-    ];
-  }
-  const [next, commands] = updateDocument(committedModel, message);
-  return [record(committedModel, next), commands];
+
+const afterDocument = (model: Model, message: CanvasMessage): UpdateResult => {
+  const m = commitPendingText(model);
+  const [next, commands] = updateDocument(m, message);
+  return [record(m, next), commands];
+};
+
+const withoutDocument = (model: Model, message: CanvasMessage): UpdateResult => {
+  const [next, commands] = updateDocument(model, message);
+  return [record(model, next), commands];
 };
 
 const updateDocument = (model: Model, message: CanvasMessage): UpdateResult =>
