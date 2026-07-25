@@ -1,5 +1,6 @@
 import { Match } from "effect";
 import { Command } from "foldkit";
+import { toString as urlToString } from "foldkit/url";
 import { loadEntries } from "../calendar/command";
 import type { CalendarMessage } from "../calendar/message";
 import * as Calendar from "../calendar/update";
@@ -11,6 +12,7 @@ import * as Entry from "../entry/update";
 import { RequestedUpload, type MediaMessage } from "../media/message";
 import * as Media from "../media/update";
 import { CalendarRoute, EntryRoute } from "../route";
+import { LoadExternal, NavigateInternal } from "./command";
 import {
   GotCalendarMessage,
   GotCanvasMessage,
@@ -25,6 +27,19 @@ type UpdateResult = readonly [Model, ReadonlyArray<Command.Command<AppMessage>>]
 export const update = (model: Model, message: AppMessage): UpdateResult =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
+      Navigated: ({ request }): UpdateResult =>
+        Match.value(request).pipe(
+          Match.withReturnType<UpdateResult>(),
+          Match.tagsExhaustive({
+            Internal: ({ url }) => [
+              model,
+              [NavigateInternal({ url: urlToString(url) })],
+            ],
+            External: ({ href }) => [model, [LoadExternal({ href })]],
+          }),
+        ),
+      CompletedNavigateInternal: (): UpdateResult => [model, []],
+      CompletedLoadExternal: (): UpdateResult => [model, []],
       DismissedNotification: ({ id }): UpdateResult => [
         { ...model, notifications: model.notifications.filter((item) => item.id !== id) },
         [],
@@ -57,11 +72,6 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         Match.value(child).pipe(
           Match.withReturnType<UpdateResult>(),
           Match.tagsExhaustive({
-            SelectedDate: ({ date }) =>
-              update(model, {
-                _tag: "ChangedRoute",
-                route: EntryRoute({ date: date as never }),
-              }),
             PreviewedDate: () => delegateToCalendar(model, child),
             ToggledPicker: () => delegateToCalendar(model, child),
             ClosedPicker: () => delegateToCalendar(model, child),

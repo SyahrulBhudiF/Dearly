@@ -4,7 +4,6 @@ import {
   ChangedMonth,
   ClosedPicker,
   PreviewedDate,
-  SelectedDate,
   ToggledPicker,
   PickedYear,
   WentToday,

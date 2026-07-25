@@ -10,7 +10,6 @@ type UpdateResult = readonly [Model, ReadonlyArray<Command.Command<CalendarMessa
 export const update = (model: Model, message: CalendarMessage): UpdateResult =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
-      SelectedDate: (): UpdateResult => [model, []],
       PreviewedDate: ({ date }): UpdateResult => [
         { ...model, selectedDate: date, photoPreviewOpen: false },
         [],

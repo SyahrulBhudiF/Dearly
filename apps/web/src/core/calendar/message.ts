@@ -2,7 +2,6 @@ import { Schema } from "effect";
 import { EntryPreview, OwnerSession } from "@dearly/domain";
 import { Message } from "foldkit";
 
-export const SelectedDate = Message.m("SelectedDate", { date: Schema.String });
 export const PreviewedDate = Message.m("PreviewedDate", { date: Schema.String });
 export const ToggledPicker = Message.m("ToggledPicker");
 export const ClosedPicker = Message.m("ClosedPicker");
@@ -16,7 +15,6 @@ export const LoadedEntries = Message.m("LoadedEntries", { entries: Schema.Array(
 export const FailedToLoad = Message.m("CalendarFailedToLoad");
 
 export const CalendarMessage = Schema.Union([
-  SelectedDate,
   PreviewedDate,
   ToggledPicker,
   ClosedPicker,

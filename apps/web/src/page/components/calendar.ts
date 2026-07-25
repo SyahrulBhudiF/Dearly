@@ -11,11 +11,11 @@ import {
   ClosedPhotoPreview,
   OpenedPhotoPreview,
   PreviewedDate,
-  SelectedDate,
   ToggledPicker,
   PickedYear,
   WentToday,
 } from "../../core/calendar/message";
+import { entryRouter } from "../../core/route";
 import type { AppMessage } from "../../core/app/message";
 import { GotCalendarMessage } from "../../core/app/message";
 import { icon } from "./icon";
@@ -327,34 +327,30 @@ export const dateCard = (
   selectedDate: string,
   preview: EntryPreview | undefined,
 ) =>
-  Button.view<AppMessage>({
-    onClick: calendar(SelectedDate({ date })),
-    toView: ({ button }) =>
-      h.button(
-        [
-          ...button,
-          h.Class(
-            `date-card min-h-28 border-r border-b border-line p-2 text-left sm:min-h-36 sm:p-3 ${date === selectedDate ? "bg-primary/30" : preview?.hasSavedEntry ? "bg-secondary/30" : "bg-card"}`,
-          ),
-          h.AriaLabel(`Open ${date}`),
-        ],
-        [
-          h.span(
-            [h.Class("font-note text-[11px] text-muted-foreground")],
-            [String(Number(date.slice(-2)))],
-          ),
-          preview?.snippet === undefined
-            ? h.span([h.Class("mt-6 block text-xs text-muted-foreground/70")], ["—"])
-            : h.p([h.Class("mt-5 line-clamp-3 font-display text-sm leading-5")], [preview.snippet]),
-          preview?.hasDraft === true
-            ? h.span(
-                [h.Class("mt-2 block font-note text-[9px] tracking-[.12em] text-wine uppercase")],
-                ["draft"],
-              )
-            : null,
-        ],
+  h.a(
+    [
+      h.Href(entryRouter({ date: date as never })),
+      h.Class(
+        `date-card min-h-28 border-r border-b border-line p-2 text-left sm:min-h-36 sm:p-3 ${date === selectedDate ? "bg-primary/30" : preview?.hasSavedEntry ? "bg-secondary/30" : "bg-card"}`,
       ),
-  });
+      h.AriaLabel(`Open ${date}`),
+    ],
+    [
+      h.span(
+        [h.Class("font-note text-[11px] text-muted-foreground")],
+        [String(Number(date.slice(-2)))],
+      ),
+      preview?.snippet === undefined
+        ? h.span([h.Class("mt-6 block text-xs text-muted-foreground/70")], ["—"])
+        : h.p([h.Class("mt-5 line-clamp-3 font-display text-sm leading-5")], [preview.snippet]),
+      preview?.hasDraft === true
+        ? h.span(
+            [h.Class("mt-2 block font-note text-[9px] tracking-[.12em] text-wine uppercase")],
+            ["draft"],
+          )
+        : null,
+    ],
+  );
 
 export const previewFor = (entries: ReadonlyArray<EntryPreview>, date: string) =>
   entries.find((entry) => entry.date === date);
