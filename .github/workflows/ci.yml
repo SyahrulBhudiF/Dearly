@@ -28,6 +28,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - run: bun run build --filter=@dearly/domain --filter=@dearly/rpc
       - run: bun run check --filter=@dearly/web
 
   check-worker:
@@ -38,6 +39,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - run: bun run build --filter=@dearly/domain --filter=@dearly/rpc
       - run: bun run check --filter=@dearly/worker
 
   test-web:
@@ -99,3 +101,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DEARLY_DOMAIN: ${{ secrets.DEARLY_DOMAIN }}
+          CF_ACCESS_OWNER_EMAILS: ${{ secrets.CF_ACCESS_OWNER_EMAILS }}
+          CF_ACCESS_TEAM_DOMAIN: ${{ secrets.CF_ACCESS_TEAM_DOMAIN }}
+          APP_ENV: production

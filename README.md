@@ -2,6 +2,8 @@
 
 A private diary for composing dated memories on a freeform canvas.
 
+See [DEPLOY.md](./DEPLOY.md) for deployment guide and required secrets.
+
 ## Screenshots
 
 | Calendar                                     | Canvas toolbar                                                   |
