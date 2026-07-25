@@ -15,7 +15,15 @@ export const getSession = Effect.gen(function* () {
 
 const getIdentity = (config: AppConfig, request: Request) =>
   config.appEnv !== "production"
-    ? Effect.succeed(Option.map(config.devOwnerId, (subject): AccessIdentity => ({ subject })))
+    ? Option.match(config.devOwnerId, {
+        onNone: () =>
+          Effect.die(
+            "DEV_OWNER_ID must be set when APP_ENV is not production. " +
+              "Add DEV_OWNER_ID=your-uuid to your .env or alchemy.run.ts",
+          ),
+        onSome: (subject) =>
+          Effect.succeed(Option.some({ subject } as AccessIdentity)),
+      })
     : Option.match(config.access, {
         onNone: () => Effect.succeed(Option.none<AccessIdentity>()),
         onSome: ({ aud, teamDomain }) =>

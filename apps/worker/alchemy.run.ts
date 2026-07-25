@@ -10,7 +10,7 @@ const Database = Cloudflare.D1.Database("DearlyDB", {
 
 const Bucket = Cloudflare.R2.Bucket("DearlyMedia");
 
-const APP_ENV = Config.string("APP_ENV").pipe(Config.withDefault("production"));
+const APP_ENV = Config.string("APP_ENV").pipe(Config.withDefault("development"));
 const ACCESS_TEAM_DOMAIN = Config.string("CF_ACCESS_TEAM_DOMAIN");
 const ACCESS_OWNER_EMAILS = Config.string("CF_ACCESS_OWNER_EMAILS").pipe(
   Config.map((emails) =>
@@ -22,10 +22,13 @@ const ACCESS_OWNER_EMAILS = Config.string("CF_ACCESS_OWNER_EMAILS").pipe(
 );
 const DEARLY_DOMAIN = Config.string("DEARLY_DOMAIN");
 
+const DEV_OWNER_ID = Config.string("DEV_OWNER_ID").pipe(Config.withDefault("dev-owner"));
+
 const workerEnv = {
   DB: Database,
   MEDIA: Bucket,
   APP_ENV,
+  DEV_OWNER_ID,
   CF_ACCESS_TEAM_DOMAIN: ACCESS_TEAM_DOMAIN,
 };
 
