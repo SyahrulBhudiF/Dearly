@@ -1,6 +1,6 @@
 import { Button } from "@foldkit/ui";
 import { Html } from "foldkit";
-import { AlignCenter, AlignLeft, AlignRight, Grip, Trash2 } from "lucide";
+import { AlignCenter, AlignLeft, AlignRight, Trash2 } from "lucide";
 import type { CanvasElement, ShapeKind } from "@dearly/domain";
 import { Stream } from "effect";
 import { canvasElement as draggableCanvasElement } from "./drag";
@@ -374,16 +374,6 @@ const canvasControls = (
     ],
     [
       ...(isText ? richTextToolbar(h, toolbarMenu, textFormat) : []),
-      h.span(
-        [
-          h.DataAttribute("canvas-grab", "true"),
-          h.AriaLabel("Drag element"),
-          h.Class(
-            "grid size-8 cursor-grab place-items-center active:cursor-grabbing hover:bg-rose/35",
-          ),
-        ],
-        [icon(h, Grip, "Drag element")],
-      ),
       Button.view<AppMessage>({
         onClick: canvas(RequestedDelete()),
         toView: ({ button }) =>

@@ -105,10 +105,23 @@ export const richTextEditor = (
         dirty = false;
         sessionId = crypto.randomUUID();
       };
+      const enterEditMode = (event: Event) => {
+        if (!(event.target instanceof Element)) return;
+        if (event.target.closest("[data-canvas-controls]")) return;
+        editor.setEditable(true);
+        editor.commands.focus();
+        host.setAttribute("data-editing", "true");
+      };
+      const exitEditMode = () => {
+        if (dirty) commit();
+        editor.setEditable(false);
+        host.removeAttribute("data-editing");
+      };
       const editor = new Editor({
         element: editorNode,
         extensions,
         content: JSON.parse(JSON.stringify(content)),
+        editable: false,
         editorProps: {
           attributes: {
             class: "size-full outline-none",
@@ -148,7 +161,7 @@ export const richTextEditor = (
           },
         },
         onBlur: () => {
-          if (dirty) commit();
+          exitEditMode();
         },
         onUpdate: ({ editor }) => {
           const document = editor.getJSON();
@@ -219,12 +232,14 @@ export const richTextEditor = (
           button.ariaLabel === "Undo" ? UndidCanvas() : RedidCanvas(),
         );
       };
+      host.addEventListener("dblclick", enterEditMode);
       host.addEventListener("click", format);
       document.addEventListener("click", history, true);
       document.addEventListener("pointerdown", outside, true);
       return Stream.fromQueue(messages).pipe(
         Stream.ensuring(
           Effect.sync(() => {
+            host.removeEventListener("dblclick", enterEditMode);
             host.removeEventListener("click", format);
             document.removeEventListener("click", history, true);
             document.removeEventListener("pointerdown", outside, true);

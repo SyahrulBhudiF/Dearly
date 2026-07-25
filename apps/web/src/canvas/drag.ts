@@ -28,6 +28,8 @@ type Start = Pick<CanvasElement, "x" | "y" | "width" | "height" | "rotation"> & 
   readonly handle?: Handle;
 };
 
+const DRAG_THRESHOLD = 3;
+
 const normalizedAngle = (angle: number) => ((angle + 540) % 360) - 180;
 
 export const minimumCanvasSize = (element: CanvasElement) =>
@@ -104,6 +106,14 @@ export const canvasElement = (
           event.pointerId !== pointerId
         )
           return;
+        // Start deferred drag once pointer moves past threshold
+        if (action === undefined) {
+          const dx = event.clientX - start.clientX;
+          const dy = event.clientY - start.clientY;
+          if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+          action = "drag";
+          Queue.offerUnsafe(messages, StartedCanvasTransform());
+        }
         if (action === "drag") {
           Queue.offerUnsafe(
             messages,
@@ -173,39 +183,51 @@ export const canvasElement = (
         if (!(event instanceof PointerEvent) || event.button !== 0) return;
         const target = event.target;
         if (!(target instanceof Element)) return;
+        if (target.closest("[data-canvas-controls]")) return;
+        // Don't drag when clicking inside an active rich-text editor
+        if (
+          target.closest("[data-rich-text-editor]") &&
+          node.hasAttribute("data-editing")
+        )
+          return;
         const resize = (target
           .closest("[data-canvas-resize]")
           ?.getAttribute("data-canvas-resize") ?? null) as Handle | null;
-        const next: Action | undefined = target.closest("[data-canvas-grab]")
-          ? "drag"
-          : resize !== null
+        const immediate: Action | undefined =
+          resize !== null
             ? "resize"
             : target.closest("[data-canvas-rotate]")
               ? "rotate"
               : undefined;
-        if (next === undefined) {
-          if (target.closest("[data-canvas-controls]") === null) {
-            Queue.offerUnsafe(messages, SelectedCanvasElement({ id: element.id }));
-          }
+        event.preventDefault();
+        Queue.offerUnsafe(messages, SelectedCanvasElement({ id: element.id }));
+        if (immediate !== undefined) {
+          const rect = node.getBoundingClientRect();
+          Queue.offerUnsafe(messages, StartedCanvasTransform());
+          action = immediate;
+          pointerId = event.pointerId;
+          start = {
+            ...current(node),
+            clientX: event.clientX,
+            clientY: event.clientY,
+            angle:
+              Math.atan2(
+                event.clientY - (rect.top + rect.height / 2),
+                event.clientX - (rect.left + rect.width / 2),
+              ) *
+              (180 / Math.PI),
+            ...(resize === null ? {} : { handle: resize }),
+          };
+          node.setPointerCapture(pointerId);
           return;
         }
-        event.preventDefault();
-        const rect = node.getBoundingClientRect();
-        Queue.offerUnsafe(messages, SelectedCanvasElement({ id: element.id }));
-        Queue.offerUnsafe(messages, StartedCanvasTransform());
-        action = next;
+        // Body click: select + prepare for deferred drag
         pointerId = event.pointerId;
         start = {
           ...current(node),
           clientX: event.clientX,
           clientY: event.clientY,
-          angle:
-            Math.atan2(
-              event.clientY - (rect.top + rect.height / 2),
-              event.clientX - (rect.left + rect.width / 2),
-            ) *
-            (180 / Math.PI),
-          ...(resize === null ? {} : { handle: resize }),
+          angle: 0,
         };
         node.setPointerCapture(pointerId);
       };
