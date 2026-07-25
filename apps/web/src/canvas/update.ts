@@ -36,6 +36,15 @@ import {
 } from "./message";
 import type { Model } from "./model";
 
+// Maximum canvas history entries. Oldest entries are dropped (FIFO) when
+// exceeded so memory doesn't grow unbounded during long editing sessions.
+const HISTORY_MAX_DEPTH = 200;
+
+const capHistory = <T>(entries: ReadonlyArray<T>): ReadonlyArray<T> =>
+  entries.length > HISTORY_MAX_DEPTH
+    ? entries.slice(entries.length - HISTORY_MAX_DEPTH)
+    : entries;
+
 type UpdateResult = readonly [Model, ReadonlyArray<Command.Command<CanvasMessage>>];
 
 const commitPendingText = (model: Model): Model => {
@@ -50,7 +59,7 @@ const commitPendingText = (model: Model): Model => {
     elements,
     history: {
       ...model.history,
-      past: [...model.history.past, model.elements],
+      past: capHistory([...model.history.past, model.elements]),
       future: [],
       activeTextSession: null,
     },
@@ -65,7 +74,7 @@ const finishTransactions = (model: Model): Model => {
     ...model,
     history: {
       ...model.history,
-      past: [...model.history.past, pointerTransaction],
+      past: capHistory([...model.history.past, pointerTransaction]),
       future: [],
       pointerTransaction: null,
     },
@@ -84,7 +93,7 @@ const undo = (input: Model): Model => {
     history: {
       ...model.history,
       past: model.history.past.slice(0, -1),
-      future: [...model.history.future, model.elements],
+      future: capHistory([...model.history.future, model.elements]),
       revision: model.history.revision + 1,
     },
   };
@@ -100,7 +109,7 @@ const redo = (model: Model): Model => {
     toolbarMenu: null,
     history: {
       ...model.history,
-      past: [...model.history.past, model.elements],
+      past: capHistory([...model.history.past, model.elements]),
       future: model.history.future.slice(0, -1),
       revision: model.history.revision + 1,
     },
@@ -113,7 +122,7 @@ const record = (model: Model, next: Model): Model => {
     ...next,
     history: {
       ...model.history,
-      past: [...model.history.past, model.elements],
+      past: capHistory([...model.history.past, model.elements]),
       future: [],
     },
   };
@@ -156,7 +165,7 @@ export const update = (model: Model, message: CanvasMessage): UpdateResult =>
             elements,
             history: {
               ...model.history,
-              past: [...model.history.past, model.elements],
+              past: capHistory([...model.history.past, model.elements]),
               future: [],
               activeTextSession: null,
             },
@@ -181,7 +190,7 @@ export const update = (model: Model, message: CanvasMessage): UpdateResult =>
             ...m,
             history: {
               ...m.history,
-              past: tx === m.elements ? m.history.past : [...m.history.past, tx],
+              past: tx === m.elements ? m.history.past : capHistory([...m.history.past, tx]),
               pointerTransaction: null,
               future: tx === m.elements ? m.history.future : [],
             },

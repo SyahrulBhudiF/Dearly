@@ -7,8 +7,11 @@ import {
   COMMAND_PRIORITY_HIGH,
   createEditor,
   KEY_DOWN_COMMAND,
+  REDO_COMMAND,
+  UNDO_COMMAND,
   type LexicalEditor,
 } from "lexical";
+import { createEmptyHistoryState, registerHistory } from "@lexical/history";
 import { registerRichText } from "@lexical/rich-text";
 import { Effect, Queue, Stream } from "effect";
 import type { RichTextDocument } from "@dearly/domain";
@@ -211,6 +214,35 @@ export const richTextEditor = (
         },
         COMMAND_PRIORITY_HIGH,
       );
+      // Track Lexical history pushes via onHistoryStateChange and commit each
+      // push to the canvas history so every text edit group creates its own
+      // undo step. The delay (300ms) merges rapid keystrokes into one entry.
+      let previousUndoStackLength = 0;
+      const unregisterHistory = registerHistory(
+        editor,
+        createEmptyHistoryState(),
+        300,
+        undefined,
+        (state) => {
+          if (state.undoStack.length > previousUndoStackLength) {
+            previousUndoStackLength = state.undoStack.length;
+            commit();
+          }
+          previousUndoStackLength = state.undoStack.length;
+        },
+        200,
+      );
+      // Block Lexical's internal undo/redo commands — the canvas owns undo.
+      const unregisterBlockUndo = editor.registerCommand(
+        UNDO_COMMAND,
+        () => true,
+        COMMAND_PRIORITY_HIGH,
+      );
+      const unregisterBlockRedo = editor.registerCommand(
+        REDO_COMMAND,
+        () => true,
+        COMMAND_PRIORITY_HIGH,
+      );
       const beforeInput = (event: InputEvent) => {
         if (event.inputType !== "historyUndo" && event.inputType !== "historyRedo") return;
         if (keydownHandledUndo) {
@@ -293,6 +325,9 @@ export const richTextEditor = (
             document.removeEventListener("click", history, true);
             document.removeEventListener("pointerdown", outside, true);
             unregisterKeydown();
+            unregisterHistory();
+            unregisterBlockUndo();
+            unregisterBlockRedo();
             unregisterUpdate();
             unregisterRichText();
             editor.setRootElement(null);
