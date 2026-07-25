@@ -1,6 +1,6 @@
 import { Match } from "effect";
 import { Command } from "foldkit";
-import { today } from "../../libs/date";
+import { today } from "../date";
 import { loadEntries } from "./command";
 import type { CalendarMessage } from "./message";
 import type { Model } from "./model";

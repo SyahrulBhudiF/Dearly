@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { resolveLayerDropTarget } from "../../src/core/canvas/layerDrop";
+import { resolveLayerDropTarget } from "../../src/canvas/layerDrop";
 
 test("commits the optimistic sortable index when dragend target returns to source", () => {
   expect(resolveLayerDropTarget(["shape", "text"], 1, 0, "text")).toBe("shape");

@@ -1,10 +1,10 @@
 import { Scene } from "foldkit";
 import { test } from "vitest";
-import { initialModel } from "../../src/core/app/model";
-import { GotCalendarMessage } from "../../src/core/app/message";
-import { ClosedPicker } from "../../src/core/calendar/message";
-import { CalendarRoute } from "../../src/core/route";
-import { update } from "../../src/core/app/update";
+import { initialModel } from "../../src/app/model";
+import { GotCalendarMessage } from "../../src/app/message";
+import { ClosedPicker } from "../../src/calendar/message";
+import { CalendarRoute } from "../../src/route";
+import { update } from "../../src/app/update";
 import { view } from "../../src/view";
 
 test("calendar keeps mobile-first layout and hides desktop-only copy", () => {

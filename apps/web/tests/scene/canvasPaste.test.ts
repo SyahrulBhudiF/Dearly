@@ -1,9 +1,9 @@
 import { expect, test } from "vitest";
-import { initialModel } from "../../src/core/app/model";
-import { GotCanvasMessage } from "../../src/core/app/message";
-import { PastedCanvasText } from "../../src/core/canvas/message";
-import { EntryRoute } from "../../src/core/route";
-import { update } from "../../src/core/app/update";
+import { initialModel } from "../../src/app/model";
+import { GotCanvasMessage } from "../../src/app/message";
+import { PastedCanvasText } from "../../src/canvas/message";
+import { EntryRoute } from "../../src/route";
+import { update } from "../../src/app/update";
 
 test("pasted text creates a separate text Canvas Element", () => {
   const model = initialModel(EntryRoute({ date: "2026-07-13" as never }));

@@ -1,10 +1,10 @@
 import { Story } from "foldkit";
 import { expect, test } from "vitest";
-import { GotMediaMessage } from "../../src/core/app/message";
-import { initialModel } from "../../src/core/app/model";
-import { update } from "../../src/core/app/update";
-import { UploadedImage } from "../../src/core/media/message";
-import { CalendarRoute } from "../../src/core/route";
+import { GotMediaMessage } from "../../src/app/message";
+import { initialModel } from "../../src/app/model";
+import { update } from "../../src/app/update";
+import { UploadedImage } from "../../src/media/message";
+import { CalendarRoute } from "../../src/route";
 
 const model = initialModel(CalendarRoute());
 

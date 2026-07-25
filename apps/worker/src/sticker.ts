@@ -1,10 +1,10 @@
 import { MediaObjectId, type OwnerSession, Sticker, StickerId } from "@dearly/domain";
 import { and, eq } from "drizzle-orm";
 import { DateTime, Effect, Option, Schema } from "effect";
-import { getDb } from "../database/client";
-import { stickers } from "../database/schema";
-import type { WorkerEffect } from "../libs/http";
-import type { WorkerContext } from "../types";
+import { getDb } from "./database/client";
+import { stickers } from "./database/schema";
+import type { WorkerEffect } from "./http";
+import type { WorkerContext } from "./types";
 
 export type StickerResult = Schema.Schema.Type<typeof Sticker>;
 

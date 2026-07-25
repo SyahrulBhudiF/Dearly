@@ -1,8 +1,8 @@
 import { OwnerSession, OwnerSession as OwnerSessionSchema } from "@dearly/domain";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import { Effect, Option, Schema } from "effect";
-import type { WorkerEffect } from "../libs/http";
-import type { WorkerContext } from "../types";
+import type { WorkerEffect } from "./http";
+import type { WorkerContext } from "./types";
 
 const jwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 

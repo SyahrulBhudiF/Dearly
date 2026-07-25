@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { appErrorToResponse } from "./libs/http";
+import { appErrorToResponse } from "./http";
 import { handleRequestEffect } from "./router";
 import type { DearlyEnv } from "./types";
 

@@ -1,8 +1,8 @@
 import { Match } from "effect";
 import type { Html } from "foldkit";
-import type { Model } from "./core/app/model";
-import { calendarPage } from "./page/calendar";
-import { entryPage } from "./page/entry";
+import type { Model } from "./app/model";
+import { calendarPage } from "./calendar/view";
+import { entryPage } from "./entry/view";
 
 export const view = (model: Model): Html.Document =>
   Match.value(model.route).pipe(

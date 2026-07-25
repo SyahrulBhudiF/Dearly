@@ -3,13 +3,13 @@ import { Html } from "foldkit";
 import { AlignCenter, AlignLeft, AlignRight, Grip, Trash2 } from "lucide";
 import type { CanvasElement, ShapeKind } from "@dearly/domain";
 import { Stream } from "effect";
-import { canvasElement as draggableCanvasElement } from "../../core/canvas/drag";
-import { richTextEditor } from "../../core/canvas/richText";
-import type { AppMessage } from "../../core/app/message";
-import { GotCanvasMessage } from "../../core/app/message";
-import { RequestedDelete, ToggledToolbarMenu } from "../../core/canvas/message";
-import type { TextFormat } from "../../core/canvas/model";
-import { icon } from "./icon";
+import { canvasElement as draggableCanvasElement } from "./drag";
+import { richTextEditor } from "./richText";
+import type { AppMessage } from "../app/message";
+import { GotCanvasMessage } from "../app/message";
+import { RequestedDelete, ToggledToolbarMenu } from "./message";
+import type { TextFormat } from "./model";
+import { icon } from "../components/icon";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
@@ -431,5 +431,5 @@ const canvasControls = (
   ),
 ];
 
-const canvas = (message: import("../../core/canvas/message").CanvasMessage): AppMessage =>
+const canvas = (message: import("./message").CanvasMessage): AppMessage =>
   GotCanvasMessage({ message });

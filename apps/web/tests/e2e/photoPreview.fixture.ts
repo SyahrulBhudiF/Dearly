@@ -1,8 +1,8 @@
 import type { CanvasElement } from "@dearly/domain";
 import { Runtime } from "foldkit";
-import { initialModel, Model } from "../../src/core/app/model";
-import { update } from "../../src/core/app/update";
-import { CalendarRoute } from "../../src/core/route";
+import { initialModel, Model } from "../../src/app/model";
+import { update } from "../../src/app/update";
+import { CalendarRoute } from "../../src/route";
 import { view } from "../../src/view";
 
 const thumbnailId = "00000000-0000-4000-8000-000000000021";

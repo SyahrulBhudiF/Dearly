@@ -3,12 +3,12 @@ import { Runtime, Subscription, type Url } from "foldkit";
 import { overlay } from "@foldkit/devtools";
 import { VirtualList } from "@foldkit/ui";
 import type { UrlRequest } from "foldkit/navigation";
-import { AppMessage, ChangedRoute, GotMediaMessage, Navigated } from "./core/app/message";
-import { initialModel, Model } from "./core/app/model";
-import { init } from "./core/app/init";
-import { update } from "./core/app/update";
-import { GotEmojiListMessage } from "./core/media/message";
-import { parseRoute } from "./core/route";
+import { AppMessage, ChangedRoute, GotMediaMessage, Navigated } from "./app/message";
+import { initialModel, Model } from "./app/model";
+import { init } from "./app/init";
+import { update } from "./app/update";
+import { GotEmojiListMessage } from "./media/message";
+import { parseRoute } from "./route";
 import { view } from "./view";
 
 export const application = Runtime.makeApplication({

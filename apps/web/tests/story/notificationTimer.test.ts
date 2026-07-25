@@ -1,6 +1,6 @@
 import { Effect, Option, Stream } from "effect";
 import { expect, test, vi } from "vitest";
-import { notificationTimer } from "../../src/core/app/notificationTimer";
+import { notificationTimer } from "../../src/app/notificationTimer";
 
 test("toast dismisses itself after four seconds", async () => {
   vi.useFakeTimers();

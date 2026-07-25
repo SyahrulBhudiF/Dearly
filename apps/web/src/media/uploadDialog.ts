@@ -1,21 +1,22 @@
 import { Button, Dialog } from "@foldkit/ui";
 import { Html } from "foldkit";
-import type { AppMessage } from "../../core/app/message";
-import { GotCanvasMessage } from "../../core/app/message";
-import { DeletedCanvasElement, GotDeleteDialogMessage } from "../../core/canvas/message";
+import type { AppMessage } from "../app/message";
+import { GotMediaMessage } from "../app/message";
+import {
+  ChangedUploadTitle,
+  ConfirmedUpload,
+  GotUploadDialogMessage,
+} from "./message";
+import type { Model } from "./model";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
-export const DeleteDialog = (
-  h: HtmlFactory,
-  deleteDialog: Dialog.Model,
-): ReturnType<HtmlFactory["submodel"]> =>
+export const UploadDialog = (h: HtmlFactory, model: Model): ReturnType<HtmlFactory["submodel"]> =>
   h.submodel({
-    slotId: "delete-canvas-element",
-    model: deleteDialog,
+    slotId: "upload-title",
+    model: model.uploadDialog,
     view: Dialog.view,
-    toParentMessage: (message) =>
-      GotCanvasMessage({ message: GotDeleteDialogMessage({ message }) }),
+    toParentMessage: (message) => GotMediaMessage({ message: GotUploadDialogMessage({ message }) }),
     viewInputs: {
       toView: ({
         dialog,
@@ -30,7 +31,7 @@ export const DeleteDialog = (
         h.dialog(
           [...dialog],
           [
-            isVisible
+            isVisible && model.pendingUpload !== null
               ? h.div(
                   [],
                   [
@@ -44,11 +45,30 @@ export const DeleteDialog = (
                         ),
                       ],
                       [
-                        h.h2([...title, h.Class("font-display text-2xl")], ["Delete element?"]),
+                        h.h2(
+                          [...title, h.Class("font-display text-2xl")],
+                          [
+                            model.pendingUpload.kind === "image"
+                              ? "Name this image"
+                              : "Name this sticker",
+                          ],
+                        ),
                         h.p(
                           [...description, h.Class("mt-2 text-sm text-muted")],
-                          ["This cannot be undone."],
+                          ["This name helps you find it later."],
                         ),
+                        h.input([
+                          ...initialFocus,
+                          h.Type("text"),
+                          h.Value(model.pendingUpload.title),
+                          h.AriaLabel("Title"),
+                          h.OnInput((value) =>
+                            GotMediaMessage({ message: ChangedUploadTitle({ title: value }) }),
+                          ),
+                          h.Class(
+                            "mt-5 w-full rounded-[var(--radius)] border border-line bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none",
+                          ),
+                        ]),
                         h.div(
                           [h.Class("mt-6 flex justify-end gap-3")],
                           [
@@ -57,17 +77,16 @@ export const DeleteDialog = (
                               ["Cancel"],
                             ),
                             Button.view<AppMessage>({
-                              onClick: GotCanvasMessage({ message: DeletedCanvasElement() }),
+                              onClick: GotMediaMessage({ message: ConfirmedUpload() }),
                               toView: ({ button }) =>
                                 h.button(
                                   [
                                     ...button,
-                                    ...initialFocus,
                                     h.Class(
-                                      "rounded-[var(--radius)] bg-wine px-3 py-2 text-sm text-paper",
+                                      "rounded-[var(--radius)] bg-primary px-3 py-2 text-sm text-primary-foreground hover:opacity-85",
                                     ),
                                   ],
-                                  ["Delete"],
+                                  ["Upload"],
                                 ),
                             }),
                           ],

@@ -1,8 +1,8 @@
 import type { CanvasElement } from "@dearly/domain";
 import { Runtime } from "foldkit";
-import { initialModel, Model } from "../../src/core/app/model";
-import { update } from "../../src/core/app/update";
-import { EntryRoute } from "../../src/core/route";
+import { initialModel, Model } from "../../src/app/model";
+import { update } from "../../src/app/update";
+import { EntryRoute } from "../../src/route";
 import { view } from "../../src/view";
 
 const textDocument = {

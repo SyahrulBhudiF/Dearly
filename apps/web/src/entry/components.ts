@@ -15,10 +15,10 @@ import {
 } from "lucide";
 import type { ShapeKind } from "@dearly/domain";
 import type { CanvasElement, MediaObject, Sticker } from "@dearly/domain";
-import type { AppMessage } from "../../core/app/message";
-import { GotCanvasMessage, GotMediaMessage } from "../../core/app/message";
-import type { Model as CanvasModel } from "../../core/canvas/model";
-import type { Model as MediaModel } from "../../core/media/model";
+import type { AppMessage } from "../app/message";
+import { GotCanvasMessage, GotMediaMessage } from "../app/message";
+import type { Model as CanvasModel } from "../canvas/model";
+import type { Model as MediaModel } from "../media/model";
 import {
   ChangedEmojiSearch,
   ChangedImageSearch,
@@ -32,7 +32,7 @@ import {
   SelectedStickerTab,
   SelectedStoredImage,
   SelectedSticker,
-} from "../../core/media/message";
+} from "../media/message";
 import {
   AddedShape,
   AddedTextCanvasElement,
@@ -42,13 +42,13 @@ import {
   SelectedCanvasElement,
   ToggledLayersPanel,
   ToggledShapePicker,
-} from "../../core/canvas/message";
-import { canvasPaste } from "../../core/canvas/drag";
-import { sortableLayers } from "../../core/canvas/layers";
-import { icon } from "./icon";
-import { CanvasItem } from "./element";
-import { DeleteDialog } from "./dialog";
-import { UploadDialog } from "./uploadDialog";
+} from "../canvas/message";
+import { canvasPaste } from "../canvas/drag";
+import { sortableLayers } from "../canvas/layers";
+import { icon } from "../components/icon";
+import { CanvasItem } from "../canvas/view";
+import { DeleteDialog } from "../canvas/deleteDialog";
+import { UploadDialog } from "../media/uploadDialog";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
@@ -835,7 +835,7 @@ const toolButton = (
       ),
   });
 
-const canvas = (message: import("../../core/canvas/message").CanvasMessage): AppMessage =>
+const canvas = (message: import("../canvas/message").CanvasMessage): AppMessage =>
   GotCanvasMessage({ message });
-const media = (message: import("../../core/media/message").MediaMessage): AppMessage =>
+const media = (message: import("../media/message").MediaMessage): AppMessage =>
   GotMediaMessage({ message });

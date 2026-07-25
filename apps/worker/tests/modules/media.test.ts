@@ -5,7 +5,7 @@ import {
   getMediaObject,
   getPrivateMedia,
   uploadPrivateMedia,
-} from "../../src/modules/media";
+} from "../../src/media";
 import { context, mediaId, ownerId } from "../fakes";
 
 const owner = { ownerId, email: "owner@dearly.test", displayName: "Owner" } as never;

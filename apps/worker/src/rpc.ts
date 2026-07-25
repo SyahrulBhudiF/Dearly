@@ -3,11 +3,11 @@ import { DearlyRpc } from "@dearly/rpc";
 import { Effect, Layer, Option } from "effect";
 import * as HttpEffect from "effect/unstable/http/HttpEffect";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
-import { discardServerEntry, getEntryByDate, listMonthEntries, saveEntry } from "./modules/entry";
-import { createMediaUpload, getMediaObject, listImages } from "./modules/media";
-import { getSession } from "./modules/session";
-import { createSticker, deleteStickerFromPicker, listStickers } from "./modules/sticker";
-import type { WorkerEffect } from "./libs/http";
+import { discardServerEntry, getEntryByDate, listMonthEntries, saveEntry } from "./entry";
+import { createMediaUpload, getMediaObject, listImages } from "./media";
+import { getSession } from "./session";
+import { createSticker, deleteStickerFromPicker, listStickers } from "./sticker";
+import type { WorkerEffect } from "./http";
 import type { WorkerContext } from "./types";
 
 export const rpc = (request: Request, context: WorkerContext) =>

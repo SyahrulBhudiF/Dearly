@@ -1,15 +1,15 @@
 import { Option } from "effect";
 import { Html } from "foldkit";
 import { createLazy } from "foldkit/html";
-import type { Model } from "../core/app/model";
-import type { AppMessage } from "../core/app/message";
-import { GotCanvasMessage, GotEntryMessage } from "../core/app/message";
-import { SaveRequested } from "../core/entry/message";
-import { RedidCanvas, UndidCanvas } from "../core/canvas/message";
-import { CalendarLink } from "./components/link";
-import { EntryHeader } from "./components/header";
-import { Notifications } from "./components/notifications";
-import { canvasShell, toolRail } from "./components/entry";
+import type { Model } from "../app/model";
+import type { AppMessage } from "../app/message";
+import { GotCanvasMessage, GotEntryMessage } from "../app/message";
+import { SaveRequested } from "./message";
+import { RedidCanvas, UndidCanvas } from "../canvas/message";
+import { CalendarLink } from "../components/link";
+import { EntryHeader } from "./header";
+import { Notifications } from "../notification/view";
+import { canvasShell, toolRail } from "./components";
 
 const h = Html.html<AppMessage>();
 const lazyToolRail = createLazy();

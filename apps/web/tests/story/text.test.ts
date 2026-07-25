@@ -1,10 +1,10 @@
 import { expect, test } from "vitest";
-import { GotCanvasMessage, GotEntryMessage } from "../../src/core/app/message";
-import { initialModel } from "../../src/core/app/model";
-import { update } from "../../src/core/app/update";
-import { ChangedText } from "../../src/core/canvas/message";
-import { LoadedEntry } from "../../src/core/entry/message";
-import { CalendarRoute } from "../../src/core/route";
+import { GotCanvasMessage, GotEntryMessage } from "../../src/app/message";
+import { initialModel } from "../../src/app/model";
+import { update } from "../../src/app/update";
+import { ChangedText } from "../../src/canvas/message";
+import { LoadedEntry } from "../../src/entry/message";
+import { CalendarRoute } from "../../src/route";
 
 const initial = initialModel(CalendarRoute());
 

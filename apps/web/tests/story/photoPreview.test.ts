@@ -1,11 +1,11 @@
 import type { EntryPreview } from "@dearly/domain";
 import { Story } from "foldkit";
 import { expect, test } from "vitest";
-import { GotCalendarMessage } from "../../src/core/app/message";
-import { initialModel } from "../../src/core/app/model";
-import { update } from "../../src/core/app/update";
-import { ClosedPhotoPreview, OpenedPhotoPreview } from "../../src/core/calendar/message";
-import { CalendarRoute } from "../../src/core/route";
+import { GotCalendarMessage } from "../../src/app/message";
+import { initialModel } from "../../src/app/model";
+import { update } from "../../src/app/update";
+import { ClosedPhotoPreview, OpenedPhotoPreview } from "../../src/calendar/message";
+import { CalendarRoute } from "../../src/route";
 
 const preview: EntryPreview = {
   date: "2026-07-13" as never,

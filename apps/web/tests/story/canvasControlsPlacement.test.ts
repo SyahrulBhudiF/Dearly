@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { canvasControlsPlacement, canvasElementZIndex } from "../../src/page/components/element";
+import { canvasControlsPlacement, canvasElementZIndex } from "../../src/canvas/view";
 
 test("selected Canvas Element enters a temporary editing layer", () => {
   expect(canvasElementZIndex(1, false)).toBe(2);

@@ -2,7 +2,7 @@ import { Effect, Option } from "effect";
 import { loadConfig } from "./config/env";
 import { assets } from "./assets";
 import { health } from "./health";
-import { notFound, type WorkerEffect } from "./libs/http";
+import { notFound, type WorkerEffect } from "./http";
 import { media } from "./media";
 import { rpc } from "./rpc";
 import type { DearlyEnv, WorkerContext } from "./types";

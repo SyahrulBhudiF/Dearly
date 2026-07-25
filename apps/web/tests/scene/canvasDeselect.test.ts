@@ -1,11 +1,11 @@
 import { expect, test } from "vitest";
 import { Scene } from "foldkit";
 import type { CanvasElement } from "@dearly/domain";
-import { initialModel } from "../../src/core/app/model";
-import { GotCanvasMessage } from "../../src/core/app/message";
-import { DeselectedCanvasElement } from "../../src/core/canvas/message";
-import { EntryRoute } from "../../src/core/route";
-import { update } from "../../src/core/app/update";
+import { initialModel } from "../../src/app/model";
+import { GotCanvasMessage } from "../../src/app/message";
+import { DeselectedCanvasElement } from "../../src/canvas/message";
+import { EntryRoute } from "../../src/route";
+import { update } from "../../src/app/update";
 import { view } from "../../src/view";
 
 const element: CanvasElement = {

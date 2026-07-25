@@ -3,8 +3,8 @@ import { Stream } from "effect";
 import { Html } from "foldkit";
 import { ArrowLeft, ArrowRight, ChevronDown, Download, X } from "lucide";
 import { Button } from "@foldkit/ui";
-import { dateLabel, monthDays, monthLabel, nextMonth, previousMonth, today } from "../../libs/date";
-import { miniCalendarPicker } from "../../core/calendar/picker";
+import { dateLabel, monthDays, monthLabel, nextMonth, previousMonth, today } from "../date";
+import { miniCalendarPicker } from "./picker";
 import {
   ChangedMonth,
   ClosedPicker,
@@ -14,11 +14,11 @@ import {
   ToggledPicker,
   PickedYear,
   WentToday,
-} from "../../core/calendar/message";
-import { entryRouter } from "../../core/route";
-import type { AppMessage } from "../../core/app/message";
-import { GotCalendarMessage } from "../../core/app/message";
-import { icon } from "./icon";
+} from "./message";
+import { entryRouter } from "../route";
+import type { AppMessage } from "../app/message";
+import { GotCalendarMessage } from "../app/message";
+import { icon } from "../components/icon";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
@@ -355,5 +355,5 @@ export const dateCard = (
 export const previewFor = (entries: ReadonlyArray<EntryPreview>, date: string) =>
   entries.find((entry) => entry.date === date);
 
-const calendar = (message: import("../../core/calendar/message").CalendarMessage): AppMessage =>
+const calendar = (message: import("./message").CalendarMessage): AppMessage =>
   GotCalendarMessage({ message });

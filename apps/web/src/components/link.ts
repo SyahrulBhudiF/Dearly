@@ -1,7 +1,7 @@
 import { Html } from "foldkit";
 import { ArrowLeft } from "lucide";
-import type { AppMessage } from "../../core/app/message";
-import { calendarRouter } from "../../core/route";
+import type { AppMessage } from "../app/message";
+import { calendarRouter } from "../route";
 import { icon } from "./icon";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
-import { createSticker, deleteStickerFromPicker, listStickers } from "../../src/modules/sticker";
+import { createSticker, deleteStickerFromPicker, listStickers } from "../../src/sticker";
 import { context, mediaId, ownerId, stickerId } from "../fakes";
 
 const owner = { ownerId, email: "owner@dearly.test", displayName: "Owner" } as never;

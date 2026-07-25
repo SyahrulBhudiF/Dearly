@@ -1,19 +1,19 @@
 import { Button, Dialog } from "@foldkit/ui";
 import { Html } from "foldkit";
 import { Redo2, Undo2 } from "lucide";
-import type { AppMessage } from "../../core/app/message";
-import { GotCanvasMessage, GotEntryMessage } from "../../core/app/message";
-import { RedidCanvas, UndidCanvas } from "../../core/canvas/message";
-import type { Model as CanvasModel } from "../../core/canvas/model";
+import type { AppMessage } from "../app/message";
+import { GotCanvasMessage, GotEntryMessage } from "../app/message";
+import { RedidCanvas, UndidCanvas } from "../canvas/message";
+import type { Model as CanvasModel } from "../canvas/model";
 import {
   DiscardedDraft,
   GotDiscardDialogMessage,
   RequestedDiscard,
   SaveRequested,
-} from "../../core/entry/message";
-import type { Model as EntryModel } from "../../core/entry/model";
-import { dateLabel, weekdayLabel } from "../../libs/date";
-import { icon } from "./icon";
+} from "./message";
+import type { Model as EntryModel } from "./model";
+import { dateLabel, weekdayLabel } from "../date";
+import { icon } from "../components/icon";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 

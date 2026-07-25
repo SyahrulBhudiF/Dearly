@@ -1,11 +1,11 @@
 import { Editor } from "@tiptap/core";
 import { expect, test } from "vitest";
-import { initialModel } from "../../src/core/app/model";
-import { GotCanvasMessage } from "../../src/core/app/message";
-import { CommittedTextSession } from "../../src/core/canvas/message";
-import { CalendarRoute } from "../../src/core/route";
-import { update } from "../../src/core/app/update";
-import { applyFormat, readTextFormat, richTextExtensions } from "../../src/core/canvas/richText";
+import { initialModel } from "../../src/app/model";
+import { GotCanvasMessage } from "../../src/app/message";
+import { CommittedTextSession } from "../../src/canvas/message";
+import { CalendarRoute } from "../../src/route";
+import { update } from "../../src/app/update";
+import { applyFormat, readTextFormat, richTextExtensions } from "../../src/canvas/richText";
 
 const editor = () =>
   new Editor({

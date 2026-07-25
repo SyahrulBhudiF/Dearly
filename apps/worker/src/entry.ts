@@ -8,10 +8,10 @@ import {
 } from "@dearly/domain";
 import { and, between, eq } from "drizzle-orm";
 import { DateTime, Effect, Option, Schema } from "effect";
-import { getDb } from "../database/client";
-import { diaryEntries } from "../database/schema";
-import type { WorkerEffect } from "../libs/http";
-import type { WorkerContext } from "../types";
+import { getDb } from "./database/client";
+import { diaryEntries } from "./database/schema";
+import type { WorkerEffect } from "./http";
+import type { WorkerContext } from "./types";
 
 export type EntryPreviewResult = Schema.Schema.Type<typeof EntryPreview>;
 export type DiaryEntryResult = Schema.Schema.Type<typeof DiaryEntry>;

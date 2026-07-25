@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
-import { getSession } from "../../src/modules/session";
+import { getSession } from "../../src/session";
 import { context, ownerId } from "../fakes";
 
 describe("session module", () => {

@@ -1,11 +1,11 @@
 import { Scene } from "foldkit";
 import { test } from "vitest";
-import { loadEntries } from "../../src/core/calendar/command";
-import { GotCalendarMessage } from "../../src/core/app/message";
-import { ClosedPicker, LoadedEntries } from "../../src/core/calendar/message";
-import { initialModel } from "../../src/core/app/model";
-import { CalendarRoute } from "../../src/core/route";
-import { update } from "../../src/core/app/update";
+import { loadEntries } from "../../src/calendar/command";
+import { GotCalendarMessage } from "../../src/app/message";
+import { ClosedPicker, LoadedEntries } from "../../src/calendar/message";
+import { initialModel } from "../../src/app/model";
+import { CalendarRoute } from "../../src/route";
+import { update } from "../../src/app/update";
 import { view } from "../../src/view";
 
 test("calendar month controls render and navigate", () => {

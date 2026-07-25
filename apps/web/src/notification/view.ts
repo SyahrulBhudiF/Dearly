@@ -1,11 +1,11 @@
 import { Stream } from "effect";
 import { Html } from "foldkit";
 import { CircleCheck, CircleX, X } from "lucide";
-import type { AppMessage } from "../../core/app/message";
-import { DismissedNotification } from "../../core/app/message";
-import { notificationTimer } from "../../core/app/notificationTimer";
-import type { Model } from "../../core/notification/model";
-import { icon } from "./icon";
+import type { AppMessage } from "../app/message";
+import { DismissedNotification } from "../app/message";
+import { notificationTimer } from "../app/notificationTimer";
+import type { Model } from "./model";
+import { icon } from "../components/icon";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 

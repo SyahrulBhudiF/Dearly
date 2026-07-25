@@ -5,7 +5,7 @@ import {
   getEntryByDate,
   listMonthEntries,
   saveEntry,
-} from "../../src/modules/entry";
+} from "../../src/entry";
 import { context, document, ownerId, savePayload } from "../fakes";
 
 const owner = { ownerId, email: "owner@dearly.test", displayName: "Owner" } as never;

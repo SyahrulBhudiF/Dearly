@@ -1,14 +1,14 @@
 import { expect, test } from "vitest";
-import { GotMediaMessage } from "../../src/core/app/message";
-import { initialModel } from "../../src/core/app/model";
-import { update } from "../../src/core/app/update";
+import { GotMediaMessage } from "../../src/app/message";
+import { initialModel } from "../../src/app/model";
+import { update } from "../../src/app/update";
 import {
   ConfirmedUpload,
   FailedToLoadMedia,
   FailedToUpload,
   RequestedUpload,
-} from "../../src/core/media/message";
-import { CalendarRoute } from "../../src/core/route";
+} from "../../src/media/message";
+import { CalendarRoute } from "../../src/route";
 
 const file = new File(["image"], "morning.png", { type: "image/png" });
 

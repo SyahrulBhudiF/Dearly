@@ -1,5 +1,5 @@
 import { Html } from "foldkit";
-import { monthDays } from "../libs/date";
+import { monthDays } from "../date";
 import {
   ChangedMonth,
   ClosedPicker,
@@ -7,12 +7,12 @@ import {
   ToggledPicker,
   PickedYear,
   WentToday,
-} from "../core/calendar/message";
-import type { AppMessage } from "../core/app/message";
-import type { Model as AppModel } from "../core/app/model";
-import type { Model } from "../core/calendar/model";
-import { Notifications } from "./components/notifications";
-import { dateCard, miniCalendar, monthHeader, previewFor, weekdays } from "./components/calendar";
+} from "./message";
+import type { AppMessage } from "../app/message";
+import type { Model as AppModel } from "../app/model";
+import type { Model } from "./model";
+import { Notifications } from "../notification/view";
+import { dateCard, miniCalendar, monthHeader, previewFor, weekdays } from "./components";
 
 export const calendarPage = (
   model: Model,

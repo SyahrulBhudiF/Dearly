@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { today } from "../../libs/date";
+import { today } from "../date";
 import { CalendarRoute, EntryRoute, NotFoundRoute, type AppRoute } from "../route";
 import * as Calendar from "../calendar/model";
 import * as Canvas from "../canvas/model";

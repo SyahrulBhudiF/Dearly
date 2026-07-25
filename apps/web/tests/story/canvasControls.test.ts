@@ -1,10 +1,10 @@
 import type { CanvasElement } from "@dearly/domain";
 import { Story } from "foldkit";
 import { expect, test } from "vitest";
-import { GotCanvasMessage, GotEntryMessage } from "../../src/core/app/message";
-import { initialModel } from "../../src/core/app/model";
-import { update } from "../../src/core/app/update";
-import { minimumCanvasSize } from "../../src/core/canvas/drag";
+import { GotCanvasMessage, GotEntryMessage } from "../../src/app/message";
+import { initialModel } from "../../src/app/model";
+import { update } from "../../src/app/update";
+import { minimumCanvasSize } from "../../src/canvas/drag";
 import {
   AddedShape,
   ChangedCanvasElementLayer,
@@ -21,9 +21,9 @@ import {
   SelectedCanvasElement,
   StartedCanvasTransform,
   UndidCanvas,
-} from "../../src/core/canvas/message";
-import { DiscardedDraft } from "../../src/core/entry/message";
-import { CalendarRoute, EntryRoute } from "../../src/core/route";
+} from "../../src/canvas/message";
+import { DiscardedDraft } from "../../src/entry/message";
+import { CalendarRoute, EntryRoute } from "../../src/route";
 
 const element = (id: string, layer: number): CanvasElement => ({
   id: id as never,
@@ -35,7 +35,7 @@ const element = (id: string, layer: number): CanvasElement => ({
   rotation: 0,
   layer,
 });
-const message = (value: import("../../src/core/canvas/message").CanvasMessage) =>
+const message = (value: import("../../src/canvas/message").CanvasMessage) =>
   GotCanvasMessage({ message: value });
 
 test("emoji can resize below the normal Canvas minimum", () => {

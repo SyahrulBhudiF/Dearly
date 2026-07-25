@@ -1,22 +1,21 @@
 import { Button, Dialog } from "@foldkit/ui";
 import { Html } from "foldkit";
-import type { AppMessage } from "../../core/app/message";
-import { GotMediaMessage } from "../../core/app/message";
-import {
-  ChangedUploadTitle,
-  ConfirmedUpload,
-  GotUploadDialogMessage,
-} from "../../core/media/message";
-import type { Model } from "../../core/media/model";
+import type { AppMessage } from "../app/message";
+import { GotCanvasMessage } from "../app/message";
+import { DeletedCanvasElement, GotDeleteDialogMessage } from "./message";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
-export const UploadDialog = (h: HtmlFactory, model: Model): ReturnType<HtmlFactory["submodel"]> =>
+export const DeleteDialog = (
+  h: HtmlFactory,
+  deleteDialog: Dialog.Model,
+): ReturnType<HtmlFactory["submodel"]> =>
   h.submodel({
-    slotId: "upload-title",
-    model: model.uploadDialog,
+    slotId: "delete-canvas-element",
+    model: deleteDialog,
     view: Dialog.view,
-    toParentMessage: (message) => GotMediaMessage({ message: GotUploadDialogMessage({ message }) }),
+    toParentMessage: (message) =>
+      GotCanvasMessage({ message: GotDeleteDialogMessage({ message }) }),
     viewInputs: {
       toView: ({
         dialog,
@@ -31,7 +30,7 @@ export const UploadDialog = (h: HtmlFactory, model: Model): ReturnType<HtmlFacto
         h.dialog(
           [...dialog],
           [
-            isVisible && model.pendingUpload !== null
+            isVisible
               ? h.div(
                   [],
                   [
@@ -45,30 +44,11 @@ export const UploadDialog = (h: HtmlFactory, model: Model): ReturnType<HtmlFacto
                         ),
                       ],
                       [
-                        h.h2(
-                          [...title, h.Class("font-display text-2xl")],
-                          [
-                            model.pendingUpload.kind === "image"
-                              ? "Name this image"
-                              : "Name this sticker",
-                          ],
-                        ),
+                        h.h2([...title, h.Class("font-display text-2xl")], ["Delete element?"]),
                         h.p(
                           [...description, h.Class("mt-2 text-sm text-muted")],
-                          ["This name helps you find it later."],
+                          ["This cannot be undone."],
                         ),
-                        h.input([
-                          ...initialFocus,
-                          h.Type("text"),
-                          h.Value(model.pendingUpload.title),
-                          h.AriaLabel("Title"),
-                          h.OnInput((value) =>
-                            GotMediaMessage({ message: ChangedUploadTitle({ title: value }) }),
-                          ),
-                          h.Class(
-                            "mt-5 w-full rounded-[var(--radius)] border border-line bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none",
-                          ),
-                        ]),
                         h.div(
                           [h.Class("mt-6 flex justify-end gap-3")],
                           [
@@ -77,16 +57,17 @@ export const UploadDialog = (h: HtmlFactory, model: Model): ReturnType<HtmlFacto
                               ["Cancel"],
                             ),
                             Button.view<AppMessage>({
-                              onClick: GotMediaMessage({ message: ConfirmedUpload() }),
+                              onClick: GotCanvasMessage({ message: DeletedCanvasElement() }),
                               toView: ({ button }) =>
                                 h.button(
                                   [
                                     ...button,
+                                    ...initialFocus,
                                     h.Class(
-                                      "rounded-[var(--radius)] bg-primary px-3 py-2 text-sm text-primary-foreground hover:opacity-85",
+                                      "rounded-[var(--radius)] bg-wine px-3 py-2 text-sm text-paper",
                                     ),
                                   ],
-                                  ["Upload"],
+                                  ["Delete"],
                                 ),
                             }),
                           ],
