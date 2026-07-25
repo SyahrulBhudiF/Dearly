@@ -15,6 +15,6 @@ test("pasted text creates a separate text Canvas Element", () => {
   expect(next.canvas.elements).toHaveLength(1);
   expect(next.canvas.elements[0]?.payload).toMatchObject({
     kind: "text",
-    document: { content: [{ content: [{ text: "Copied note" }] }] },
+    document: { root: { children: [{ children: [{ text: "Copied note" }] }] } },
   });
 });

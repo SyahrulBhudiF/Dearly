@@ -24,12 +24,11 @@ export const entryPage = (model: Model): Html.Document => ({
       h.OnKeyDownPreventDefault((key, modifiers) => {
         if (!modifiers.metaKey && !modifiers.ctrlKey) return Option.none();
         const normalized = key.toLowerCase();
-        if (normalized === "s")
-          return Option.some(GotEntryMessage({ message: SaveRequested() }));
+        if (normalized === "s") return Option.some(GotEntryMessage({ message: SaveRequested() }));
         if (normalized === "z") {
           const target = document.activeElement;
           if (
-            target?.closest?.(".ProseMirror") ||
+            target?.closest?.("[data-rich-text-editor]") ||
             target instanceof HTMLInputElement ||
             target instanceof HTMLTextAreaElement
           )
@@ -42,25 +41,15 @@ export const entryPage = (model: Model): Html.Document => ({
         }
         return Option.none();
       }),
-      h.Class(
-        "paper-grain min-h-screen bg-paper px-5 py-7 text-ink sm:px-10 lg:px-16",
-      ),
+      h.Class("paper-grain min-h-screen bg-paper px-5 py-7 text-ink sm:px-10 lg:px-16"),
     ],
     [
       h.header(
-        [
-          h.Class(
-            "mx-auto flex max-w-6xl items-center justify-between border-b border-line pb-5",
-          ),
-        ],
+        [h.Class("mx-auto flex max-w-6xl items-center justify-between border-b border-line pb-5")],
         [CalendarLink(h), h.span([], [])],
       ),
       h.section(
-        [
-          h.Class(
-            "mx-auto grid max-w-6xl gap-8 py-10 lg:grid-cols-[72px_minmax(0,1fr)]",
-          ),
-        ],
+        [h.Class("mx-auto grid max-w-6xl gap-8 py-10 lg:grid-cols-[72px_minmax(0,1fr)]")],
         [
           lazyToolRail(toolRail, [h, model.media, model.canvas]),
           h.div(

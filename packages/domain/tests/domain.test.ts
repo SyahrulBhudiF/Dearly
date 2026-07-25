@@ -16,7 +16,7 @@ describe("domain schemas", () => {
       elements: [
         {
           id: "00000000-0000-4000-8000-000000000001",
-          payload: { kind: "text", document: { type: "doc" } },
+          payload: { kind: "text", document: { root: {} } },
           x: 12,
           y: 24,
           width: 0,

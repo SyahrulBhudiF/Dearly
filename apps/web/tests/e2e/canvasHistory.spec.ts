@@ -14,8 +14,9 @@ const changed = async (page: Page, before: number) =>
 
 const typeText = async (page: Page, value: string) => {
   const before = await historyLength(page);
-  const editor = element(page, textId).locator(".ProseMirror");
-  await editor.click();
+  const editor = element(page, textId).locator("[data-rich-text-editor]");
+  await editor.dblclick();
+  await expect(editor).toHaveAttribute("contenteditable", "true");
   await page.keyboard.press("End");
   await page.keyboard.type(value, { delay: 3 });
   await editor.evaluate((node) => node.blur());
@@ -74,7 +75,7 @@ const gesture = async (handle: Locator, dx: number, dy: number) => {
 const move = async (page: Page, id: string, dx: number, dy: number) => {
   const before = await historyLength(page);
   await select(page, id);
-  await gesture(element(page, id).locator("[data-canvas-grab]"), dx, dy);
+  await gesture(element(page, id), dx, dy);
   await changed(page, before);
 };
 
@@ -242,12 +243,13 @@ test("50 concrete mixed Canvas actions undo and redo exactly in the full Foldkit
   }
 });
 
-test("Undo icon commits and undoes the active TipTap session", async ({ page }) => {
+test("Undo icon commits and undoes the active Lexical session", async ({ page }) => {
   await page.goto("/tests/e2e/");
   const before = await snapshot(page);
-  const editor = element(page, textId).locator(".ProseMirror");
-  await editor.click();
+  const editor = element(page, textId).locator("[data-rich-text-editor]");
+  await editor.dblclick();
+  await expect(editor).toHaveAttribute("contenteditable", "true");
   await page.keyboard.type("active text", { delay: 3 });
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo" }).click({ force: true });
   await expect.poll(() => snapshot(page)).toEqual(before);
 });

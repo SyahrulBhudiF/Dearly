@@ -128,13 +128,7 @@ test("one pointer gesture creates one undo step and supports redo", () => {
 
 test("committed text session creates one Canvas history entry", () => {
   const document = (value: string) => ({
-    type: "doc" as const,
-    content: [
-      {
-        type: "paragraph" as const,
-        ...(value === "" ? {} : { content: [{ type: "text" as const, text: value }] }),
-      },
-    ],
+    root: { children: [{ children: value === "" ? [] : [{ text: value }] }] },
   });
   const text = {
     ...element("text", 0),
@@ -170,11 +164,8 @@ test("committed text session creates one Canvas history entry", () => {
 });
 
 test("committed text session and undo are atomic", () => {
-  const empty = { type: "doc" as const, content: [{ type: "paragraph" as const }] };
-  const typed = {
-    type: "doc" as const,
-    content: [{ type: "paragraph" as const, content: [{ type: "text" as const, text: "abc" }] }],
-  };
+  const empty = { root: { children: [{ children: [] }] } };
+  const typed = { root: { children: [{ children: [{ text: "abc" }] }] } };
   const text = { ...element("text", 0), payload: { kind: "text" as const, document: empty } };
   Story.story(
     update,
@@ -201,13 +192,7 @@ test("committed text session and undo are atomic", () => {
 
 test("50 real-world mixed actions undo and redo every full Canvas snapshot", () => {
   const document = (value: string) => ({
-    type: "doc" as const,
-    content: [
-      {
-        type: "paragraph" as const,
-        ...(value === "" ? {} : { content: [{ type: "text" as const, text: value }] }),
-      },
-    ],
+    root: { children: [{ children: value === "" ? [] : [{ text: value }] }] },
   });
   const text: CanvasElement = {
     ...element("text", 0),

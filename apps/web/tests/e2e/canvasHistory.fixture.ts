@@ -6,8 +6,16 @@ import { EntryRoute } from "../../src/route";
 import { view } from "../../src/view";
 
 const textDocument = {
-  type: "doc" as const,
-  content: [{ type: "paragraph" as const }],
+  root: {
+    type: "root",
+    version: 1,
+    format: "",
+    indent: 0,
+    direction: null,
+    children: [
+      { type: "paragraph", version: 1, format: "", indent: 0, direction: null, children: [] },
+    ],
+  },
 };
 const elements: CanvasElement[] = [
   {

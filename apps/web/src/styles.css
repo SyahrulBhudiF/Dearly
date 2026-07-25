@@ -1,12 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Gaegu:wght@400;700&family=Gowun+Dodum&family=Jua&family=Nanum+Pen+Script&display=swap");
 
-.ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  color: var(--muted-foreground);
-  pointer-events: none;
-  float: left;
-  height: 0;
-}
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
@@ -121,9 +114,9 @@
   }
   button:focus-visible,
   input:focus-visible,
-  textarea:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 3px;
+  textarea:focus-visible,
+  [data-rich-text-editor]:focus-visible {
+    outline: none;
   }
 }
 

@@ -17,8 +17,7 @@ export const CanvasElementKind = Schema.Literals(["text", "image", "sticker", "s
 export type CanvasElementKind = Schema.Schema.Type<typeof CanvasElementKind>;
 
 export const RichTextDocument = Schema.Struct({
-  type: Schema.Literal("doc"),
-  content: Schema.optional(Schema.Array(Schema.Record(Schema.String, Schema.Unknown))),
+  root: Schema.Record(Schema.String, Schema.Unknown),
 });
 export type RichTextDocument = Schema.Schema.Type<typeof RichTextDocument>;
 

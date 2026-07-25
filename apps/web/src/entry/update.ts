@@ -74,8 +74,12 @@ export const reset = (model: Model): Model => ({
 const entryText = (entry: DiaryEntry): string => {
   const element = entry.document.elements.find((value) => value.payload.kind === "text");
   if (element?.payload.kind !== "text") return "";
-  const content = element.payload.document.content?.[0]?.["content"];
-  if (!Array.isArray(content) || typeof content[0] !== "object" || content[0] === null) return "";
-  const text = (content[0] as Record<string, unknown>)["text"];
-  return typeof text === "string" ? text : "";
+  const textOf = (node: unknown): string => {
+    if (typeof node !== "object" || node === null) return "";
+    const value = node as Record<string, unknown>;
+    const text = typeof value.text === "string" ? value.text : "";
+    const children = Array.isArray(value.children) ? value.children.map(textOf).join("") : "";
+    return text + children;
+  };
+  return textOf(element.payload.document.root);
 };

@@ -16,8 +16,33 @@ const elements: ReadonlyArray<CanvasElement> = [
     payload: {
       kind: "text",
       document: {
-        type: "doc",
-        content: [{ type: "paragraph", content: [{ type: "text", text: "testing" }] }],
+        root: {
+          type: "root",
+          version: 1,
+          format: "",
+          indent: 0,
+          direction: null,
+          children: [
+            {
+              type: "paragraph",
+              version: 1,
+              format: "",
+              indent: 0,
+              direction: null,
+              children: [
+                {
+                  type: "text",
+                  version: 1,
+                  text: "testing",
+                  format: 0,
+                  detail: 0,
+                  mode: "normal",
+                  style: "",
+                },
+              ],
+            },
+          ],
+        },
       },
     },
     x: 100,
@@ -66,9 +91,12 @@ const responseHeaders = { "content-type": "application/ndjson" };
 window.fetch = async (input, init) => {
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
   if (url.includes(`/media/${imageId}`) || url.includes(`/media/${thumbnailId}`))
-    return new Response(Uint8Array.from(atob(png), (char) => char.charCodeAt(0)), {
-      headers: { "content-type": "image/png" },
-    });
+    return new Response(
+      Uint8Array.from(atob(png), (char) => char.charCodeAt(0)),
+      {
+        headers: { "content-type": "image/png" },
+      },
+    );
   if (url.includes("/rpc")) {
     const body = String(init?.body ?? "");
     if (body.includes("createMediaUpload")) {

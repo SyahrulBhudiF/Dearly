@@ -1,9 +1,15 @@
-import { Editor } from "@tiptap/core";
-import FontFamily from "@tiptap/extension-font-family";
-import Placeholder from "@tiptap/extension-placeholder";
-import TextAlign from "@tiptap/extension-text-align";
-import { Color, FontSize, TextStyle } from "@tiptap/extension-text-style";
-import StarterKit from "@tiptap/starter-kit";
+import {
+  $getRoot,
+  $getSelection,
+  $isElementNode,
+  $isRangeSelection,
+  $isTextNode,
+  COMMAND_PRIORITY_HIGH,
+  createEditor,
+  KEY_DOWN_COMMAND,
+  type LexicalEditor,
+} from "lexical";
+import { registerRichText } from "@lexical/rich-text";
 import { Effect, Queue, Stream } from "effect";
 import type { RichTextDocument } from "@dearly/domain";
 import type { CanvasMessage } from "./message";
@@ -18,16 +24,6 @@ import {
 } from "./message";
 import type { TextFormat } from "./model";
 
-const extensions = [
-  StarterKit.configure({ undoRedo: false }),
-  TextStyle,
-  FontFamily,
-  FontSize,
-  Color,
-  Placeholder.configure({ placeholder: "Write something lovely…" }),
-  TextAlign.configure({ types: ["paragraph"] }),
-];
-
 type Format =
   | { readonly kind: "bold" | "italic" | "underline" }
   | { readonly kind: "fontFamily"; readonly value: string }
@@ -35,52 +31,108 @@ type Format =
   | { readonly kind: "color"; readonly value: string }
   | { readonly kind: "align"; readonly value: "left" | "center" | "right" };
 
-export const applyFormat = (editor: Editor, format: Format) => {
-  const chain = editor.chain().focus();
-  const selection = editor.state.selection.empty ? chain.selectAll() : chain;
-  switch (format.kind) {
-    case "bold":
-      selection.toggleBold().run();
-      break;
-    case "italic":
-      selection.toggleItalic().run();
-      break;
-    case "underline":
-      selection.toggleUnderline().run();
-      break;
-    case "fontFamily":
-      selection.setFontFamily(format.value).run();
-      break;
-    case "fontSize":
-      selection.setFontSize(format.value).run();
-      break;
-    case "color":
-      selection.setColor(format.value).run();
-      break;
-    case "align":
-      selection.setTextAlign(format.value).run();
-      break;
-  }
+const styleValue = (style: string, property: string) =>
+  style
+    .split(";")
+    .map((declaration) => declaration.trim().split(/:\s*/, 2))
+    .find(([name]) => name === property)?.[1];
+
+const setStyle = (style: string, property: string, value: string) =>
+  `${style
+    .split(";")
+    .filter(
+      (declaration) => declaration.trim() !== "" && !declaration.trim().startsWith(`${property}:`),
+    )
+    .join("; ")}${style === "" ? "" : "; "}${property}: ${value};`;
+
+const withTextSelection = (
+  editor: LexicalEditor,
+  f: (selection: ReturnType<typeof $getSelection>) => void,
+) =>
+  editor.update(
+    () => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) f(selection);
+    },
+    { discrete: true },
+  );
+
+export const applyFormat = (editor: LexicalEditor, format: Format) =>
+  withTextSelection(editor, (selection) => {
+    if (!$isRangeSelection(selection)) return;
+    const textNodes = selection.isCollapsed()
+      ? $getRoot().getAllTextNodes()
+      : selection.getNodes().filter($isTextNode);
+    if (format.kind === "bold" || format.kind === "italic" || format.kind === "underline") {
+      for (const node of textNodes) node.toggleFormat(format.kind);
+      return;
+    }
+    if (format.kind === "align") {
+      const elements = selection.isCollapsed()
+        ? $getRoot().getChildren().filter($isElementNode)
+        : selection
+            .getNodes()
+            .map((node) => node.getTopLevelElement())
+            .filter($isElementNode);
+      for (const element of new Set(elements)) element.setFormat(format.value);
+      return;
+    }
+    if (format.kind === "fontFamily") {
+      selection.setStyle(setStyle(selection.style, "font-family", format.value));
+      for (const node of textNodes)
+        node.setStyle(setStyle(node.getStyle(), "font-family", format.value));
+      return;
+    }
+    if (format.kind === "fontSize") {
+      selection.setStyle(setStyle(selection.style, "font-size", format.value));
+      for (const node of textNodes)
+        node.setStyle(setStyle(node.getStyle(), "font-size", format.value));
+      return;
+    }
+    if (format.kind === "color") {
+      selection.setStyle(setStyle(selection.style, "color", format.value));
+      for (const node of textNodes) node.setStyle(setStyle(node.getStyle(), "color", format.value));
+    }
+  });
+
+export const readTextFormat = (editor: LexicalEditor): TextFormat =>
+  editor.getEditorState().read(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) return defaultTextFormat;
+    const text = selection.isCollapsed()
+      ? $getRoot().getAllTextNodes()[0]
+      : selection.getNodes().find($isTextNode);
+    const style = text?.getStyle() ?? selection.style;
+    const element = text?.getTopLevelElement();
+    const align = $isElementNode(element) ? element.getFormatType() : "left";
+    return {
+      font: styleValue(style, "font-family") ?? "inherit",
+      size: styleValue(style, "font-size") ?? "24px",
+      color: styleValue(style, "color") ?? "var(--foreground)",
+      align: align === "center" || align === "right" ? align : "left",
+      bold: text?.hasFormat("bold") ?? false,
+      italic: text?.hasFormat("italic") ?? false,
+      underline: text?.hasFormat("underline") ?? false,
+    };
+  });
+
+const defaultTextFormat: TextFormat = {
+  font: "inherit",
+  size: "24px",
+  color: "var(--foreground)",
+  align: "left",
+  bold: false,
+  italic: false,
+  underline: false,
 };
 
-export const richTextExtensions = extensions;
+const documentOf = (editor: LexicalEditor) => editor.getEditorState().toJSON() as RichTextDocument;
 
-export const readTextFormat = (editor: Editor): TextFormat => {
-  const style = editor.getAttributes("textStyle");
-  const paragraph = editor.getAttributes("paragraph");
-  return {
-    font: typeof style.fontFamily === "string" ? style.fontFamily : "inherit",
-    size: typeof style.fontSize === "string" ? style.fontSize : "24px",
-    color: typeof style.color === "string" ? style.color : "var(--foreground)",
-    align:
-      paragraph.textAlign === "center" || paragraph.textAlign === "right"
-        ? paragraph.textAlign
-        : "left",
-    bold: editor.isActive("bold"),
-    italic: editor.isActive("italic"),
-    underline: editor.isActive("underline"),
-  };
-};
+const setEmpty = (node: HTMLElement, editor: LexicalEditor) =>
+  node.toggleAttribute(
+    "data-empty",
+    editor.getEditorState().read(() => $getRoot().getTextContent() === ""),
+  );
 
 export const richTextEditor = (
   id: string,
@@ -96,87 +148,82 @@ export const richTextEditor = (
       let sessionId = crypto.randomUUID();
       let dirty = false;
       let keydownHandledUndo = false;
+      const editor = createEditor({ namespace: `dearly-${id}`, onError: console.error });
+      editor.setRootElement(editorNode);
+      editor.setEditorState(editor.parseEditorState(JSON.stringify(content)));
+      editor.setEditable(false);
+      setEmpty(editorNode, editor);
       const commit = () => {
         if (!dirty) return;
         Queue.offerUnsafe(
           messages,
-          CommittedTextSession({ id, sessionId, document: editor.getJSON() }),
+          CommittedTextSession({ id, sessionId, document: documentOf(editor) }),
         );
         dirty = false;
         sessionId = crypto.randomUUID();
       };
       const enterEditMode = (event: Event) => {
-        if (!(event.target instanceof Element)) return;
-        if (event.target.closest("[data-canvas-controls]")) return;
+        if (event instanceof PointerEvent && event.detail !== 2) return;
+        if (!(event.target instanceof Element) || event.target.closest("[data-canvas-controls]"))
+          return;
+        editorNode.contentEditable = "true";
         editor.setEditable(true);
-        editor.commands.focus();
+        editorNode.focus();
         host.setAttribute("data-editing", "true");
       };
       const exitEditMode = () => {
-        if (dirty) commit();
+        commit();
+        editorNode.contentEditable = "false";
         editor.setEditable(false);
         host.removeAttribute("data-editing");
       };
-      const editor = new Editor({
-        element: editorNode,
-        extensions,
-        content: JSON.parse(JSON.stringify(content)),
-        editable: false,
-        editorProps: {
-          attributes: {
-            class: "size-full outline-none",
-            spellcheck: "false",
-          },
-          handleKeyDown: (_view, event) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === "z") {
-              event.preventDefault();
-              commit();
-              Queue.offerUnsafe(
-                messages,
-                event.shiftKey ? RedidCanvas() : UndidCanvas(),
-              );
-              keydownHandledUndo = true;
-              return true;
-            }
-            keydownHandledUndo = false;
-            return false;
-          },
-          handleDOMEvents: {
-            beforeinput: (_view, event) => {
-              if (event.inputType === "historyUndo" || event.inputType === "historyRedo") {
-                if (keydownHandledUndo) {
-                  keydownHandledUndo = false;
-                  return false;
-                }
-                event.preventDefault();
-                commit();
-                Queue.offerUnsafe(
-                  messages,
-                  event.inputType === "historyUndo" ? UndidCanvas() : RedidCanvas(),
-                );
-                return true;
-              }
-              return false;
-            },
-          },
-        },
-        onBlur: () => {
-          exitEditMode();
-        },
-        onUpdate: ({ editor }) => {
-          const document = editor.getJSON();
+      const unregisterRichText = registerRichText(editor);
+      const unregisterUpdate = editor.registerUpdateListener(
+        ({ editorState, dirtyElements, dirtyLeaves }) => {
+          if (dirtyElements.size === 0 && dirtyLeaves.size === 0) {
+            Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
+            return;
+          }
+          editorNode.toggleAttribute(
+            "data-empty",
+            editorState.read(() => $getRoot().getTextContent() === ""),
+          );
+          const document = editorState.toJSON() as RichTextDocument;
           if (!dirty) {
             dirty = true;
             Queue.offerUnsafe(messages, StartedTextSession({ id, sessionId, document }));
-          } else {
-            Queue.offerUnsafe(messages, UpdatedTextDocument({ id, document }));
-          }
+          } else Queue.offerUnsafe(messages, UpdatedTextDocument({ id, document }));
           Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
         },
-        onSelectionUpdate: ({ editor }) =>
-          Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) })),
-      });
-      Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
+      );
+      const unregisterKeydown = editor.registerCommand(
+        KEY_DOWN_COMMAND,
+        (event) => {
+          if ((event.metaKey || event.ctrlKey) && event.key === "z") {
+            event.preventDefault();
+            commit();
+            Queue.offerUnsafe(messages, event.shiftKey ? RedidCanvas() : UndidCanvas());
+            keydownHandledUndo = true;
+            return true;
+          }
+          keydownHandledUndo = false;
+          return false;
+        },
+        COMMAND_PRIORITY_HIGH,
+      );
+      const beforeInput = (event: InputEvent) => {
+        if (event.inputType !== "historyUndo" && event.inputType !== "historyRedo") return;
+        if (keydownHandledUndo) {
+          keydownHandledUndo = false;
+          return;
+        }
+        event.preventDefault();
+        commit();
+        Queue.offerUnsafe(
+          messages,
+          event.inputType === "historyUndo" ? UndidCanvas() : RedidCanvas(),
+        );
+      };
       const format = (event: Event) => {
         const target = event.target;
         if (!(target instanceof Element)) return;
@@ -227,23 +274,28 @@ export const richTextEditor = (
         event.preventDefault();
         event.stopImmediatePropagation();
         commit();
-        Queue.offerUnsafe(
-          messages,
-          button.ariaLabel === "Undo" ? UndidCanvas() : RedidCanvas(),
-        );
+        Queue.offerUnsafe(messages, button.ariaLabel === "Undo" ? UndidCanvas() : RedidCanvas());
       };
-      host.addEventListener("dblclick", enterEditMode);
+      Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
+      host.addEventListener("canvas-text-edit", enterEditMode);
       host.addEventListener("click", format);
+      editorNode.addEventListener("beforeinput", beforeInput);
+      editorNode.addEventListener("blur", exitEditMode);
       document.addEventListener("click", history, true);
       document.addEventListener("pointerdown", outside, true);
       return Stream.fromQueue(messages).pipe(
         Stream.ensuring(
           Effect.sync(() => {
-            host.removeEventListener("dblclick", enterEditMode);
+            host.removeEventListener("canvas-text-edit", enterEditMode);
             host.removeEventListener("click", format);
+            editorNode.removeEventListener("beforeinput", beforeInput);
+            editorNode.removeEventListener("blur", exitEditMode);
             document.removeEventListener("click", history, true);
             document.removeEventListener("pointerdown", outside, true);
-            editor.destroy();
+            unregisterKeydown();
+            unregisterUpdate();
+            unregisterRichText();
+            editor.setRootElement(null);
             Queue.shutdown(messages);
           }),
         ),

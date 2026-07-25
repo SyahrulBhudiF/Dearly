@@ -100,10 +100,35 @@ export const nextLayer = (elements: ReadonlyArray<CanvasElement>) =>
 const textPayload = (text: string) => ({
   kind: "text" as const,
   document: {
-    type: "doc" as const,
-    content:
-      text === ""
-        ? [{ type: "paragraph" }]
-        : [{ type: "paragraph", content: [{ type: "text", text }] }],
+    root: {
+      type: "root",
+      version: 1,
+      format: "",
+      indent: 0,
+      direction: null,
+      children: [
+        {
+          type: "paragraph",
+          version: 1,
+          format: "",
+          indent: 0,
+          direction: null,
+          children:
+            text === ""
+              ? []
+              : [
+                  {
+                    type: "text",
+                    version: 1,
+                    text,
+                    format: 0,
+                    detail: 0,
+                    mode: "normal",
+                    style: "",
+                  },
+                ],
+        },
+      ],
+    },
   },
 });

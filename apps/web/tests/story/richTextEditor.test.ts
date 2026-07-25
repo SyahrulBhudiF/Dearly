@@ -1,23 +1,63 @@
-import { Editor } from "@tiptap/core";
+import { $createParagraphNode, $createTextNode, $getRoot, createEditor } from "lexical";
+import { registerRichText } from "@lexical/rich-text";
 import { expect, test } from "vitest";
 import { initialModel } from "../../src/app/model";
 import { GotCanvasMessage } from "../../src/app/message";
 import { CommittedTextSession } from "../../src/canvas/message";
+import { applyFormat, readTextFormat } from "../../src/canvas/richText";
 import { CalendarRoute } from "../../src/route";
 import { update } from "../../src/app/update";
-import { applyFormat, readTextFormat, richTextExtensions } from "../../src/canvas/richText";
 
-const editor = () =>
-  new Editor({
-    extensions: richTextExtensions,
-    content: {
-      type: "doc",
-      content: [{ type: "paragraph", content: [{ type: "text", text: "Dearly" }] }],
+const lexicalDocument = (text: string) => ({
+  root: {
+    type: "root",
+    version: 1,
+    format: "",
+    indent: 0,
+    direction: null,
+    children: [
+      {
+        type: "paragraph",
+        version: 1,
+        format: "",
+        indent: 0,
+        direction: null,
+        children:
+          text === ""
+            ? []
+            : [{ type: "text", version: 1, text, format: 0, detail: 0, mode: "normal", style: "" }],
+      },
+    ],
+  },
+});
+
+const editor = () => {
+  const instance = createEditor({ namespace: "rich-text-test", onError: console.error });
+  const root = document.createElement("div");
+  document.body.append(root);
+  instance.setRootElement(root);
+  const unregister = registerRichText(instance);
+  instance.update(
+    () => {
+      const paragraph = $createParagraphNode();
+      paragraph.append($createTextNode("Dearly"));
+      $getRoot().append(paragraph);
+      paragraph.selectEnd();
     },
-  });
+    { discrete: true },
+  );
+  return {
+    instance,
+    destroy: () => {
+      unregister();
+      instance.setRootElement(null);
+      root.remove();
+    },
+  };
+};
 
 test("cursor-only formatting applies to the whole text Canvas Element", () => {
-  const instance = editor();
+  const { instance, destroy } = editor();
   applyFormat(instance, { kind: "bold" });
   applyFormat(instance, { kind: "fontFamily", value: "'Gaegu', cursive" });
   applyFormat(instance, { kind: "fontSize", value: "12px" });
@@ -33,33 +73,23 @@ test("cursor-only formatting applies to the whole text Canvas Element", () => {
     italic: false,
     underline: false,
   });
-  expect(instance.getJSON()).toMatchObject({
-    content: [
-      {
-        attrs: { textAlign: "center" },
-        content: [
-          {
-            marks: expect.arrayContaining([
-              { type: "bold" },
-              {
-                type: "textStyle",
-                attrs: {
-                  fontFamily: "'Gaegu', cursive",
-                  fontSize: "12px",
-                  color: "rgb(1, 2, 3)",
-                },
-              },
-            ]),
-          },
-        ],
-      },
-    ],
+  expect(instance.getEditorState().toJSON()).toMatchObject({
+    root: {
+      children: [
+        {
+          format: "center",
+          children: [
+            { format: 1, style: expect.stringContaining("font-family: 'Gaegu', cursive") },
+          ],
+        },
+      ],
+    },
   });
-  instance.destroy();
+  destroy();
 });
 
 test("formatted text document persists in its Canvas Element", () => {
-  const instance = editor();
+  const { instance, destroy } = editor();
   applyFormat(instance, { kind: "bold" });
   const [next] = update(
     {
@@ -69,10 +99,7 @@ test("formatted text document persists in its Canvas Element", () => {
         elements: [
           {
             id: "text-1" as never,
-            payload: {
-              kind: "text",
-              document: { type: "doc", content: [{ type: "paragraph" }] },
-            },
+            payload: { kind: "text", document: lexicalDocument("") },
             x: 0,
             y: 0,
             width: 100,
@@ -87,16 +114,16 @@ test("formatted text document persists in its Canvas Element", () => {
       message: CommittedTextSession({
         id: "text-1",
         sessionId: "formatting",
-        document: instance.getJSON(),
+        document: instance.getEditorState().toJSON(),
       }),
     }),
   );
 
   expect(next.canvas.elements[0]?.payload).toMatchObject({
     kind: "text",
-    document: { content: [{ content: [{ marks: [{ type: "bold" }] }] }] },
+    document: { root: { children: [{ children: [{ format: 1 }] }] } },
   });
-  instance.destroy();
+  destroy();
 });
 
 test("toolbar menus close when clicking outside their menu", () => {

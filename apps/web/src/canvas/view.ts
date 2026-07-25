@@ -131,15 +131,20 @@ const shapeElement = (h: HtmlFactory, shape: ShapeKind, color: string) =>
       h.Class(
         Match.value(shape).pipe(
           Match.when("circle", () => "size-full cursor-grab rounded-full"),
-          Match.when("triangle", () =>
-            "size-full cursor-grab [clip-path:polygon(50%_0,100%_100%,0_100%)]",
+          Match.when(
+            "triangle",
+            () => "size-full cursor-grab [clip-path:polygon(50%_0,100%_100%,0_100%)]",
           ),
           Match.when("diamond", () => "size-full cursor-grab rotate-45 scale-75"),
-          Match.when("star", () =>
-            "size-full cursor-grab [clip-path:polygon(50%_0,61%_35%,98%_35%,68%_57%,79%_91%,50%_70%,21%_91%,32%_57%,2%_35%,39%_35%)]",
+          Match.when(
+            "star",
+            () =>
+              "size-full cursor-grab [clip-path:polygon(50%_0,61%_35%,98%_35%,68%_57%,79%_91%,50%_70%,21%_91%,32%_57%,2%_35%,39%_35%)]",
           ),
-          Match.when("heart", () =>
-            "size-full cursor-grab [clip-path:polygon(50%_88%,8%_47%,8%_25%,22%_10%,39%_10%,50%_23%,61%_10%,78%_10%,92%_25%,92%_47%)]",
+          Match.when(
+            "heart",
+            () =>
+              "size-full cursor-grab [clip-path:polygon(50%_88%,8%_47%,8%_25%,22%_10%,39%_10%,50%_23%,61%_10%,78%_10%,92%_25%,92%_47%)]",
           ),
           Match.orElse(() => "size-full cursor-grab rounded-[8px]"),
         ),
@@ -161,14 +166,19 @@ const richTextElement = (
         name: `rich-text-${id}-${historyRevision}`,
         f: (node) => richTextEditor(id, payload.document, node).pipe(Stream.map(canvas)),
       }),
-      h.Class("size-full cursor-grab bg-transparent font-display text-2xl leading-tight sm:text-3xl"),
+      h.Class(
+        "size-full cursor-grab bg-transparent font-display text-2xl leading-tight sm:text-3xl",
+      ),
     ],
     [
       h.div(
         [
           h.DataAttribute("rich-text-editor", "true"),
+          h.DataAttribute("placeholder", "Write here…"),
           h.AriaLabel("Diary entry"),
-          h.Class("size-full overflow-auto [overflow-wrap:anywhere]"),
+          h.Class(
+            "size-full overflow-auto [overflow-wrap:anywhere] data-[empty]:before:pointer-events-none data-[empty]:before:float-left data-[empty]:before:h-0 data-[empty]:before:text-muted-foreground data-[empty]:before:content-[attr(data-placeholder)]",
+          ),
         ],
         [],
       ),

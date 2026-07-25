@@ -17,7 +17,7 @@ test("text changes stay with their canvas element", () => {
         elements: [
           {
             id: "text-1" as never,
-            payload: { kind: "text", document: { type: "doc", content: [] } },
+            payload: { kind: "text", document: { root: {} } },
             x: 80,
             y: 440,
             width: 720,

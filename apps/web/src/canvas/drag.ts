@@ -184,12 +184,15 @@ export const canvasElement = (
         const target = event.target;
         if (!(target instanceof Element)) return;
         if (target.closest("[data-canvas-controls]")) return;
-        // Don't drag when clicking inside an active rich-text editor
-        if (
-          target.closest("[data-rich-text-editor]") &&
-          node.hasAttribute("data-editing")
-        )
+        const richText = target.closest("[data-rich-text-editor]");
+        if (richText !== null && node.hasAttribute("data-editing")) return;
+        const previousTextPointerDown = Number(node.getAttribute("data-text-pointer-down"));
+        if (richText !== null && event.timeStamp - previousTextPointerDown < 400) {
+          node.removeAttribute("data-text-pointer-down");
+          node.dispatchEvent(new Event("canvas-text-edit"));
           return;
+        }
+        if (richText !== null) node.setAttribute("data-text-pointer-down", String(event.timeStamp));
         const resize = (target
           .closest("[data-canvas-resize]")
           ?.getAttribute("data-canvas-resize") ?? null) as Handle | null;
