@@ -2,7 +2,7 @@ import { Button } from "@foldkit/ui";
 import { Html } from "foldkit";
 import { AlignCenter, AlignLeft, AlignRight, Trash2 } from "lucide";
 import type { CanvasElement, ShapeKind } from "@dearly/domain";
-import { Stream } from "effect";
+import { Effect, Match, Stream } from "effect";
 import { canvasElement as draggableCanvasElement } from "./drag";
 import { richTextEditor } from "./richText";
 import type { AppMessage } from "../app/message";
@@ -51,7 +51,21 @@ export const CanvasItem = (
     [
       h.OnMount({
         name: `canvas-${element.id}`,
-        f: (node) => draggableCanvasElement(element, node).pipe(Stream.map(canvas)),
+        f: (node) =>
+          draggableCanvasElement(element, node).pipe(
+            Stream.tap((msg) =>
+              Match.value(msg._tag).pipe(
+                Match.when("StartedCanvasTransform", () =>
+                  Effect.sync(() => node.classList.add("cursor-grabbing")),
+                ),
+                Match.when("FinishedCanvasTransform", () =>
+                  Effect.sync(() => node.classList.remove("cursor-grabbing")),
+                ),
+                Match.orElse(() => Effect.void),
+              ),
+            ),
+            Stream.map(canvas),
+          ),
       }),
       h.Style({
         position: "absolute",
@@ -79,7 +93,7 @@ export const CanvasItem = (
         : element.payload.kind === "shape"
           ? shapeElement(h, element.payload.shape, element.payload.color)
           : h.div(
-              [h.Class("size-full")],
+              [h.Class("size-full cursor-grab")],
               [
                 element.payload.kind === "sticker" && element.payload.emoji !== undefined
                   ? h.div(
@@ -99,7 +113,7 @@ export const CanvasItem = (
                   : h.img([
                       h.Src(`/media/${element.payload.mediaObjectId}`),
                       h.Alt(alt),
-                      h.Class("size-full object-contain"),
+                      h.Class("size-full cursor-grab object-contain"),
                     ]),
               ],
             ),
@@ -115,19 +129,20 @@ const shapeElement = (h: HtmlFactory, shape: ShapeKind, color: string) =>
     [
       h.Style({ backgroundColor: color }),
       h.Class(
-        `size-full ${
-          shape === "circle"
-            ? "rounded-full"
-            : shape === "triangle"
-              ? "[clip-path:polygon(50%_0,100%_100%,0_100%)]"
-              : shape === "diamond"
-                ? "rotate-45 scale-75"
-                : shape === "star"
-                  ? "[clip-path:polygon(50%_0,61%_35%,98%_35%,68%_57%,79%_91%,50%_70%,21%_91%,32%_57%,2%_35%,39%_35%)]"
-                  : shape === "heart"
-                    ? "[clip-path:polygon(50%_88%,8%_47%,8%_25%,22%_10%,39%_10%,50%_23%,61%_10%,78%_10%,92%_25%,92%_47%)]"
-                    : "rounded-[8px]"
-        }`,
+        Match.value(shape).pipe(
+          Match.when("circle", () => "size-full cursor-grab rounded-full"),
+          Match.when("triangle", () =>
+            "size-full cursor-grab [clip-path:polygon(50%_0,100%_100%,0_100%)]",
+          ),
+          Match.when("diamond", () => "size-full cursor-grab rotate-45 scale-75"),
+          Match.when("star", () =>
+            "size-full cursor-grab [clip-path:polygon(50%_0,61%_35%,98%_35%,68%_57%,79%_91%,50%_70%,21%_91%,32%_57%,2%_35%,39%_35%)]",
+          ),
+          Match.when("heart", () =>
+            "size-full cursor-grab [clip-path:polygon(50%_88%,8%_47%,8%_25%,22%_10%,39%_10%,50%_23%,61%_10%,78%_10%,92%_25%,92%_47%)]",
+          ),
+          Match.orElse(() => "size-full cursor-grab rounded-[8px]"),
+        ),
       ),
     ],
     [],
@@ -146,7 +161,7 @@ const richTextElement = (
         name: `rich-text-${id}-${historyRevision}`,
         f: (node) => richTextEditor(id, payload.document, node).pipe(Stream.map(canvas)),
       }),
-      h.Class("size-full bg-transparent font-display text-2xl leading-tight sm:text-3xl"),
+      h.Class("size-full cursor-grab bg-transparent font-display text-2xl leading-tight sm:text-3xl"),
     ],
     [
       h.div(
