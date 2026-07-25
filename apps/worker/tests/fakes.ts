@@ -118,17 +118,28 @@ import { StickerLive } from "../src/services/sticker";
 import { RequestService } from "../src/services/appLayer";
 import { Layer } from "effect";
 
-export const testLayer = (state?: DbState) =>
-  Layer.mergeAll(
-    TestClock.layer(),
-    ConfigLive(testEnv(state)),
-    DatabaseLive(testEnv(state).DB),
-    MediaStorageLive(testEnv(state).MEDIA),
-    EntryLive,
+export const testLayer = (state?: DbState) => {
+  const env = testEnv(state);
+  const DatabaseServiceLive = DatabaseLive(env.DB);
+  const MediaStorageServiceLive = MediaStorageLive(env.MEDIA);
+  const EntryServiceLive = Layer.provideMerge(EntryLive, DatabaseServiceLive);
+  const MediaServiceLive = Layer.provideMerge(
     MediaLive,
-    StickerLive,
+    Layer.merge(DatabaseServiceLive, MediaStorageServiceLive),
+  );
+  const StickerServiceLive = Layer.provideMerge(StickerLive, DatabaseServiceLive);
+
+  return Layer.mergeAll(
+    TestClock.layer(),
+    ConfigLive(env),
+    DatabaseServiceLive,
+    MediaStorageServiceLive,
+    EntryServiceLive,
+    MediaServiceLive,
+    StickerServiceLive,
     Layer.succeed(RequestService, testRequest),
   );
+};
 
 export const setTestTime = TestClock.setTime(new Date(now).getTime());
 

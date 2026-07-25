@@ -1,4 +1,4 @@
-import type { MediaObjectId, Sticker, StickerId, Unauthorized } from "@dearly/domain";
+import type { DatabaseError, MediaObjectId, Sticker, StickerId, Unauthorized } from "@dearly/domain";
 import { Context, Effect, Layer } from "effect";
 import { requireOwner } from "../session";
 import { DatabaseService } from "./database";
@@ -8,16 +8,16 @@ import type { RequestService } from "./appLayer";
 export interface StickerServiceShape {
   readonly listStickers: () => Effect.Effect<
     ReadonlyArray<Sticker>,
-    Unauthorized,
+    Unauthorized | DatabaseError,
     ConfigService | RequestService
   >;
   readonly createSticker: (
     mediaObjectId: MediaObjectId,
     label: string,
-  ) => Effect.Effect<Sticker, Unauthorized, ConfigService | RequestService>;
+  ) => Effect.Effect<Sticker, Unauthorized | DatabaseError, ConfigService | RequestService>;
   readonly deleteStickerFromPicker: (
     stickerId: StickerId,
-  ) => Effect.Effect<void, Unauthorized, ConfigService | RequestService>;
+  ) => Effect.Effect<void, Unauthorized | DatabaseError, ConfigService | RequestService>;
 }
 
 export class StickerService extends Context.Service<StickerService, StickerServiceShape>()(

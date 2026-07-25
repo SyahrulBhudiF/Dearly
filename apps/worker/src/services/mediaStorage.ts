@@ -1,3 +1,4 @@
+import { StorageError } from "@dearly/domain";
 import { Context, Effect, Layer, Option } from "effect";
 
 export interface PrivateMedia {
@@ -6,13 +7,14 @@ export interface PrivateMedia {
 }
 
 export interface MediaStorageServiceShape {
-  readonly put: (key: string, body: ReadableStream | null) => Effect.Effect<void>
-  readonly get: (key: string) => Effect.Effect<Option.Option<R2ObjectBody>>
+  readonly put: (key: string, body: ReadableStream | null) => Effect.Effect<void, StorageError>;
+  readonly get: (key: string) => Effect.Effect<Option.Option<R2ObjectBody>, StorageError>;
 }
 
-export class MediaStorageService extends Context.Service<MediaStorageService, MediaStorageServiceShape>()(
-  "MediaStorageService",
-) {}
+export class MediaStorageService extends Context.Service<
+  MediaStorageService,
+  MediaStorageServiceShape
+>()("MediaStorageService") {}
 
 const noop = MediaStorageService.of({
   put: Effect.fn("MediaStorageService.put")(function* () {}),
@@ -21,6 +23,12 @@ const noop = MediaStorageService.of({
   }),
 });
 
+const storageTry = <A>(fn: () => Promise<A>): Effect.Effect<A, StorageError> =>
+  Effect.tryPromise({
+    try: fn,
+    catch: (error) => new StorageError({ message: String(error) }),
+  });
+
 const make = (bucket: R2Bucket) =>
   MediaStorageService.of({
     put: Effect.fn("MediaStorageService.put")(function* (
@@ -28,10 +36,10 @@ const make = (bucket: R2Bucket) =>
       body: ReadableStream | null,
     ) {
       if (body === null) return;
-      yield* Effect.promise(() => bucket.put(key, body));
+      yield* storageTry(() => bucket.put(key, body));
     }),
     get: Effect.fn("MediaStorageService.get")(function* (key: string) {
-      const body = yield* Effect.promise(() => bucket.get(key));
+      const body = yield* storageTry(() => bucket.get(key));
       return body === null ? Option.none() : Option.some(body);
     }),
   });

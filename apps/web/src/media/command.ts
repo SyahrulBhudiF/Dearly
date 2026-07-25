@@ -17,6 +17,7 @@ export const loadStickers = Command.define(
 )(
   rpc.listStickers.pipe(
     Effect.map((stickers) => LoadedStickers({ stickers })),
+    Effect.tapError((error) => Effect.logError("[loadStickers] Failed", error)),
     Effect.catch(() => Effect.succeed(FailedToLoadMedia())),
   ),
 );
@@ -28,6 +29,7 @@ export const loadImages = Command.define(
 )(
   rpc.listImages.pipe(
     Effect.map((images) => LoadedImages({ images })),
+    Effect.tapError((error) => Effect.logError("[loadImages] Failed", error)),
     Effect.catch(() => Effect.succeed(FailedToLoadMedia())),
   ),
 );
@@ -40,6 +42,7 @@ export const uploadImage = Command.define(
 )(({ file, title }) =>
   rpc.uploadImage(file as File).pipe(
     Effect.map((mediaObjectId) => UploadedImage({ mediaObjectId, title })),
+    Effect.tapError((error) => Effect.logError("[uploadImage] Failed", error)),
     Effect.catch(() => Effect.succeed(FailedToUpload())),
   ),
 );
@@ -53,6 +56,7 @@ export const uploadSticker = Command.define(
   rpc.uploadImage(file as File).pipe(
     Effect.flatMap((mediaObjectId) => rpc.createSticker(mediaObjectId, title)),
     Effect.map((sticker) => UploadedSticker({ sticker })),
+    Effect.tapError((error) => Effect.logError("[uploadSticker] Failed", error)),
     Effect.catch(() => Effect.succeed(FailedToUpload())),
   ),
 );

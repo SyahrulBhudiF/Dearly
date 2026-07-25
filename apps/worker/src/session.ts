@@ -26,7 +26,11 @@ const getIdentity = (config: AppConfig, request: Request) =>
             }),
           ).pipe(
             Effect.map(({ payload }) => parseAccessIdentity(payload)),
-            Effect.catch(() => Effect.succeed(Option.none<AccessIdentity>())),
+            Effect.catch((error) =>
+              Effect.logError("[getIdentity] JWT verification failed", error).pipe(
+                Effect.as(Option.none<AccessIdentity>()),
+              ),
+            ),
           ),
       });
 

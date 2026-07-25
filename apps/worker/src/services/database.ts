@@ -1,4 +1,5 @@
 import {
+  DatabaseError,
   DiaryEntry,
   EntryPreview,
   MediaObject,
@@ -24,37 +25,53 @@ export interface DatabaseServiceShape {
   readonly listMonthEntries: (
     owner: OwnerSession,
     month: CalendarMonth,
-  ) => Effect.Effect<ReadonlyArray<EntryPreview>>;
+  ) => Effect.Effect<ReadonlyArray<EntryPreview>, DatabaseError>;
   readonly findEntryByDate: (
     owner: OwnerSession,
     date: CalendarDate,
-  ) => Effect.Effect<Option.Option<DiaryEntry>>;
+  ) => Effect.Effect<Option.Option<DiaryEntry>, DatabaseError>;
   readonly saveEntry: (
     owner: OwnerSession,
     payload: SaveEntryPayload,
-  ) => Effect.Effect<DiaryEntry, never>;
-  readonly deleteEntryByDate: (owner: OwnerSession, date: CalendarDate) => Effect.Effect<void>;
+  ) => Effect.Effect<DiaryEntry, DatabaseError>;
+  readonly deleteEntryByDate: (
+    owner: OwnerSession,
+    date: CalendarDate,
+  ) => Effect.Effect<void, DatabaseError>;
   readonly insertMedia: (
     owner: OwnerSession,
     params: CreateMediaUploadPayload,
-  ) => Effect.Effect<MediaObject, never>;
+  ) => Effect.Effect<MediaObject, DatabaseError>;
   readonly findMediaById: (
     owner: OwnerSession,
     id: MediaObjectId,
-  ) => Effect.Effect<Option.Option<MediaObject>>;
-  readonly listImagesByOwner: (owner: OwnerSession) => Effect.Effect<ReadonlyArray<MediaObject>>;
-  readonly listStickersByOwner: (owner: OwnerSession) => Effect.Effect<ReadonlyArray<Sticker>>;
+  ) => Effect.Effect<Option.Option<MediaObject>, DatabaseError>;
+  readonly listImagesByOwner: (
+    owner: OwnerSession,
+  ) => Effect.Effect<ReadonlyArray<MediaObject>, DatabaseError>;
+  readonly listStickersByOwner: (
+    owner: OwnerSession,
+  ) => Effect.Effect<ReadonlyArray<Sticker>, DatabaseError>;
   readonly insertSticker: (
     owner: OwnerSession,
     mediaObjectId: MediaObjectId,
     label: string,
-  ) => Effect.Effect<Sticker, never>;
-  readonly deleteSticker: (owner: OwnerSession, stickerId: StickerId) => Effect.Effect<void>;
+  ) => Effect.Effect<Sticker, DatabaseError>;
+  readonly deleteSticker: (
+    owner: OwnerSession,
+    stickerId: StickerId,
+  ) => Effect.Effect<void, DatabaseError>;
 }
 
 export class DatabaseService extends Context.Service<DatabaseService, DatabaseServiceShape>()(
   "DatabaseService",
 ) {}
+
+const dbTry = <A>(fn: () => Promise<A>): Effect.Effect<A, DatabaseError> =>
+  Effect.tryPromise({
+    try: fn,
+    catch: (error) => new DatabaseError({ message: String(error) }),
+  });
 
 export const DatabaseLive = (d1Binding: D1Database) =>
   Layer.sync(DatabaseService, function () {
@@ -65,7 +82,7 @@ export const DatabaseLive = (d1Binding: D1Database) =>
         owner: OwnerSession,
         month: CalendarMonth,
       ) {
-        const rows = yield* Effect.promise(() =>
+        const rows = yield* dbTry(() =>
           db
             .select()
             .from(schema.diaryEntries)
@@ -84,7 +101,7 @@ export const DatabaseLive = (d1Binding: D1Database) =>
         owner: OwnerSession,
         date: CalendarDate,
       ) {
-        const rows = yield* Effect.promise(() =>
+        const rows = yield* dbTry(() =>
           db
             .select()
             .from(schema.diaryEntries)
@@ -106,7 +123,7 @@ export const DatabaseLive = (d1Binding: D1Database) =>
         const now = yield* DateTime.now;
         const updatedAt = DateTime.formatIso(now);
 
-        const rows = yield* Effect.promise(() =>
+        const rows = yield* dbTry(() =>
           db
             .insert(schema.diaryEntries)
             .values({
@@ -140,7 +157,7 @@ export const DatabaseLive = (d1Binding: D1Database) =>
         owner: OwnerSession,
         date: CalendarDate,
       ) {
-        yield* Effect.promise(() =>
+        yield* dbTry(() =>
           db
             .delete(schema.diaryEntries)
             .where(
@@ -160,7 +177,7 @@ export const DatabaseLive = (d1Binding: D1Database) =>
         const id = crypto.randomUUID();
         const r2Key = `${owner.ownerId}/${id}`;
         const createdAt = DateTime.formatIso(now);
-        const rows = yield* Effect.promise(() =>
+        const rows = yield* dbTry(() =>
           db
             .insert(schema.mediaObjects)
             .values({
@@ -185,7 +202,7 @@ export const DatabaseLive = (d1Binding: D1Database) =>
         owner: OwnerSession,
         id: MediaObjectId,
       ) {
-        const rows = yield* Effect.promise(() =>
+        const rows = yield* dbTry(() =>
           db
             .select()
             .from(schema.mediaObjects)
@@ -200,7 +217,7 @@ export const DatabaseLive = (d1Binding: D1Database) =>
       listImagesByOwner: Effect.fn("DatabaseService.listImagesByOwner")(function* (
         owner: OwnerSession,
       ) {
-        const rows = yield* Effect.promise(() =>
+        const rows = yield* dbTry(() =>
           db
             .select()
             .from(schema.mediaObjects)
@@ -218,7 +235,7 @@ export const DatabaseLive = (d1Binding: D1Database) =>
       listStickersByOwner: Effect.fn("DatabaseService.listStickersByOwner")(function* (
         owner: OwnerSession,
       ) {
-        const rows = yield* Effect.promise(() =>
+        const rows = yield* dbTry(() =>
           db
             .select()
             .from(schema.stickers)
@@ -236,7 +253,7 @@ export const DatabaseLive = (d1Binding: D1Database) =>
         const now = yield* DateTime.now;
         const createdAt = DateTime.formatIso(now);
 
-        const rows = yield* Effect.promise(() =>
+        const rows = yield* dbTry(() =>
           db
             .insert(schema.stickers)
             .values({
@@ -259,7 +276,7 @@ export const DatabaseLive = (d1Binding: D1Database) =>
         owner: OwnerSession,
         stickerId: StickerId,
       ) {
-        yield* Effect.promise(() =>
+        yield* dbTry(() =>
           db
             .delete(schema.stickers)
             .where(

@@ -21,6 +21,7 @@ export const loadEntry = Command.define(
 )(({ date }) =>
   rpc.getEntryByDate(date).pipe(
     Effect.map((entry) => LoadedEntry({ entry })),
+    Effect.tapError((error) => Effect.logError("[loadEntry] Failed", error)),
     Effect.catch(() => Effect.succeed(LoadedEntry({ entry: null }))),
   ),
 );
@@ -56,12 +57,13 @@ export const saveEntry = Command.define(
   SavedEntry,
   FailedToSave,
 )(({ date, text, elements }) =>
-  Effect.tryPromise(() => captureCanvasThumbnail()).pipe(
+  captureCanvasThumbnail.pipe(
     Effect.flatMap(rpc.uploadThumbnail),
     Effect.flatMap((thumbnailMediaObjectId) =>
       rpc.saveEntry(date, text, elements, thumbnailMediaObjectId),
     ),
     Effect.map((entry) => SavedEntry({ entry })),
+    Effect.tapError((error) => Effect.logError("[saveEntry] Failed", error)),
     Effect.catch(() => Effect.succeed(FailedToSave())),
   ),
 );

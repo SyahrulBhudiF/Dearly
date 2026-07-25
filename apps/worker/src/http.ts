@@ -43,5 +43,7 @@ export const appErrorToResponse = (error: AppError | ConfigError) =>
       DraftConflict: () => jsonResponse(409, error),
       MediaTooLarge: () => jsonResponse(413, error),
       UnsupportedMediaType: () => jsonResponse(415, error),
+      DatabaseError: () => jsonResponse(500, error),
+      StorageError: () => jsonResponse(500, error),
     }),
   );

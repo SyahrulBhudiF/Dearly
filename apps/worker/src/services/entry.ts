@@ -1,6 +1,7 @@
 import type {
   CalendarDate,
   CalendarMonth,
+  DatabaseError,
   DiaryEntry,
   EntryPreview,
   SaveEntryPayload,
@@ -15,16 +16,24 @@ import type { RequestService } from "./appLayer";
 interface EntryServiceShape {
   readonly listMonthEntries: (
     month: CalendarMonth,
-  ) => Effect.Effect<ReadonlyArray<EntryPreview>, Unauthorized, ConfigService | RequestService>;
+  ) => Effect.Effect<
+      ReadonlyArray<EntryPreview>,
+      Unauthorized | DatabaseError,
+      ConfigService | RequestService
+    >;
   readonly getEntryByDate: (
     date: CalendarDate,
-  ) => Effect.Effect<Option.Option<DiaryEntry>, Unauthorized, ConfigService | RequestService>;
+  ) => Effect.Effect<
+      Option.Option<DiaryEntry>,
+      Unauthorized | DatabaseError,
+      ConfigService | RequestService
+    >;
   readonly saveEntry: (
     payload: SaveEntryPayload,
-  ) => Effect.Effect<DiaryEntry, Unauthorized, ConfigService | RequestService>;
+  ) => Effect.Effect<DiaryEntry, Unauthorized | DatabaseError, ConfigService | RequestService>;
   readonly discardServerEntry: (
     date: CalendarDate,
-  ) => Effect.Effect<void, Unauthorized, ConfigService | RequestService>;
+  ) => Effect.Effect<void, Unauthorized | DatabaseError, ConfigService | RequestService>;
 }
 
 export class EntryService extends Context.Service<EntryService, EntryServiceShape>()(

@@ -47,3 +47,19 @@ export class DraftConflict extends Schema.TaggedErrorClass<DraftConflict>()("Dra
   date: CalendarDate,
   message: Schema.String,
 }) {}
+
+export class DatabaseError extends Schema.TaggedErrorClass<DatabaseError>()("DatabaseError", {
+  message: Schema.String,
+}) {}
+
+export class StorageError extends Schema.TaggedErrorClass<StorageError>()("StorageError", {
+  message: Schema.String,
+}) {}
+
+export class SnapshotError extends Schema.TaggedErrorClass<SnapshotError>()("SnapshotError", {
+  message: Schema.String,
+}) {}
+
+export class UploadFailed extends Schema.TaggedErrorClass<UploadFailed>()("UploadFailed", {
+  message: Schema.String,
+}) {}

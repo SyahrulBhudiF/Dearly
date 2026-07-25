@@ -1,12 +1,15 @@
-import { BrowserHttpClient } from "@effect/platform-browser";
 import { DearlyRpc } from "@dearly/rpc";
 import type { CanvasElement } from "@dearly/domain";
+import { UploadFailed } from "@dearly/domain";
 import { Effect, Layer } from "effect";
+import * as HttpClient from "effect/unstable/http/HttpClient";
+import * as HttpBody from "effect/unstable/http/HttpBody";
 import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
+import { HttpClientLive } from "./http";
 
 const RpcClientLive = RpcClient.layerProtocolHttp({ url: "/rpc" }).pipe(
   Layer.provide(RpcSerialization.layerNdjson),
-  Layer.provide(BrowserHttpClient.layerFetch),
+  Layer.provide(HttpClientLive),
 );
 
 const client = Effect.gen(function* () {
@@ -35,31 +38,32 @@ export const listImages = client.pipe(
 );
 
 const uploadMedia = (file: File, kind: "image" | "thumbnail") =>
-  client.pipe(
-    Effect.flatMap((rpc) =>
-      rpc.createMediaUpload({
-        kind,
-        name: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
-      }),
-    ),
-    Effect.flatMap((upload) =>
-      Effect.promise(() =>
-        fetch(upload.uploadUrl, {
-          method: "POST",
-          headers: { "content-type": file.type },
-          body: file,
-        }),
-      ).pipe(
-        Effect.filterOrFail(
-          (response) => response.ok,
-          () => new Error("Image upload failed"),
-        ),
-        Effect.as(upload.mediaObjectId),
+  Effect.gen(function* () {
+    const rpc = yield* RpcClient.make(DearlyRpc);
+    const httpClient = yield* HttpClient.HttpClient;
+
+    const upload = yield* rpc.createMediaUpload({
+      kind,
+      name: file.name,
+      mimeType: file.type,
+      sizeBytes: file.size,
+    });
+
+    yield* httpClient.post(upload.uploadUrl, {
+      headers: { "content-type": file.type },
+      body: HttpBody.raw(file),
+    });
+
+    return upload.mediaObjectId;
+  }).pipe(
+    Effect.scoped,
+    Effect.provide(RpcClientLive),
+    Effect.provide(HttpClientLive),
+    Effect.catchTag("HttpClientError", (error) =>
+      Effect.logError(`[uploadMedia] HTTP upload failed`, error).pipe(
+        Effect.flatMap(() => Effect.fail(new UploadFailed({ message: `Upload failed: ${error.message}` }))),
       ),
     ),
-    Effect.scoped,
   );
 
 export const uploadImage = (file: File) => uploadMedia(file, "image");

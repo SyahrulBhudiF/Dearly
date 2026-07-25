@@ -10,6 +10,7 @@ export const loadSession = Command.define(
 )(
   rpc.getSession.pipe(
     Effect.map((session) => LoadedSession({ session })),
+    Effect.tapError((error) => Effect.logError("[loadSession] Failed", error)),
     Effect.catch(() => Effect.succeed(FailedToLoad())),
   ),
 );
@@ -22,6 +23,7 @@ export const loadEntries = Command.define(
 )(({ month }) =>
   rpc.listMonthEntries(month).pipe(
     Effect.map((entries) => LoadedEntries({ entries })),
+    Effect.tapError((error) => Effect.logError("[loadEntries] Failed", error)),
     Effect.catch(() => Effect.succeed(FailedToLoad())),
   ),
 );

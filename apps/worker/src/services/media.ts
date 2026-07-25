@@ -1,12 +1,14 @@
 import {
   BadRequest,
   CreateMediaUploadPayload,
+  DatabaseError,
   MediaObject,
   MediaObjectId,
   MediaNotFound,
   MediaTooLarge,
   MediaUpload,
   NotFound,
+  StorageError,
   Unauthorized,
   UnsupportedMediaType,
 } from "@dearly/domain";
@@ -41,29 +43,41 @@ interface MediaServiceShape {
     input: CreateMediaInput,
   ) => Effect.Effect<
     MediaUpload,
-    MediaTooLarge | UnsupportedMediaType | Unauthorized,
+    MediaTooLarge | UnsupportedMediaType | Unauthorized | DatabaseError,
     ConfigService | RequestService
   >;
   getMediaObject: (
     id: MediaObjectId,
-  ) => Effect.Effect<Option.Option<MediaObject>, Unauthorized, ConfigService | RequestService>;
+  ) => Effect.Effect<
+      Option.Option<MediaObject>,
+      Unauthorized | DatabaseError,
+      ConfigService | RequestService
+    >;
   listImages: () => Effect.Effect<
     ReadonlyArray<MediaObject>,
-    Unauthorized,
+    Unauthorized | DatabaseError,
     ConfigService | RequestService
   >;
   uploadPrivateMedia: (
     id: MediaObjectId,
     body: ReadableStream | null,
-  ) => Effect.Effect<Option.Option<MediaObject>, Unauthorized, ConfigService | RequestService>;
+  ) => Effect.Effect<
+      Option.Option<MediaObject>,
+      Unauthorized | DatabaseError | StorageError,
+      ConfigService | RequestService
+    >;
   getPrivateMedia: (
     id: MediaObjectId,
-  ) => Effect.Effect<Option.Option<PrivateMedia>, Unauthorized, ConfigService | RequestService>;
+  ) => Effect.Effect<
+      Option.Option<PrivateMedia>,
+      Unauthorized | DatabaseError | StorageError,
+      ConfigService | RequestService
+    >;
   serveMedia: (
     request: Request,
   ) => Effect.Effect<
     Response,
-    BadRequest | MediaNotFound | NotFound | Unauthorized,
+    BadRequest | MediaNotFound | NotFound | Unauthorized | DatabaseError | StorageError,
     ConfigService | RequestService
   >;
 }

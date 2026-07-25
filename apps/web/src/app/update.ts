@@ -31,10 +31,7 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
         Match.value(request).pipe(
           Match.withReturnType<UpdateResult>(),
           Match.tagsExhaustive({
-            Internal: ({ url }) => [
-              model,
-              [NavigateInternal({ url: urlToString(url) })],
-            ],
+            Internal: ({ url }) => [model, [NavigateInternal({ url: urlToString(url) })]],
             External: ({ href }) => [model, [LoadExternal({ href })]],
           }),
         ),
@@ -146,7 +143,11 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
           Match.withReturnType<UpdateResult>(),
           Match.tagsExhaustive({
             DiscardedDraft: () => {
-              const [entry, commands] = Entry.update(model.entry, child, model.calendar.selectedDate);
+              const [entry, commands] = Entry.update(
+                model.entry,
+                child,
+                model.calendar.selectedDate,
+              );
               return [
                 {
                   ...model,
@@ -158,7 +159,11 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
               ];
             },
             LoadedEntry: ({ entry: loadedEntry }) => {
-              const [entry, commands] = Entry.update(model.entry, child, model.calendar.selectedDate);
+              const [entry, commands] = Entry.update(
+                model.entry,
+                child,
+                model.calendar.selectedDate,
+              );
               return [
                 {
                   ...model,
@@ -172,7 +177,11 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
               ];
             },
             SaveRequested: () => {
-              const [entry, commands] = Entry.update(model.entry, child, model.calendar.selectedDate);
+              const [entry, commands] = Entry.update(
+                model.entry,
+                child,
+                model.calendar.selectedDate,
+              );
               return [
                 { ...model, entry },
                 [
@@ -188,7 +197,11 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
               ];
             },
             SavedEntry: ({ entry: savedEntry }) => {
-              const [entry, commands] = Entry.update(model.entry, child, model.calendar.selectedDate);
+              const [entry, commands] = Entry.update(
+                model.entry,
+                child,
+                model.calendar.selectedDate,
+              );
               return [
                 notify({ ...model, entry }, "success", "Diary entry saved"),
                 [
@@ -198,7 +211,11 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
               ];
             },
             FailedToSave: () => {
-              const [entry, commands] = Entry.update(model.entry, child, model.calendar.selectedDate);
+              const [entry, commands] = Entry.update(
+                model.entry,
+                child,
+                model.calendar.selectedDate,
+              );
               return [
                 notify({ ...model, entry }, "error", "Could not save diary entry"),
                 mapEntry(commands),
@@ -225,7 +242,11 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             },
             UploadedImage: ({ mediaObjectId, title }) => {
               const [media, commands] = Media.update(model.media, child);
-              const next = { ...model, media, canvas: Canvas.addImage(model.canvas, mediaObjectId, title) };
+              const next = {
+                ...model,
+                media,
+                canvas: Canvas.addImage(model.canvas, mediaObjectId, title),
+              };
               return [notify(next, "success", "Image added to canvas"), mapMedia(commands)];
             },
             SelectedSticker: ({ sticker }) => {
@@ -244,11 +265,17 @@ export const update = (model: Model, message: AppMessage): UpdateResult =>
             },
             UploadedSticker: () => {
               const [media, commands] = Media.update(model.media, child);
-              return [notify({ ...model, media }, "success", "Sticker uploaded"), mapMedia(commands)];
+              return [
+                notify({ ...model, media }, "success", "Sticker uploaded"),
+                mapMedia(commands),
+              ];
             },
             FailedToUploadImage: () => {
               const [media, commands] = Media.update(model.media, child);
-              return [notify({ ...model, media }, "error", "Image upload failed"), mapMedia(commands)];
+              return [
+                notify({ ...model, media }, "error", "Image upload failed"),
+                mapMedia(commands),
+              ];
             },
             SelectedImage: () => delegateToMedia(model, child),
             FailedToLoadMedia: () => delegateToMedia(model, child),

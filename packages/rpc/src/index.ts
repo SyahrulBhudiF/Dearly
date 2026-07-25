@@ -3,6 +3,7 @@ import {
   BadRequest,
   CalendarMonth,
   CreateMediaUploadPayload,
+  DatabaseError,
   DiaryEntry,
   DraftConflict,
   EntryNotFound,
@@ -15,6 +16,7 @@ import {
   OwnerSession,
   SaveEntryPayload,
   NotFound,
+  StorageError,
   Sticker,
   StickerId,
   StickerNotFound,
@@ -34,6 +36,8 @@ export const DearlyErrors = Schema.Union([
   MediaTooLarge,
   UnsupportedMediaType,
   DraftConflict,
+  DatabaseError,
+  StorageError,
 ]);
 
 export class DearlyRpc extends RpcGroup.make(
