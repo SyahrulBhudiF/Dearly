@@ -1,13 +1,19 @@
 import type { WorkerEnv } from "../../alchemy.run";
-import { Config, ConfigProvider } from "effect";
-import type { Config as ConfigDescription } from "effect/Config";
+import { Config, ConfigProvider, Context, Layer, Option } from "effect";
 
 const stringEnv = (env: WorkerEnv): Record<string, string> =>
   Object.fromEntries(
     Object.entries(env).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
   );
 
-export const AppConfig = Config.all({
+export interface AppConfig {
+  readonly appEnv: string;
+  readonly timeZone: string;
+  readonly access: Option.Option<{ readonly aud: string; readonly teamDomain: string }>;
+  readonly devOwnerId: Option.Option<string>;
+}
+
+const appConfig = Config.all({
   appEnv: Config.string("APP_ENV").pipe(Config.withDefault("development")),
   timeZone: Config.string("TIME_ZONE").pipe(Config.withDefault("Asia/Jakarta")),
   access: Config.option(
@@ -19,7 +25,7 @@ export const AppConfig = Config.all({
   devOwnerId: Config.option(Config.string("DEV_OWNER_ID")),
 });
 
-export type AppConfig = typeof AppConfig extends ConfigDescription<infer A> ? A : never;
+export class ConfigService extends Context.Service<ConfigService, AppConfig>()("ConfigService") {}
 
-export const loadConfig = (env: WorkerEnv) =>
-  AppConfig.parse(ConfigProvider.fromEnv({ env: stringEnv(env) }));
+export const ConfigLive = (env: WorkerEnv) =>
+  Layer.effect(ConfigService, appConfig.parse(ConfigProvider.fromEnv({ env: stringEnv(env) })));

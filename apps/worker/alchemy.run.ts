@@ -2,7 +2,13 @@ import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
-import { Bucket, Database } from "./cloudflare";
+
+const Database = Cloudflare.D1.Database("DearlyDB", {
+  migrationsDir: "./drizzle",
+  migrationsTable: "drizzle_migrations",
+});
+
+const Bucket = Cloudflare.R2.Bucket("DearlyMedia");
 
 const APP_ENV = Config.string("APP_ENV").pipe(Config.withDefault("production"));
 const ACCESS_TEAM_DOMAIN = Config.string("CF_ACCESS_TEAM_DOMAIN");
@@ -15,6 +21,18 @@ const ACCESS_OWNER_EMAILS = Config.string("CF_ACCESS_OWNER_EMAILS").pipe(
   ),
 );
 const DEARLY_DOMAIN = Config.string("DEARLY_DOMAIN");
+
+const workerEnv = {
+  DB: Database,
+  MEDIA: Bucket,
+  APP_ENV,
+  CF_ACCESS_TEAM_DOMAIN: ACCESS_TEAM_DOMAIN,
+};
+
+export type WorkerEnv = Cloudflare.InferEnv<typeof workerEnv> & {
+  readonly CF_ACCESS_AUD: string;
+  readonly ASSETS: Fetcher;
+};
 
 export default Alchemy.Stack(
   "Dearly",
@@ -39,18 +57,20 @@ export default Alchemy.Stack(
       sessionDuration: "24h",
     });
     const worker = yield* Cloudflare.Worker("DearlyWorker", {
-      main: "../apps/worker/src/index.ts",
-      assets: "../apps/web/dist",
+      main: "./src/index.ts",
+      assets: "../web/dist",
       compatibility: { flags: ["nodejs_compat"] },
       domain,
       env: {
-        DB: Database,
-        MEDIA: Bucket,
-        APP_ENV,
+        ...workerEnv,
         CF_ACCESS_AUD: accessApplication.aud,
-        CF_ACCESS_TEAM_DOMAIN: ACCESS_TEAM_DOMAIN,
+      },
+      dev: {
+        port: 3000,
+        strictPort: true
       },
     });
+
     return { url: worker.url };
   }),
 );

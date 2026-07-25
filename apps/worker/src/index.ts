@@ -1,20 +1,21 @@
 import { Effect } from "effect";
 import { appErrorToResponse } from "./http";
-import { handleRequestEffect } from "./router";
-import type { DearlyEnv } from "./types";
-
-export { handleRequestEffect };
-
-export const handleRequest = (request: Request, env: DearlyEnv): Promise<Response> =>
-  Effect.runPromise(
-    handleRequestEffect(request, env).pipe(
-      Effect.matchEffect({
-        onFailure: (error) => Effect.succeed(appErrorToResponse(error)),
-        onSuccess: Effect.succeed,
-      }),
-    ),
-  );
+import { route } from "./router";
+import { makeAppLayer, RequestService } from "./services/appLayer";
+import type { WorkerEnv } from "../alchemy.run";
 
 export default {
-  fetch: (request: Request, env: unknown) => handleRequest(request, env as DearlyEnv),
+  fetch: (request: Request, env: WorkerEnv) => {
+    const appLayer = makeAppLayer(env);
+    return Effect.runPromise(
+      route(request).pipe(
+        Effect.provideService(RequestService, request),
+        Effect.provide(appLayer),
+        Effect.matchEffect({
+          onFailure: (error) => Effect.succeed(appErrorToResponse(error)),
+          onSuccess: Effect.succeed,
+        }),
+      ),
+    );
+  },
 };

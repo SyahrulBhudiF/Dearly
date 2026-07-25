@@ -4,7 +4,7 @@ import { MediaObjectId, OwnerId, StickerId } from "./ids";
 const NonNegativeNumber = Schema.Number.check(Schema.isGreaterThanOrEqualTo(0));
 
 export const MediaKind = Schema.Literals(["image", "sticker", "thumbnail"]);
-export type MediaKind = Schema.Schema.Type<typeof MediaKind>;
+export type MediaKind = typeof MediaKind.Type;
 
 export const MediaObject = Schema.Struct({
   id: MediaObjectId,
@@ -16,7 +16,7 @@ export const MediaObject = Schema.Struct({
   sizeBytes: NonNegativeNumber,
   createdAt: Schema.DateTimeUtc,
 });
-export type MediaObject = Schema.Schema.Type<typeof MediaObject>;
+export type MediaObject = typeof MediaObject.Type;
 
 export const Sticker = Schema.Struct({
   id: StickerId,
@@ -25,7 +25,7 @@ export const Sticker = Schema.Struct({
   label: Schema.String,
   createdAt: Schema.DateTimeUtc,
 });
-export type Sticker = Schema.Schema.Type<typeof Sticker>;
+export type Sticker = typeof Sticker.Type;
 
 export const CreateMediaUploadPayload = Schema.Struct({
   kind: MediaKind,
@@ -33,11 +33,11 @@ export const CreateMediaUploadPayload = Schema.Struct({
   mimeType: Schema.String,
   sizeBytes: NonNegativeNumber,
 });
-export type CreateMediaUploadPayload = Schema.Schema.Type<typeof CreateMediaUploadPayload>;
+export type CreateMediaUploadPayload = typeof CreateMediaUploadPayload.Type;
 
 export const MediaUpload = Schema.Struct({
   mediaObjectId: MediaObjectId,
   uploadUrl: Schema.String,
   r2Key: Schema.String,
 });
-export type MediaUpload = Schema.Schema.Type<typeof MediaUpload>;
+export type MediaUpload = typeof MediaUpload.Type;

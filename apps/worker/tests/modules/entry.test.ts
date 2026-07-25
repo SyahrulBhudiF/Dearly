@@ -1,49 +1,51 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
-import {
-  discardServerEntry,
-  getEntryByDate,
-  listMonthEntries,
-  saveEntry,
-} from "../../src/entry";
-import { context, document, ownerId, savePayload } from "../fakes";
-
-const owner = { ownerId, email: "owner@dearly.test", displayName: "Owner" } as never;
+import { EntryService } from "../../src/services/entry";
+import { document, ownerId, savePayload, setTestTime, testLayer } from "../fakes";
 
 describe("entry module", () => {
-  it("saves and lists entry previews", async () => {
-    const ctx = context();
+  it.effect("saves and lists entry previews", () =>
+    Effect.gen(function*() {
+      yield* setTestTime;
+      const entry = yield* EntryService;
+      yield* entry.saveEntry(savePayload as never);
+      const previews = yield* entry.listMonthEntries("2026-07" as never);
 
-    await Effect.runPromise(saveEntry(ctx, owner, savePayload as never));
-    const previews = await Effect.runPromise(listMonthEntries(ctx, owner, "2026-07" as never));
+      expect(previews).toEqual([
+        { date: "2026-07-12", snippet: "hello", hasSavedEntry: true, hasDraft: false },
+      ]);
+    }).pipe(Effect.provide(testLayer())),
+  );
 
-    expect(previews).toEqual([
-      { date: "2026-07-12", snippet: "hello", hasSavedEntry: true, hasDraft: false },
-    ]);
-  });
+  it.effect("gets a saved entry by date", () =>
+    Effect.gen(function*() {
+      yield* setTestTime;
+      const entry = yield* EntryService;
+      yield* entry.saveEntry(savePayload as never);
+      const result = yield* entry.getEntryByDate("2026-07-12" as never);
 
-  it("gets a saved entry by date", async () => {
-    const ctx = context();
+      expect(Option.getOrThrow(result)).toMatchObject({ ownerId, date: "2026-07-12", document });
+    }).pipe(Effect.provide(testLayer())),
+  );
 
-    await Effect.runPromise(saveEntry(ctx, owner, savePayload as never));
-    const entry = await Effect.runPromise(getEntryByDate(ctx, owner, "2026-07-12" as never));
+  it.effect("discards server entry", () =>
+    Effect.gen(function*() {
+      yield* setTestTime;
+      const entry = yield* EntryService;
+      yield* entry.saveEntry(savePayload as never);
+      yield* entry.discardServerEntry("2026-07-12" as never);
+      const result = yield* entry.getEntryByDate("2026-07-12" as never);
 
-    expect(Option.getOrThrow(entry)).toMatchObject({ ownerId, date: "2026-07-12", document });
-  });
+      expect(Option.isNone(result)).toBe(true);
+    }).pipe(Effect.provide(testLayer())),
+  );
 
-  it("discards server entry", async () => {
-    const ctx = context();
+  it.effect("returns none for missing entry", () =>
+    Effect.gen(function*() {
+      const entry = yield* EntryService;
+      const result = yield* entry.getEntryByDate("2026-07-12" as never);
 
-    await Effect.runPromise(saveEntry(ctx, owner, savePayload as never));
-    await Effect.runPromise(discardServerEntry(ctx, owner, "2026-07-12" as never));
-    const entry = await Effect.runPromise(getEntryByDate(ctx, owner, "2026-07-12" as never));
-
-    expect(Option.isNone(entry)).toBe(true);
-  });
-
-  it("returns none for missing entry", async () => {
-    const entry = await Effect.runPromise(getEntryByDate(context(), owner, "2026-07-12" as never));
-
-    expect(Option.isNone(entry)).toBe(true);
-  });
+      expect(Option.isNone(result)).toBe(true);
+    }).pipe(Effect.provide(testLayer())),
+  );
 });

@@ -1,33 +1,37 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
-import { createSticker, deleteStickerFromPicker, listStickers } from "../../src/sticker";
-import { context, mediaId, ownerId, stickerId } from "../fakes";
-
-const owner = { ownerId, email: "owner@dearly.test", displayName: "Owner" } as never;
+import { StickerService } from "../../src/services/sticker";
+import { mediaId, ownerId, setTestTime, stickerId, testLayer } from "../fakes";
 
 describe("sticker module", () => {
-  it("lists stickers", async () => {
-    const stickers = await Effect.runPromise(listStickers(context(), owner));
+  it.effect("lists stickers", () =>
+    Effect.gen(function*() {
+      const sticker = yield* StickerService;
+      const stickers = yield* sticker.listStickers();
 
-    expect(stickers).toMatchObject([
-      { id: stickerId, ownerId, mediaObjectId: mediaId, label: "heart" },
-    ]);
-  });
+      expect(stickers).toMatchObject([
+        { id: stickerId, ownerId, mediaObjectId: mediaId, label: "heart" },
+      ]);
+    }).pipe(Effect.provide(testLayer())),
+  );
 
-  it("creates a sticker", async () => {
-    const sticker = await Effect.runPromise(
-      createSticker(context(), owner, mediaId as never, "wow"),
-    );
+  it.effect("creates a sticker", () =>
+    Effect.gen(function*() {
+      yield* setTestTime;
+      const sticker = yield* StickerService;
+      const result = yield* sticker.createSticker(mediaId as never, "wow");
 
-    expect(sticker).toMatchObject({ ownerId, mediaObjectId: mediaId, label: "wow" });
-  });
+      expect(result).toMatchObject({ ownerId, mediaObjectId: mediaId, label: "wow" });
+    }).pipe(Effect.provide(testLayer())),
+  );
 
-  it("deletes a sticker from picker", async () => {
-    const ctx = context();
+  it.effect("deletes a sticker from picker", () =>
+    Effect.gen(function*() {
+      const sticker = yield* StickerService;
+      yield* sticker.deleteStickerFromPicker(stickerId as never);
+      const stickers = yield* sticker.listStickers();
 
-    await Effect.runPromise(deleteStickerFromPicker(ctx, owner, stickerId as never));
-    const stickers = await Effect.runPromise(listStickers(ctx, owner));
-
-    expect(stickers).toEqual([]);
-  });
+      expect(stickers).toEqual([]);
+    }).pipe(Effect.provide(testLayer())),
+  );
 });

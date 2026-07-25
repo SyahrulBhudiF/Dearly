@@ -10,7 +10,7 @@ export const EntryPreview = Schema.Struct({
   hasSavedEntry: Schema.Boolean,
   hasDraft: Schema.Boolean,
 });
-export type EntryPreview = Schema.Schema.Type<typeof EntryPreview>;
+export type EntryPreview = typeof EntryPreview.Type;
 
 export const DiaryEntry = Schema.Struct({
   id: DiaryEntryId,
@@ -20,11 +20,11 @@ export const DiaryEntry = Schema.Struct({
   preview: EntryPreview,
   updatedAt: Schema.DateTimeUtc,
 });
-export type DiaryEntry = Schema.Schema.Type<typeof DiaryEntry>;
+export type DiaryEntry = typeof DiaryEntry.Type;
 
 export const SaveEntryPayload = Schema.Struct({
   date: CalendarDate,
   document: CanvasDocument,
   preview: EntryPreview,
 });
-export type SaveEntryPayload = Schema.Schema.Type<typeof SaveEntryPayload>;
+export type SaveEntryPayload = typeof SaveEntryPayload.Type;

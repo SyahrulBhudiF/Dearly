@@ -11,15 +11,15 @@ export const ShapeKind = Schema.Literals([
   "star",
   "heart",
 ]);
-export type ShapeKind = Schema.Schema.Type<typeof ShapeKind>;
+export type ShapeKind = typeof ShapeKind.Type;
 
 export const CanvasElementKind = Schema.Literals(["text", "image", "sticker", "shape"]);
-export type CanvasElementKind = Schema.Schema.Type<typeof CanvasElementKind>;
+export type CanvasElementKind = typeof CanvasElementKind.Type;
 
 export const RichTextDocument = Schema.Struct({
   root: Schema.Record(Schema.String, Schema.Unknown),
 });
-export type RichTextDocument = Schema.Schema.Type<typeof RichTextDocument>;
+export type RichTextDocument = typeof RichTextDocument.Type;
 
 export const CanvasElementPayload = Schema.Union([
   Schema.Struct({
@@ -43,7 +43,7 @@ export const CanvasElementPayload = Schema.Union([
     color: Schema.String,
   }),
 ]);
-export type CanvasElementPayload = Schema.Schema.Type<typeof CanvasElementPayload>;
+export type CanvasElementPayload = typeof CanvasElementPayload.Type;
 
 export const CanvasElement = Schema.Struct({
   id: CanvasElementId,
@@ -55,7 +55,7 @@ export const CanvasElement = Schema.Struct({
   rotation: Schema.Number,
   layer: Schema.Number.check(Schema.isInt()),
 });
-export type CanvasElement = Schema.Schema.Type<typeof CanvasElement>;
+export type CanvasElement = typeof CanvasElement.Type;
 
 export const CanvasDocument = Schema.Struct({
   version: Schema.Literal(1),
@@ -63,4 +63,4 @@ export const CanvasDocument = Schema.Struct({
   logicalHeight: PositiveNumber,
   elements: Schema.Array(CanvasElement),
 });
-export type CanvasDocument = Schema.Schema.Type<typeof CanvasDocument>;
+export type CanvasDocument = typeof CanvasDocument.Type;

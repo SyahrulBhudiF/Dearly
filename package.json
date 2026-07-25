@@ -3,8 +3,7 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*",
-    "infra"
+    "packages/*"
   ],
   "type": "module",
   "scripts": {
@@ -16,26 +15,25 @@
     "fmt:check": "oxfmt --check .",
     "prepare": "husky",
     "dev": "turbo run dev",
-    "deploy": "bun run build && cd infra && bun run deploy",
-    "destroy": "cd infra && bun run destroy"
+    "deploy": "bun run build && cd apps/worker && bun run deploy",
+    "destroy": "cd apps/worker && bun run destroy"
   },
   "dependencies": {
-    "@effect/platform-browser": ">=4.0.0-beta.97",
-    "effect": ">=4.0.0-beta.97",
-    "foldkit": "^0.127.0"
+    "@effect/platform-browser": ">=4.0.0-beta.101",
+    "effect": ">=4.0.0-beta.101",
+    "foldkit": "^0.132.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "latest",
-    "@effect/vitest": ">=4.0.0-beta.97",
-    "@foldkit/oxlint-plugin": "^0.3.0",
-    "alchemy": "^2.0.0-beta.61",
+    "@cloudflare/workers-types": "5.20260724.1",
+    "@effect/vitest": ">=4.0.0-beta.101",
+    "@foldkit/oxlint-plugin": "^0.4.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.0.0",
-    "oxfmt": "^0.58.0",
-    "oxlint": "^1.73.0",
-    "turbo": "^2.10.4",
+    "lint-staged": "^17.2.0",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0",
+    "turbo": "^2.10.7",
     "typescript": "^7.0.2",
-    "vite": "latest",
+    "vite": "8.1.5",
     "vitest": "latest"
   },
   "lint-staged": {

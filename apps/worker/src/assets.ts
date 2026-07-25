@@ -1,29 +1,7 @@
-import { Effect, Option } from "effect";
-import type { WorkerEffect } from "./http";
-import type { WorkerContext } from "./types";
+import { Effect } from "effect";
+import { AssetService } from "./services/assets";
 
-export const assets = (
-  request: Request,
-  context: WorkerContext,
-): WorkerEffect<Option.Option<Response>> => {
-  const assetsBinding = context.env.ASSETS;
-  if (assetsBinding === undefined) {
-    return Effect.succeed(Option.none());
-  }
-
-  return Effect.promise(() => assetsBinding.fetch(request)).pipe(
-    Effect.map((response) => {
-      if (response.status === 404) {
-        return Option.none();
-      }
-
-      return Option.some(
-        new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers,
-        }),
-      );
-    }),
-  );
-};
+export const assets = Effect.fn("assets")(function* (request: Request) {
+    const svc = yield* AssetService;
+    return yield* svc.fetch(request);
+  });

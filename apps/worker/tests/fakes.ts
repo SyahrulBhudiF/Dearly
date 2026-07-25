@@ -1,4 +1,4 @@
-import { Option } from "effect";
+import { TestClock } from "effect/testing";
 import type { D1Binding, D1PreparedStatement, R2Binding } from "../src/types";
 
 export const ownerId = "development-owner";
@@ -100,23 +100,37 @@ export const fakeR2 = (value = "png") =>
 export const request = (path: string, init?: RequestInit) =>
   new Request(`https://dearly.test${path}`, init);
 
-export const authed = {};
-export const jsonPost = (body: unknown) => ({
-  ...authed,
-  method: "POST",
-  body: JSON.stringify(body),
+export const testEnv = (state?: DbState) => ({
+  APP_ENV: "test",
+  DEV_OWNER_ID: ownerId,
+  DB: fakeDb(state),
+  MEDIA: fakeR2(),
 });
 
-export const context = (state?: DbState) => ({
-  config: {
-    appEnv: "test",
-    timeZone: "Asia/Jakarta",
-    access: Option.none(),
-    devOwnerId: Option.some(ownerId),
-  } as never,
-  env: { DB: fakeDb(state), MEDIA: fakeR2() },
-  request: request("/"),
-});
+export const testRequest = request("/");
+
+import { ConfigLive } from "../src/services/config";
+import { DatabaseLive } from "../src/services/database";
+import { EntryLive } from "../src/services/entry";
+import { MediaLive } from "../src/services/media";
+import { MediaStorageLive } from "../src/services/mediaStorage";
+import { StickerLive } from "../src/services/sticker";
+import { RequestService } from "../src/services/appLayer";
+import { Layer } from "effect";
+
+export const testLayer = (state?: DbState) =>
+  Layer.mergeAll(
+    TestClock.layer(),
+    ConfigLive(testEnv(state)),
+    DatabaseLive(testEnv(state).DB),
+    MediaStorageLive(testEnv(state).MEDIA),
+    EntryLive,
+    MediaLive,
+    StickerLive,
+    Layer.succeed(RequestService, testRequest),
+  );
+
+export const setTestTime = TestClock.setTime(new Date(now).getTime());
 
 export const savePayload = {
   date: "2026-07-12",

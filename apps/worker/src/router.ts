@@ -1,39 +1,35 @@
-import { Effect, Option } from "effect";
-import { loadConfig } from "./config/env";
+import { Effect, Match, Option } from "effect";
 import { assets } from "./assets";
 import { health } from "./health";
-import { notFound, type WorkerEffect } from "./http";
-import { media } from "./media";
+import { notFound } from "./http";
 import { rpc } from "./rpc";
-import type { DearlyEnv, WorkerContext } from "./types";
+import { MediaService } from "./services/media";
 
-export const handleRequestEffect = (request: Request, env: DearlyEnv): WorkerEffect<Response> =>
-  loadConfig(env).pipe(
-    Effect.orDie,
-    Effect.flatMap((config) => route(request, { config, env, request })),
-  );
-
-const route = (request: Request, context: WorkerContext): WorkerEffect<Response> => {
+export const route = Effect.fn("route")(function* (request: Request) {
   const url = new URL(request.url);
 
-  if (url.pathname === "/health") {
-    return health(context);
-  }
-
-  if (url.pathname.startsWith("/rpc")) {
-    return rpc(request, context);
-  }
-
-  if (url.pathname.startsWith("/media")) {
-    return media(request, context);
-  }
-
-  return assets(request, context).pipe(
-    Effect.flatMap(
-      Option.match({
-        onNone: notFound,
-        onSome: Effect.succeed,
+  return yield* Match.value(url).pipe(
+    Match.when({ pathname: "/health" }, () => health),
+    Match.when(
+      (url) => url.pathname.startsWith("/rpc"),
+      () => rpc(request),
+    ),
+    Match.when(
+      (url) => url.pathname.startsWith("/media"),
+      () =>
+        Effect.gen(function* () {
+          const media = yield* MediaService;
+          return yield* media.serveMedia(request);
+        }),
+    ),
+    Match.orElse(() =>
+      Effect.gen(function* () {
+        const asset = yield* assets(request);
+        return yield* Option.match(asset, {
+          onNone: notFound,
+          onSome: Effect.succeed,
+        });
       }),
     ),
   );
-};
+});

@@ -7,7 +7,9 @@
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "dev": "bun --watch src/index.ts"
+    "dev": "alchemy dev",
+    "deploy": "alchemy deploy",
+    "destroy": "alchemy destroy"
   },
   "dependencies": {
     "@dearly/domain": "workspace:*",
@@ -17,6 +19,7 @@
     "jose": "^6.2.3"
   },
   "devDependencies": {
+    "alchemy": "^2.0.0-beta.64",
     "drizzle-kit": "^0.31.10"
   }
 }

@@ -1,84 +1,97 @@
-import { EntryNotFound, MediaNotFound, type OwnerSession, Unauthorized } from "@dearly/domain";
+import { EntryNotFound, MediaNotFound } from "@dearly/domain";
 import { DearlyRpc } from "@dearly/rpc";
 import { Effect, Layer, Option } from "effect";
+import type { HttpServerResponse } from "effect/unstable/http/HttpServerResponse";
 import * as HttpEffect from "effect/unstable/http/HttpEffect";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
-import { discardServerEntry, getEntryByDate, listMonthEntries, saveEntry } from "./entry";
-import { createMediaUpload, getMediaObject, listImages } from "./media";
+import { EntryService } from "./services/entry";
+import { MediaService } from "./services/media";
+import { StickerService } from "./services/sticker";
 import { getSession } from "./session";
-import { createSticker, deleteStickerFromPicker, listStickers } from "./sticker";
-import type { WorkerEffect } from "./http";
-import type { WorkerContext } from "./types";
 
-export const rpc = (request: Request, context: WorkerContext) =>
-  Effect.promise(() => HttpEffect.toWebHandler(server(context))(request)).pipe(Effect.orDie);
-
-const server = (context: WorkerContext) =>
-  Effect.flatten(
-    Effect.provide(
-      RpcServer.toHttpEffect(DearlyRpc),
-      Layer.mergeAll(handlers(context), RpcSerialization.layerNdjson),
-    ),
-  );
-
-const handlers = (context: WorkerContext) =>
-  DearlyRpc.toLayer({
-    getSession: (_payload) =>
-      getSession(context).pipe(
-        Effect.map(
-          Option.match({
-            onNone: () => null,
-            onSome: (session) => session,
-          }),
-        ),
+export const rpc = Effect.fn("rpc")(function* (request: Request) {
+    const ctx = yield* Effect.context();
+    const rpcEffect = Effect.flatten(
+      Effect.provide(
+        RpcServer.toHttpEffect(DearlyRpc),
+        Layer.mergeAll(RpcHandlerLayer, RpcSerialization.layerNdjson),
       ),
-    listMonthEntries: ({ month }) =>
-      withOwner(context, (owner) => listMonthEntries(context, owner, month)),
-    getEntryByDate: ({ date }) =>
-      withOwner(context, (owner) =>
-        getEntryByDate(context, owner, date).pipe(
-          Effect.flatMap(
-            Option.match({
-              onNone: () => Effect.fail(new EntryNotFound({ date, message: "Entry not found" })),
-              onSome: Effect.succeed,
-            }),
-          ),
-        ),
-      ),
-    saveEntry: (payload) => withOwner(context, (owner) => saveEntry(context, owner, payload)),
-    discardServerEntry: ({ date }) =>
-      withOwner(context, (owner) => discardServerEntry(context, owner, date)),
-    createMediaUpload: (payload) =>
-      withOwner(context, (owner) => createMediaUpload(context, owner, payload)),
-    getMediaObject: ({ mediaObjectId }) =>
-      withOwner(context, (owner) =>
-        getMediaObject(context, owner, mediaObjectId).pipe(
-          Effect.flatMap(
-            Option.match({
-              onNone: () =>
-                Effect.fail(new MediaNotFound({ mediaObjectId, message: "Media not found" })),
-              onSome: Effect.succeed,
-            }),
-          ),
-        ),
-      ),
-    listImages: () => withOwner(context, (owner) => listImages(context, owner)),
-    listStickers: () => withOwner(context, (owner) => listStickers(context, owner)),
-    createSticker: ({ mediaObjectId, label }) =>
-      withOwner(context, (owner) => createSticker(context, owner, mediaObjectId, label)),
-    deleteStickerFromPicker: ({ stickerId }) =>
-      withOwner(context, (owner) => deleteStickerFromPicker(context, owner, stickerId)),
+    ).pipe(Effect.provide(ctx));
+    // The types don't narrow across flatten+provide; services are provided at runtime.
+    const handler = HttpEffect.toWebHandler(
+      rpcEffect as Effect.Effect<HttpServerResponse, never>,
+    );
+    return yield* Effect.promise(() => handler(request));
   });
 
-const withOwner = <A>(
-  context: WorkerContext,
-  use: (owner: OwnerSession) => WorkerEffect<A>,
-): WorkerEffect<A> =>
-  getSession(context).pipe(
-    Effect.flatMap(
-      Option.match({
-        onNone: () => Effect.fail(new Unauthorized({ message: "Owner session is required" })),
-        onSome: use,
-      }),
+const RpcHandlerLayer = DearlyRpc.toLayer({
+  getSession: () =>
+    getSession.pipe(
+      Effect.map(
+        Option.match({
+          onNone: () => null,
+          onSome: (session) => session,
+        }),
+      ),
     ),
-  );
+  listMonthEntries: ({ month }) =>
+    Effect.gen(function* () {
+      const entry = yield* EntryService;
+      return yield* entry.listMonthEntries(month);
+    }),
+  getEntryByDate: ({ date }) =>
+    Effect.gen(function* () {
+      const entry = yield* EntryService;
+      const result = yield* entry.getEntryByDate(date);
+      return yield* Option.match(result, {
+        onNone: () =>
+          Effect.fail(new EntryNotFound({ date, message: "Entry not found" })),
+        onSome: Effect.succeed,
+      });
+    }),
+  saveEntry: (payload) =>
+    Effect.gen(function* () {
+      const entry = yield* EntryService;
+      return yield* entry.saveEntry(payload);
+    }),
+  discardServerEntry: ({ date }) =>
+    Effect.gen(function* () {
+      const entry = yield* EntryService;
+      return yield* entry.discardServerEntry(date);
+    }),
+  createMediaUpload: (payload) =>
+    Effect.gen(function* () {
+      const media = yield* MediaService;
+      return yield* media.createMediaUpload(payload);
+    }),
+  getMediaObject: ({ mediaObjectId }) =>
+    Effect.gen(function* () {
+      const media = yield* MediaService;
+      const result = yield* media.getMediaObject(mediaObjectId);
+      return yield* Option.match(result, {
+        onNone: () =>
+          Effect.fail(new MediaNotFound({ mediaObjectId, message: "Media not found" })),
+        onSome: Effect.succeed,
+      });
+    }),
+  listImages: () =>
+    Effect.gen(function* () {
+      const media = yield* MediaService;
+      return yield* media.listImages();
+    }),
+  listStickers: () =>
+    Effect.gen(function* () {
+      const sticker = yield* StickerService;
+      return yield* sticker.listStickers();
+    }),
+  createSticker: ({ mediaObjectId, label }) =>
+    Effect.gen(function* () {
+      const sticker = yield* StickerService;
+      return yield* sticker.createSticker(mediaObjectId, label);
+    }),
+  deleteStickerFromPicker: ({ stickerId }) =>
+    Effect.gen(function* () {
+      const sticker = yield* StickerService;
+      return yield* sticker.deleteStickerFromPicker(stickerId);
+    }),
+});

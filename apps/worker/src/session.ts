@@ -1,33 +1,34 @@
-import { OwnerSession, OwnerSession as OwnerSessionSchema } from "@dearly/domain";
+import { OwnerSession, OwnerSession as OwnerSessionSchema, Unauthorized } from "@dearly/domain";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import { Effect, Option, Schema } from "effect";
-import type { WorkerEffect } from "./http";
-import type { WorkerContext } from "./types";
+import { RequestService } from "./services/appLayer";
+import { ConfigService, type AppConfig } from "./services/config";
 
 const jwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 
-export const getSession = (context: WorkerContext): WorkerEffect<Option.Option<OwnerSession>> =>
-  identity(context).pipe(Effect.map(Option.map(toSession)));
+export const getSession = Effect.gen(function* () {
+  const config = yield* ConfigService;
+  const request = yield* RequestService;
+  const identity = yield* getIdentity(config, request);
+  return Option.flatMap(identity, toSession);
+});
 
-const identity = (context: WorkerContext): Effect.Effect<Option.Option<AccessIdentity>> => {
-  if (context.config.appEnv !== "production") {
-    return Effect.succeed(Option.map(context.config.devOwnerId, (subject) => ({ subject })));
-  }
-
-  return Option.match(context.config.access, {
-    onNone: () => Effect.succeed(Option.none()),
-    onSome: ({ aud, teamDomain }) =>
-      Effect.tryPromise(() =>
-        jwtVerify(context.request.headers.get("cf-access-jwt-assertion") ?? "", jwks(teamDomain), {
-          issuer: teamDomain,
-          audience: aud,
-        }),
-      ).pipe(
-        Effect.map(({ payload }) => accessIdentity(payload)),
-        Effect.catch(() => Effect.succeed(Option.none())),
-      ),
-  });
-};
+const getIdentity = (config: AppConfig, request: Request) =>
+  config.appEnv !== "production"
+    ? Effect.succeed(Option.map(config.devOwnerId, (subject): AccessIdentity => ({ subject })))
+    : Option.match(config.access, {
+        onNone: () => Effect.succeed(Option.none<AccessIdentity>()),
+        onSome: ({ aud, teamDomain }) =>
+          Effect.tryPromise(() =>
+            jwtVerify(request.headers.get("cf-access-jwt-assertion") ?? "", jwks(teamDomain), {
+              issuer: teamDomain,
+              audience: aud,
+            }),
+          ).pipe(
+            Effect.map(({ payload }) => parseAccessIdentity(payload)),
+            Effect.catch(() => Effect.succeed(Option.none<AccessIdentity>())),
+          ),
+      });
 
 const jwks = (teamDomain: string) => {
   const url = `${teamDomain}/cdn-cgi/access/certs`;
@@ -39,11 +40,19 @@ const jwks = (teamDomain: string) => {
   return remote;
 };
 
-const accessIdentity = (payload: JWTPayload): Option.Option<AccessIdentity> =>
+const AccessIdentity = Schema.Struct({ subject: Schema.String });
+type AccessIdentity = typeof AccessIdentity.Type;
+
+const parseAccessIdentity = (payload: JWTPayload): Option.Option<AccessIdentity> =>
   Schema.decodeUnknownOption(AccessIdentity)({ subject: payload.sub });
 
-const toSession = ({ subject }: AccessIdentity): OwnerSession =>
-  Schema.decodeUnknownSync(OwnerSessionSchema)({ ownerId: subject });
+const toSession = ({ subject }: AccessIdentity): Option.Option<OwnerSession> =>
+  Schema.decodeUnknownOption(OwnerSessionSchema)({ ownerId: subject });
 
-const AccessIdentity = Schema.Struct({ subject: Schema.String });
-type AccessIdentity = Schema.Schema.Type<typeof AccessIdentity>;
+export const requireOwner = Effect.gen(function* () {
+  const session = yield* getSession;
+  return yield* Option.match(session, {
+    onNone: () => Effect.fail(new Unauthorized({ message: "Owner session is required" })),
+    onSome: Effect.succeed,
+  });
+});

@@ -1,52 +1,54 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
-import {
-  createMediaUpload,
-  getMediaObject,
-  getPrivateMedia,
-  uploadPrivateMedia,
-} from "../../src/media";
-import { context, mediaId, ownerId } from "../fakes";
-
-const owner = { ownerId, email: "owner@dearly.test", displayName: "Owner" } as never;
+import { MediaService } from "../../src/services/media";
+import { mediaId, ownerId, setTestTime, testLayer } from "../fakes";
 
 describe("media module", () => {
-  it("creates upload metadata", async () => {
-    const upload = await Effect.runPromise(
-      createMediaUpload(context(), owner, {
+  it.effect("creates upload metadata", () =>
+    Effect.gen(function*() {
+      yield* setTestTime;
+      const media = yield* MediaService;
+      const upload = yield* media.createMediaUpload({
         kind: "image",
         name: "image.png",
         mimeType: "image/png",
         sizeBytes: 4,
-      }),
-    );
+      });
 
-    expect(upload.r2Key.startsWith(`${ownerId}/`)).toBe(true);
-    expect(upload.uploadUrl.startsWith("/media/")).toBe(true);
-  });
+      expect(upload.r2Key.startsWith(`${ownerId}/`)).toBe(true);
+      expect(upload.uploadUrl.startsWith("/media/")).toBe(true);
+    }).pipe(Effect.provide(testLayer())),
+  );
 
-  it("gets owner-scoped media metadata", async () => {
-    const media = await Effect.runPromise(getMediaObject(context(), owner, mediaId as never));
+  it.effect("gets owner-scoped media metadata", () =>
+    Effect.gen(function*() {
+      const media = yield* MediaService;
+      const result = yield* media.getMediaObject(mediaId as never);
+      expect(Option.getOrThrow(result)).toMatchObject({
+        id: mediaId,
+        ownerId,
+        mimeType: "image/png",
+      });
+    }).pipe(Effect.provide(testLayer())),
+  );
 
-    expect(Option.getOrThrow(media)).toMatchObject({ id: mediaId, ownerId, mimeType: "image/png" });
-  });
+  it.effect("returns none for missing media metadata", () =>
+    Effect.gen(function*() {
+      const media = yield* MediaService;
+      const result = yield* media.getMediaObject(mediaId as never);
+      expect(Option.isNone(result)).toBe(true);
+    }).pipe(Effect.provide(testLayer({ media: null }))),
+  );
 
-  it("returns none for missing media metadata", async () => {
-    const media = await Effect.runPromise(
-      getMediaObject(context({ media: null }), owner, mediaId as never),
-    );
+  it.effect("uploads and reads private media", () =>
+    Effect.gen(function*() {
+      const media = yield* MediaService;
+      const body = new Response("png").body!;
+      const uploaded = yield* media.uploadPrivateMedia(mediaId as never, body);
+      const read = yield* media.getPrivateMedia(mediaId as never);
 
-    expect(Option.isNone(media)).toBe(true);
-  });
-
-  it("uploads and reads private media", async () => {
-    const body = new Response("png").body!;
-    const uploaded = await Effect.runPromise(
-      uploadPrivateMedia(context(), owner, mediaId as never, body),
-    );
-    const read = await Effect.runPromise(getPrivateMedia(context(), owner, mediaId as never));
-
-    expect(Option.isSome(uploaded)).toBe(true);
-    expect(Option.getOrThrow(read).mimeType).toBe("image/png");
-  });
+      expect(Option.isSome(uploaded)).toBe(true);
+      expect(Option.getOrThrow(read).mimeType).toBe("image/png");
+    }).pipe(Effect.provide(testLayer())),
+  );
 });
