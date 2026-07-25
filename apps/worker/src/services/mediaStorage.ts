@@ -18,9 +18,7 @@ export class MediaStorageService extends Context.Service<
 
 const noop = MediaStorageService.of({
   put: Effect.fn("MediaStorageService.put")(function* () {}),
-  get: Effect.fn("MediaStorageService.get")(function* () {
-    return Option.none();
-  }),
+  get: Effect.fn("MediaStorageService.get")(() => Effect.succeed(Option.none())),
 });
 
 const storageTry = <A>(fn: () => Promise<A>): Effect.Effect<A, StorageError> =>
@@ -31,10 +29,7 @@ const storageTry = <A>(fn: () => Promise<A>): Effect.Effect<A, StorageError> =>
 
 const make = (bucket: R2Bucket) =>
   MediaStorageService.of({
-    put: Effect.fn("MediaStorageService.put")(function* (
-      key: string,
-      body: ReadableStream | null,
-    ) {
+    put: Effect.fn("MediaStorageService.put")(function* (key: string, body: ReadableStream | null) {
       if (body === null) return;
       yield* storageTry(() => bucket.put(key, body));
     }),
@@ -44,9 +39,7 @@ const make = (bucket: R2Bucket) =>
     }),
   });
 
-export const MediaStorageLive = (
-  binding: R2Bucket | undefined,
-): Layer.Layer<MediaStorageService> =>
+export const MediaStorageLive = (binding: R2Bucket | undefined): Layer.Layer<MediaStorageService> =>
   binding === undefined
     ? Layer.succeed(MediaStorageService, noop)
     : Layer.succeed(MediaStorageService, make(binding));

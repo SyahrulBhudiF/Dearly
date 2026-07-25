@@ -7,7 +7,6 @@ import { dateLabel, monthDays, monthLabel, nextMonth, previousMonth, today } fro
 import { miniCalendarPicker } from "./picker";
 import {
   ChangedMonth,
-  ClosedPicker,
   ClosedPhotoPreview,
   OpenedPhotoPreview,
   PreviewedDate,
@@ -156,7 +155,10 @@ export const miniCalendar = (
           ),
         ],
         [
-          h.p([h.Class("shrink-0 border-b border-line/60 px-4 py-3 font-display text-xl")], ["Our photo"]),
+          h.p(
+            [h.Class("shrink-0 border-b border-line/60 px-4 py-3 font-display text-xl")],
+            ["Our photo"],
+          ),
           photoPreview(h, entries, selectedDate, photoPreviewOpen),
         ],
       ),
@@ -251,7 +253,9 @@ const photoPreview = (
               h.img([
                 h.Src(src),
                 h.Alt(`Photo from ${preview.date}`),
-                h.Class("size-full object-cover transition-transform duration-300 hover:scale-[1.02]"),
+                h.Class(
+                  "size-full object-cover transition-transform duration-300 hover:scale-[1.02]",
+                ),
               ]),
             ],
           ),
@@ -283,10 +287,16 @@ const photoModal = (h: HtmlFactory, date: string, src: string) =>
           h.div(
             [h.Class("flex items-center justify-between border-b border-line px-4 py-3")],
             [
-              h.div([], [
-                h.p([h.Class("font-display text-xl")], ["Our photo"]),
-                h.p([h.Class("font-note text-[10px] tracking-[.1em] text-muted uppercase")], [dateLabel(date)]),
-              ]),
+              h.div(
+                [],
+                [
+                  h.p([h.Class("font-display text-xl")], ["Our photo"]),
+                  h.p(
+                    [h.Class("font-note text-[10px] tracking-[.1em] text-muted uppercase")],
+                    [dateLabel(date)],
+                  ),
+                ],
+              ),
               h.div(
                 [h.Class("flex items-center gap-2")],
                 [
@@ -314,7 +324,13 @@ const photoModal = (h: HtmlFactory, date: string, src: string) =>
           ),
           h.div(
             [h.Class("max-h-[78vh] overflow-auto bg-canvas p-3 sm:p-5")],
-            [h.img([h.Src(src), h.Alt(`Photo from ${date}`), h.Class("mx-auto block max-h-[70vh] max-w-full object-contain")])],
+            [
+              h.img([
+                h.Src(src),
+                h.Alt(`Photo from ${date}`),
+                h.Class("mx-auto block max-h-[70vh] max-w-full object-contain"),
+              ]),
+            ],
           ),
         ],
       ),

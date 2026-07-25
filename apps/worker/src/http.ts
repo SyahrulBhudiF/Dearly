@@ -1,5 +1,5 @@
 import { DearlyErrors } from "@dearly/rpc";
-import { Effect, Match, Schema } from "effect";
+import { Effect, Match } from "effect";
 import { NotFound } from "@dearly/domain";
 import type { ConfigError } from "effect/Config";
 

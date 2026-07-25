@@ -1,7 +1,7 @@
 import { Option, Stream } from "effect";
 import { Html } from "foldkit";
 import { createKeyedLazy, createLazy } from "foldkit/html";
-import { Button, Dialog, FileDrop, Popover, VirtualList } from "@foldkit/ui";
+import { Button, FileDrop, Popover, VirtualList } from "@foldkit/ui";
 import EmojiConvertor from "emoji-js";
 import {
   ArrowDownToLine,
@@ -164,12 +164,7 @@ const stickerPickerView = (
                                   toParentMessage: (message) =>
                                     media(GotStickerFileDropMessage({ message })),
                                   viewInputs: {
-                                    accept: [
-                                      "image/jpeg",
-                                      "image/png",
-                                      "image/webp",
-                                      "image/gif",
-                                    ],
+                                    accept: ["image/jpeg", "image/png", "image/webp", "image/gif"],
                                     multiple: true,
                                     toView: ({ root, input }) =>
                                       h.label(
@@ -759,7 +754,6 @@ const imagePicker = (
 
 export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel: MediaModel) => {
   const { elements, selectedElementId, deleteDialog } = canvasModel;
-  const { fileDrop } = mediaModel;
   return h.div(
     [
       h.Class(

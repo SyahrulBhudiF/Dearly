@@ -1,5 +1,4 @@
 import { describe, expect, it } from "@effect/vitest";
-import { Effect } from "effect";
 import { handleRequest } from "../src/index";
 import type { AssetBinding } from "../src/types";
 import { fakeDb, fakeR2, mediaId, request } from "./fakes";

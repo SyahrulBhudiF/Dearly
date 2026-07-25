@@ -1,4 +1,3 @@
-import { Match } from "effect";
 import { Runtime, Subscription, type Url } from "foldkit";
 import { overlay } from "@foldkit/devtools";
 import { VirtualList } from "@foldkit/ui";

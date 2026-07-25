@@ -1,13 +1,5 @@
 import { Html } from "foldkit";
 import { monthDays } from "../date";
-import {
-  ChangedMonth,
-  ClosedPicker,
-  PreviewedDate,
-  ToggledPicker,
-  PickedYear,
-  WentToday,
-} from "./message";
 import type { AppMessage } from "../app/message";
 import type { Model as AppModel } from "../app/model";
 import type { Model } from "./model";

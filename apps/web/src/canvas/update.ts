@@ -14,26 +14,7 @@ import {
   textElement,
   transformSelectedElement,
 } from "./elements";
-import {
-  AddedShape,
-  AddedTextCanvasElement,
-  ChangedCanvasElementLayer,
-  ChangedImageTitle,
-  ChangedText,
-  DeletedCanvasElement,
-  FinishedCanvasTransform,
-  GotDeleteDialogMessage,
-  MovedCanvasElement,
-  MovedCanvasElementLayer,
-  PastedCanvasText,
-  ReorderedCanvasElements,
-  RequestedDelete,
-  ResizedCanvasElement,
-  RotatedCanvasElement,
-  StartedCanvasTransform,
-  TransformedCanvasElement,
-  type CanvasMessage,
-} from "./message";
+import { GotDeleteDialogMessage, type CanvasMessage } from "./message";
 import type { Model } from "./model";
 
 // Maximum canvas history entries. Oldest entries are dropped (FIFO) when
@@ -41,9 +22,7 @@ import type { Model } from "./model";
 const HISTORY_MAX_DEPTH = 200;
 
 const capHistory = <T>(entries: ReadonlyArray<T>): ReadonlyArray<T> =>
-  entries.length > HISTORY_MAX_DEPTH
-    ? entries.slice(entries.length - HISTORY_MAX_DEPTH)
-    : entries;
+  entries.length > HISTORY_MAX_DEPTH ? entries.slice(entries.length - HISTORY_MAX_DEPTH) : entries;
 
 type UpdateResult = readonly [Model, ReadonlyArray<Command.Command<CanvasMessage>>];
 
@@ -65,7 +44,6 @@ const commitPendingText = (model: Model): Model => {
     },
   };
 };
-
 
 const finishTransactions = (model: Model): Model => {
   const pointerTransaction = model.history.pointerTransaction;
@@ -176,10 +154,7 @@ export const update = (model: Model, message: CanvasMessage): UpdateResult =>
       StartedCanvasTransform: () => {
         const m = commitPendingText(model);
         if (m.history.pointerTransaction !== null) return [m, []];
-        return [
-          { ...m, history: { ...m.history, pointerTransaction: m.elements } },
-          [],
-        ];
+        return [{ ...m, history: { ...m.history, pointerTransaction: m.elements } }, []];
       },
       FinishedCanvasTransform: () => {
         const m = commitPendingText(model);

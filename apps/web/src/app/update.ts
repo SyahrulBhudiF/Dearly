@@ -11,7 +11,7 @@ import { TextChanged, type EntryMessage } from "../entry/message";
 import * as Entry from "../entry/update";
 import { RequestedUpload, type MediaMessage } from "../media/message";
 import * as Media from "../media/update";
-import { CalendarRoute, EntryRoute } from "../route";
+import { CalendarRoute } from "../route";
 import { LoadExternal, NavigateInternal } from "./command";
 import {
   GotCalendarMessage,
