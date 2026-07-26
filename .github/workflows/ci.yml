@@ -97,6 +97,15 @@ jobs:
         with:
           name: web-dist
           path: apps/web/dist
+      - name: Validate deploy secrets
+        env:
+          DEARLY_DOMAIN: ${{ secrets.DEARLY_DOMAIN }}
+          CF_ACCESS_OWNER_EMAILS: ${{ secrets.CF_ACCESS_OWNER_EMAILS }}
+          CF_ACCESS_TEAM_DOMAIN: ${{ secrets.CF_ACCESS_TEAM_DOMAIN }}
+        run: |
+          test -n "$DEARLY_DOMAIN"
+          test -n "$CF_ACCESS_OWNER_EMAILS"
+          test -n "$CF_ACCESS_TEAM_DOMAIN"
       - run: cd apps/worker && bun run deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

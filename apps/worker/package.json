@@ -8,7 +8,7 @@
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "dev": "alchemy dev",
-    "deploy": "alchemy deploy",
+    "deploy": "alchemy deploy --yes",
     "destroy": "alchemy destroy"
   },
   "dependencies": {
