@@ -65,6 +65,7 @@
         "jose": "^6.2.3",
       },
       "devDependencies": {
+        "@effect/platform-bun": ">=4.0.0-beta.101",
         "@effect/platform-node": ">=4.0.0-beta.101",
         "alchemy": "^2.0.0-beta.64",
         "drizzle-kit": "^0.31.10",
@@ -187,6 +188,8 @@
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 
     "@effect/platform-browser": ["@effect/platform-browser@4.0.0-beta.101", "", { "dependencies": { "multipasta": "^0.2.8" }, "peerDependencies": { "effect": "^4.0.0-beta.101" } }, "sha512-05//60oEzMyQyNjk8Ll1mML6gU2RvT9TTaomq5cGmNQu6Gzb6jlWfzn2/ZGzFtehhB9iOpqtjy0QkT5tDh9ElA=="],
+
+    "@effect/platform-bun": ["@effect/platform-bun@4.0.0-beta.101", "", { "dependencies": { "@effect/platform-node-shared": "^4.0.0-beta.101" }, "peerDependencies": { "effect": "^4.0.0-beta.101" } }, "sha512-7cSiwufNCjO1d296KMjHjqFA1oDRVZMZEyYMzdqPvAdIhNQj16U+xZfMdeJuUb6/WouEWWultkhcCK5ysdxIcQ=="],
 
     "@effect/platform-node": ["@effect/platform-node@4.0.0-beta.101", "", { "dependencies": { "@effect/platform-node-shared": "^4.0.0-beta.101", "mime": "^4.1.0", "undici": "^8.7.0" }, "peerDependencies": { "effect": "^4.0.0-beta.101", "ioredis": "^5.7.0" } }, "sha512-pClk7dmMtHgM6Byu7CzGfrPvZ1/4BwmrRlCg2Op+iJozMkwVUxq8v4beK8b9SvxsliJjHZFznjvkVLX7LQjBqw=="],
 

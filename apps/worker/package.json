@@ -19,6 +19,7 @@
     "jose": "^6.2.3"
   },
   "devDependencies": {
+    "@effect/platform-bun": ">=4.0.0-beta.101",
     "@effect/platform-node": ">=4.0.0-beta.101",
     "alchemy": "^2.0.0-beta.64",
     "drizzle-kit": "^0.31.10"
