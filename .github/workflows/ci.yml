@@ -97,11 +97,11 @@ jobs:
         with:
           name: web-dist
           path: apps/web/dist
-      - name: Validate deploy secrets
+      - name: Validate deploy configuration
         env:
-          DEARLY_DOMAIN: ${{ secrets.DEARLY_DOMAIN }}
-          CF_ACCESS_OWNER_EMAILS: ${{ secrets.CF_ACCESS_OWNER_EMAILS }}
-          CF_ACCESS_TEAM_DOMAIN: ${{ secrets.CF_ACCESS_TEAM_DOMAIN }}
+          DEARLY_DOMAIN: ${{ vars.DEARLY_DOMAIN }}
+          CF_ACCESS_OWNER_EMAILS: ${{ vars.CF_ACCESS_OWNER_EMAILS }}
+          CF_ACCESS_TEAM_DOMAIN: ${{ vars.CF_ACCESS_TEAM_DOMAIN }}
         run: |
           test -n "$DEARLY_DOMAIN"
           test -n "$CF_ACCESS_OWNER_EMAILS"
@@ -109,8 +109,8 @@ jobs:
       - run: cd apps/worker && bun run deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          DEARLY_DOMAIN: ${{ secrets.DEARLY_DOMAIN }}
-          CF_ACCESS_OWNER_EMAILS: ${{ secrets.CF_ACCESS_OWNER_EMAILS }}
-          CF_ACCESS_TEAM_DOMAIN: ${{ secrets.CF_ACCESS_TEAM_DOMAIN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          DEARLY_DOMAIN: ${{ vars.DEARLY_DOMAIN }}
+          CF_ACCESS_OWNER_EMAILS: ${{ vars.CF_ACCESS_OWNER_EMAILS }}
+          CF_ACCESS_TEAM_DOMAIN: ${{ vars.CF_ACCESS_TEAM_DOMAIN }}
           APP_ENV: production
