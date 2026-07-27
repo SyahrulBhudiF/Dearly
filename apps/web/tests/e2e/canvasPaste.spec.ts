@@ -11,7 +11,6 @@ test("pasting clipboard text on the canvas creates a Text Canvas Element", async
   const page = await context.newPage();
   await page.goto(`${baseURL}/tests/e2e/`);
 
-  await page.locator("[data-entry-canvas]").click({ position: { x: 450, y: 350 } });
   await page.evaluate(() => navigator.clipboard.writeText("Pasted from clipboard"));
   await page.keyboard.press("ControlOrMeta+V");
 
@@ -24,12 +23,13 @@ test("pasting clipboard text on the canvas creates a Text Canvas Element", async
   await context.close();
 });
 
-test("copy and paste duplicates the selected Canvas Element", async ({ page }) => {
+test("clipboard shortcuts work when canvas focus is lost", async ({ page }) => {
   await page.goto("/tests/e2e/");
 
   const source = page.locator('[data-canvas-id="00000000-0000-4000-8000-000000000002"]');
   await source.click();
   await expect(page.locator("[data-entry-canvas]")).toHaveAttribute("data-canvas-selection");
+  await page.locator("body").focus();
   await page.keyboard.press("ControlOrMeta+C");
   await page.keyboard.press("ControlOrMeta+V");
 

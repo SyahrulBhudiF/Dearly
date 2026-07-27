@@ -106,18 +106,18 @@ export const canvasClipboard = (node: HTMLElement): Stream.Stream<CanvasMessage>
       };
       node.tabIndex = 0;
       node.addEventListener("pointerdown", focus);
-      node.addEventListener("copy", copy);
-      node.addEventListener("cut", cut);
-      node.addEventListener("paste", paste);
-      node.addEventListener("keydown", keydown);
+      document.addEventListener("copy", copy);
+      document.addEventListener("cut", cut);
+      document.addEventListener("paste", paste);
+      document.addEventListener("keydown", keydown);
       return Stream.fromQueue(messages).pipe(
         Stream.ensuring(
           Effect.sync(() => {
             node.removeEventListener("pointerdown", focus);
-            node.removeEventListener("copy", copy);
-            node.removeEventListener("cut", cut);
-            node.removeEventListener("paste", paste);
-            node.removeEventListener("keydown", keydown);
+            document.removeEventListener("copy", copy);
+            document.removeEventListener("cut", cut);
+            document.removeEventListener("paste", paste);
+            document.removeEventListener("keydown", keydown);
             Queue.shutdown(messages);
           }),
         ),
