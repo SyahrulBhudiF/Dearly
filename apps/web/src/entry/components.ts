@@ -43,7 +43,8 @@ import {
   ToggledLayersPanel,
   ToggledShapePicker,
 } from "../canvas/message";
-import { canvasPaste } from "../canvas/drag";
+import { canvasClipboard } from "../canvas/drag";
+import { serializeCanvasElement } from "../canvas/clipboard";
 import { sortableLayers } from "../canvas/layers";
 import { icon } from "../components/icon";
 import { CanvasItem } from "../canvas/view";
@@ -754,6 +755,7 @@ const imagePicker = (
 
 export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel: MediaModel) => {
   const { elements, selectedElementId, deleteDialog } = canvasModel;
+  const selection = elements.find((element) => element.id === selectedElementId);
   return h.div(
     [
       h.Class(
@@ -765,9 +767,12 @@ export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel
         [
           h.OnMount({
             name: "canvas-paste",
-            f: () => canvasPaste().pipe(Stream.map(canvas)),
+            f: (node) => canvasClipboard(node as HTMLElement).pipe(Stream.map(canvas)),
           }),
           h.DataAttribute("entry-canvas", "true"),
+          ...(selection === undefined
+            ? []
+            : [h.DataAttribute("canvas-selection", serializeCanvasElement(selection))]),
           h.Style({ width: "1080px", height: "760px" }),
           h.Class("relative touch-pan-x bg-canvas overflow-hidden"),
         ],
@@ -800,7 +805,7 @@ export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel
                 canvasModel.history.revision,
               ]),
             ),
-          DeleteDialog(h, deleteDialog),
+          DeleteDialog(h, deleteDialog, canvasModel.pendingRemoval),
           UploadDialog(h, mediaModel),
         ],
       ),

@@ -4,12 +4,16 @@ import type { CanvasMessage } from "./message";
 import {
   FinishedCanvasTransform,
   MovedCanvasElement,
+  PastedCanvasElement,
   PastedCanvasText,
+  RequestedCut,
+  RequestedDelete,
   RequestedUpload,
   SelectedCanvasElement,
   StartedCanvasTransform,
   TransformedCanvasElement,
 } from "./message";
+import { CANVAS_ELEMENT_CLIPBOARD_TYPE, parseCanvasElement } from "./clipboard";
 
 type Handle =
   | "north-west"
@@ -45,18 +49,50 @@ const current = (
   rotation: Number(node.getAttribute("data-canvas-rotation")),
 });
 
-export const canvasPaste = (): Stream.Stream<CanvasMessage> =>
+export const canvasClipboard = (node: HTMLElement): Stream.Stream<CanvasMessage> =>
   Stream.unwrap(
     Effect.gen(function* () {
       const messages = yield* Queue.bounded<CanvasMessage>(16);
-      const paste = (event: ClipboardEvent) => {
+      const isEditable = (event: Event) =>
+        event.target instanceof Element &&
+        event.target.closest("input, textarea, [contenteditable=true]") !== null;
+      const focus = (event: PointerEvent) => {
         const target = event.target;
-        if (target instanceof Element && target.closest("input, textarea, [contenteditable=true]"))
-          return;
+        if (isEditable(event) || (target instanceof Element && target.closest("button"))) return;
+        node.focus({ preventScroll: true });
+      };
+      const copy = (event: ClipboardEvent) => {
+        if (isEditable(event)) return;
+        const value = node.dataset.canvasSelection;
+        if (value === undefined || event.clipboardData === null) return;
+        event.preventDefault();
+        event.clipboardData.setData(CANVAS_ELEMENT_CLIPBOARD_TYPE, value);
+      };
+      const cut = (event: ClipboardEvent) => {
+        if (isEditable(event) || node.dataset.canvasSelection === undefined) return;
+        copy(event);
+        if (event.defaultPrevented) Queue.offerUnsafe(messages, RequestedCut());
+      };
+      const keydown = (event: KeyboardEvent) => {
+        if (isEditable(event) || (event.key !== "Backspace" && event.key !== "Delete")) return;
+        event.preventDefault();
+        Queue.offerUnsafe(messages, RequestedDelete());
+      };
+      const paste = (event: ClipboardEvent) => {
+        if (isEditable(event)) return;
         const clipboard = event.clipboardData;
+        const element = parseCanvasElement(clipboard?.getData(CANVAS_ELEMENT_CLIPBOARD_TYPE) ?? "");
+        if (element !== undefined) {
+          event.preventDefault();
+          Queue.offerUnsafe(messages, PastedCanvasElement({ element }));
+          return;
+        }
         const image =
           [...(clipboard?.files ?? [])].find((file) => file.type.startsWith("image/")) ??
-          [...(clipboard?.items ?? [])].find((item) => item.type.startsWith("image/"))?.getAsFile();
+          [...(clipboard?.items ?? [])]
+            .find((item) => item.type.startsWith("image/"))
+            ?.getAsFile() ??
+          undefined;
         if (image !== undefined) {
           event.preventDefault();
           Queue.offerUnsafe(messages, RequestedUpload({ file: image, kind: "image" }));
@@ -68,11 +104,20 @@ export const canvasPaste = (): Stream.Stream<CanvasMessage> =>
           Queue.offerUnsafe(messages, PastedCanvasText({ text }));
         }
       };
-      document.addEventListener("paste", paste);
+      node.tabIndex = 0;
+      node.addEventListener("pointerdown", focus);
+      node.addEventListener("copy", copy);
+      node.addEventListener("cut", cut);
+      node.addEventListener("paste", paste);
+      node.addEventListener("keydown", keydown);
       return Stream.fromQueue(messages).pipe(
         Stream.ensuring(
           Effect.sync(() => {
-            document.removeEventListener("paste", paste);
+            node.removeEventListener("pointerdown", focus);
+            node.removeEventListener("copy", copy);
+            node.removeEventListener("cut", cut);
+            node.removeEventListener("paste", paste);
+            node.removeEventListener("keydown", keydown);
             Queue.shutdown(messages);
           }),
         ),

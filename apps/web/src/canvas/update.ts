@@ -1,7 +1,7 @@
 import { Match } from "effect";
 import { Dialog } from "@foldkit/ui";
 import { Command } from "foldkit";
-import type { MediaObjectId, Sticker } from "@dearly/domain";
+import type { CanvasElement, MediaObjectId, Sticker } from "@dearly/domain";
 import {
   changeLayer,
   moveElement,
@@ -178,6 +178,9 @@ export const update = (model: Model, message: CanvasMessage): UpdateResult =>
       ChangedImageTitle: () => afterDocument(model, message),
       AddedTextCanvasElement: () => afterDocument(model, message),
       PastedCanvasText: () => afterDocument(model, message),
+      RequestedCut: () => withoutDocument(model, message),
+      CutCanvasElement: () => afterDocument(model, message),
+      PastedCanvasElement: () => afterDocument(model, message),
       DeletedCanvasElement: () => afterDocument(model, message),
       RequestedDelete: () => afterDocument(model, message),
       TransformedCanvasElement: () => afterDocument(model, message),
@@ -238,6 +241,9 @@ const updateDocument = (model: Model, message: CanvasMessage): UpdateResult =>
       ],
       AddedTextCanvasElement: (): UpdateResult => addText(model, ""),
       PastedCanvasText: ({ text }): UpdateResult => addText(model, text),
+      RequestedCut: (): UpdateResult => openRemovalDialog(model, "cut"),
+      CutCanvasElement: (): UpdateResult => removeSelected(model),
+      PastedCanvasElement: ({ element }): UpdateResult => pasteElement(model, element),
       CanvasRequestedUpload: (): UpdateResult => [model, []],
       SelectedCanvasElement: ({ id }): UpdateResult => [
         { ...model, selectedElementId: id, toolbarMenu: null },
@@ -256,14 +262,7 @@ const updateDocument = (model: Model, message: CanvasMessage): UpdateResult =>
         },
         [],
       ],
-      RequestedDelete: (): UpdateResult => {
-        if (model.selectedElementId === null) return [model, []];
-        const [deleteDialog, commands] = Dialog.open(model.deleteDialog);
-        return [
-          { ...model, deleteDialog },
-          Command.mapMessages(commands, (message) => GotDeleteDialogMessage({ message })),
-        ];
-      },
+      RequestedDelete: (): UpdateResult => openRemovalDialog(model, "delete"),
       GotDeleteDialogMessage: ({ message }): UpdateResult => {
         const [deleteDialog, commands] = Dialog.update(model.deleteDialog, message);
         return [
@@ -271,20 +270,7 @@ const updateDocument = (model: Model, message: CanvasMessage): UpdateResult =>
           Command.mapMessages(commands, (child) => GotDeleteDialogMessage({ message: child })),
         ];
       },
-      DeletedCanvasElement: (): UpdateResult => {
-        if (model.selectedElementId === null) return [model, []];
-        const [deleteDialog, commands] = Dialog.close(model.deleteDialog);
-        return [
-          {
-            ...model,
-            elements: model.elements.filter((element) => element.id !== model.selectedElementId),
-            selectedElementId: null,
-            deleteDialog,
-            toolbarMenu: null,
-          },
-          Command.mapMessages(commands, (message) => GotDeleteDialogMessage({ message })),
-        ];
-      },
+      DeletedCanvasElement: (): UpdateResult => removeSelected(model),
       RotatedCanvasElement: ({ degrees }): UpdateResult => [
         {
           ...model,
@@ -434,6 +420,52 @@ export const addEmoji = (model: Model, emoji: string): Model =>
     ],
     selectedElementId: null,
   });
+
+const openRemovalDialog = (model: Model, pendingRemoval: "cut" | "delete"): UpdateResult => {
+  if (model.selectedElementId === null) return [model, []];
+  const [deleteDialog, commands] = Dialog.open(model.deleteDialog);
+  return [
+    { ...model, deleteDialog, pendingRemoval },
+    Command.mapMessages(commands, (message) => GotDeleteDialogMessage({ message })),
+  ];
+};
+
+const removeSelected = (model: Model): UpdateResult => {
+  if (model.selectedElementId === null) return [model, []];
+  const [deleteDialog, commands] = Dialog.close(model.deleteDialog);
+  return [
+    {
+      ...model,
+      elements: model.elements.filter((element) => element.id !== model.selectedElementId),
+      selectedElementId: null,
+      pendingRemoval: null,
+      resizing: null,
+      deleteDialog,
+      toolbarMenu: null,
+    },
+    Command.mapMessages(commands, (message) => GotDeleteDialogMessage({ message })),
+  ];
+};
+
+const pasteElement = (model: Model, source: CanvasElement): UpdateResult => {
+  const element = {
+    ...source,
+    id: crypto.randomUUID() as never,
+    x: source.x + 24,
+    y: source.y + 24,
+    layer: nextLayer(model.elements),
+  };
+  return [
+    {
+      ...model,
+      elements: [...model.elements, element],
+      selectedElementId: element.id,
+      resizing: null,
+      toolbarMenu: null,
+    },
+    [],
+  ];
+};
 
 const addShape = (
   model: Model,

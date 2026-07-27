@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { Dialog } from "@foldkit/ui";
-import { RichTextDocument, ShapeKind } from "@dearly/domain";
+import { CanvasElement, RichTextDocument, ShapeKind } from "@dearly/domain";
 import { Message } from "foldkit";
 import { TextFormat } from "./model";
 
@@ -25,6 +25,9 @@ export const ChangedImageTitle = Message.m("ChangedImageTitle", {
 });
 export const AddedTextCanvasElement = Message.m("AddedTextCanvasElement");
 export const PastedCanvasText = Message.m("PastedCanvasText", { text: Schema.String });
+export const RequestedCut = Message.m("RequestedCut");
+export const CutCanvasElement = Message.m("CutCanvasElement");
+export const PastedCanvasElement = Message.m("PastedCanvasElement", { element: CanvasElement });
 export const RequestedUpload = Message.m("CanvasRequestedUpload", {
   file: Schema.Any,
   kind: Schema.Literal("image"),
@@ -95,6 +98,9 @@ export const CanvasMessage = Schema.Union([
   ChangedImageTitle,
   AddedTextCanvasElement,
   PastedCanvasText,
+  RequestedCut,
+  CutCanvasElement,
+  PastedCanvasElement,
   RequestedUpload,
   SelectedCanvasElement,
   DeselectedCanvasElement,

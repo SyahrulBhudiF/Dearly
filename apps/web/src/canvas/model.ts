@@ -42,6 +42,7 @@ export const Model = Schema.Struct({
   history: CanvasHistory,
   selectedElementId: Schema.NullOr(Schema.String),
   deleteDialog: Dialog.Model,
+  pendingRemoval: Schema.NullOr(Schema.Literals(["cut", "delete"])),
   resizing: Schema.NullOr(
     Schema.Struct({
       id: Schema.String,
@@ -70,6 +71,7 @@ export const initialModel = (): Model => ({
   },
   selectedElementId: null,
   deleteDialog: Dialog.init({ id: "delete-canvas-element" }),
+  pendingRemoval: null,
   resizing: null,
   toolbarMenu: null,
   shapePickerOpen: false,
