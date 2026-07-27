@@ -23,6 +23,13 @@ export const defaultTextFormat = (): TextFormat => ({
   underline: false,
 });
 
+const ContextMenuPosition = Schema.Struct({
+  x: Schema.Number,
+  y: Schema.Number,
+  elementId: Schema.NullOr(Schema.String),
+});
+export type ContextMenuPosition = Schema.Schema.Type<typeof ContextMenuPosition>;
+
 const CanvasHistory = Schema.Struct({
   past: Schema.Array(Schema.Array(CanvasElement)),
   future: Schema.Array(Schema.Array(CanvasElement)),
@@ -42,7 +49,8 @@ export const Model = Schema.Struct({
   history: CanvasHistory,
   selectedElementId: Schema.NullOr(Schema.String),
   deleteDialog: Dialog.Model,
-  pendingRemoval: Schema.NullOr(Schema.Literals(["cut", "delete"])),
+  pendingRemoval: Schema.NullOr(Schema.Literal("delete")),
+  contextMenu: Schema.NullOr(ContextMenuPosition),
   resizing: Schema.NullOr(
     Schema.Struct({
       id: Schema.String,
@@ -72,6 +80,7 @@ export const initialModel = (): Model => ({
   selectedElementId: null,
   deleteDialog: Dialog.init({ id: "delete-canvas-element" }),
   pendingRemoval: null,
+  contextMenu: null,
   resizing: null,
   toolbarMenu: null,
   shapePickerOpen: false,

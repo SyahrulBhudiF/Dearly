@@ -1,12 +1,15 @@
-import { Effect, Queue, Stream } from "effect";
+import { Effect, Option, Queue, Stream } from "effect";
+import { fromEventFilterMap } from "foldkit/subscription";
 import type { CanvasElement } from "@dearly/domain";
 import type { CanvasMessage } from "./message";
 import {
+  ClosedContextMenu,
+  CutCanvasElement,
   FinishedCanvasTransform,
   MovedCanvasElement,
+  OpenedContextMenu,
   PastedCanvasElement,
   PastedCanvasText,
-  RequestedCut,
   RequestedDelete,
   RequestedUpload,
   SelectedCanvasElement,
@@ -49,43 +52,66 @@ const current = (
   rotation: Number(node.getAttribute("data-canvas-rotation")),
 });
 
-export const canvasClipboard = (node: HTMLElement): Stream.Stream<CanvasMessage> =>
-  Stream.unwrap(
-    Effect.gen(function* () {
-      const messages = yield* Queue.bounded<CanvasMessage>(16);
-      const isEditable = (event: Event) =>
-        event.target instanceof Element &&
-        event.target.closest("input, textarea, [contenteditable=true]") !== null;
-      const focus = (event: PointerEvent) => {
+const isEditable = (event: Event) =>
+  event.target instanceof Element &&
+  event.target.closest("input, textarea, [contenteditable=true]") !== null;
+
+export const canvasClipboard = (node: HTMLElement): Stream.Stream<CanvasMessage> => {
+  node.tabIndex = 0;
+
+  return Stream.mergeAll({ concurrency: "unbounded" })([
+    // Focus the canvas node on pointerdown (side-effect only)
+    fromEventFilterMap<PointerEvent, CanvasMessage>({
+      target: node,
+      type: "pointerdown",
+      toMessage: (event) => {
         const target = event.target;
-        if (isEditable(event) || (target instanceof Element && target.closest("button"))) return;
+        if (isEditable(event) || (target instanceof Element && target.closest("button")))
+          return Option.none();
         node.focus({ preventScroll: true });
-      };
-      const copy = (event: ClipboardEvent) => {
-        if (isEditable(event)) return;
+        return Option.none();
+      },
+    }),
+
+    // Copy — write custom clipboard data, no Message dispatched
+    fromEventFilterMap<ClipboardEvent, CanvasMessage>({
+      target: document,
+      type: "copy",
+      toMessage: (event) => {
+        if (isEditable(event)) return Option.none();
         const value = node.dataset.canvasSelection;
-        if (value === undefined || event.clipboardData === null) return;
+        if (value === undefined || event.clipboardData === null) return Option.none();
         event.preventDefault();
         event.clipboardData.setData(CANVAS_ELEMENT_CLIPBOARD_TYPE, value);
-      };
-      const cut = (event: ClipboardEvent) => {
-        if (isEditable(event) || node.dataset.canvasSelection === undefined) return;
-        copy(event);
-        if (event.defaultPrevented) Queue.offerUnsafe(messages, RequestedCut());
-      };
-      const keydown = (event: KeyboardEvent) => {
-        if (isEditable(event) || (event.key !== "Backspace" && event.key !== "Delete")) return;
+        return Option.none();
+      },
+    }),
+
+    // Cut — write custom clipboard data + dispatch cut message
+    fromEventFilterMap<ClipboardEvent, CanvasMessage>({
+      target: document,
+      type: "cut",
+      toMessage: (event) => {
+        if (isEditable(event) || node.dataset.canvasSelection === undefined) return Option.none();
         event.preventDefault();
-        Queue.offerUnsafe(messages, RequestedDelete());
-      };
-      const paste = (event: ClipboardEvent) => {
-        if (isEditable(event)) return;
+        const value = node.dataset.canvasSelection;
+        event.clipboardData?.setData(CANVAS_ELEMENT_CLIPBOARD_TYPE, value);
+        return Option.some(CutCanvasElement());
+      },
+    }),
+
+    // Paste — handle canvas element, image, or text paste
+    fromEventFilterMap<ClipboardEvent, CanvasMessage>({
+      target: document,
+      type: "paste",
+      toMessage: (event) => {
+        console.log({ event });
+        if (isEditable(event)) return Option.none();
         const clipboard = event.clipboardData;
         const element = parseCanvasElement(clipboard?.getData(CANVAS_ELEMENT_CLIPBOARD_TYPE) ?? "");
         if (element !== undefined) {
           event.preventDefault();
-          Queue.offerUnsafe(messages, PastedCanvasElement({ element }));
-          return;
+          return Option.some(PastedCanvasElement({ element }));
         }
         const image =
           [...(clipboard?.files ?? [])].find((file) => file.type.startsWith("image/")) ??
@@ -95,149 +121,136 @@ export const canvasClipboard = (node: HTMLElement): Stream.Stream<CanvasMessage>
           undefined;
         if (image !== undefined) {
           event.preventDefault();
-          Queue.offerUnsafe(messages, RequestedUpload({ file: image, kind: "image" }));
-          return;
+          return Option.some(RequestedUpload({ file: image, kind: "image" }));
         }
         const text = clipboard?.getData("text/plain").trim();
         if (text !== undefined && text !== "") {
           event.preventDefault();
-          Queue.offerUnsafe(messages, PastedCanvasText({ text }));
+          return Option.some(PastedCanvasText({ text }));
         }
-      };
-      node.tabIndex = 0;
-      node.addEventListener("pointerdown", focus);
-      document.addEventListener("copy", copy);
-      document.addEventListener("cut", cut);
-      document.addEventListener("paste", paste);
-      document.addEventListener("keydown", keydown);
-      return Stream.fromQueue(messages).pipe(
-        Stream.ensuring(
-          Effect.sync(() => {
-            node.removeEventListener("pointerdown", focus);
-            document.removeEventListener("copy", copy);
-            document.removeEventListener("cut", cut);
-            document.removeEventListener("paste", paste);
-            document.removeEventListener("keydown", keydown);
-            Queue.shutdown(messages);
-          }),
-        ),
-      );
+        return Option.none();
+      },
     }),
-  );
+
+    // Delete/Backspace keyboard shortcut
+    fromEventFilterMap<KeyboardEvent, CanvasMessage>({
+      target: document,
+      type: "keydown",
+      toMessage: (event) => {
+        if (isEditable(event) || (event.key !== "Backspace" && event.key !== "Delete"))
+          return Option.none();
+        if (!node.contains(document.activeElement)) return Option.none();
+        event.preventDefault();
+        return Option.some(RequestedDelete());
+      },
+    }),
+
+    // Context menu — select the element first, then open the menu
+    fromEventFilterMap<MouseEvent, CanvasMessage>({
+      target: document,
+      type: "contextmenu",
+      toMessage: (event) => {
+        if (isEditable(event)) return Option.none();
+        event.preventDefault();
+        const target = event.target;
+        if (!(target instanceof Element)) return Option.none();
+        const elementNode = target.closest("[data-canvas-element]");
+        const elementId = elementNode?.getAttribute("data-canvas-id") ?? null;
+        if (elementId !== null) {
+          return Option.some(SelectedCanvasElement({ id: elementId }));
+        }
+        return Option.none();
+      },
+    }),
+    fromEventFilterMap<MouseEvent, CanvasMessage>({
+      target: document,
+      type: "contextmenu",
+      toMessage: (event) => {
+        if (isEditable(event)) return Option.none();
+        event.preventDefault();
+        const target = event.target;
+        if (!(target instanceof Element)) return Option.none();
+        const elementNode = target.closest("[data-canvas-element]");
+        const elementId = elementNode?.getAttribute("data-canvas-id") ?? null;
+        return Option.some(OpenedContextMenu({ x: event.clientX, y: event.clientY, elementId }));
+      },
+    }),
+
+    // Close context menu on outside click
+    fromEventFilterMap<PointerEvent, CanvasMessage>({
+      target: document,
+      type: "pointerdown",
+      toMessage: (event) => {
+        const target = event.target;
+        if (
+          !(target instanceof Element) ||
+          target.closest("[data-canvas-element]") ||
+          target.closest("[data-context-menu]") ||
+          target.closest("[data-canvas-controls]") ||
+          target.closest("[data-canvas-dialog]")
+        )
+          return Option.none();
+        return Option.some(ClosedContextMenu());
+      },
+    }),
+  ]);
+};
 
 export const canvasElement = (
   element: CanvasElement,
   node: Element,
-): Stream.Stream<CanvasMessage> =>
-  Stream.unwrap(
-    Effect.gen(function* () {
-      const messages = yield* Queue.bounded<CanvasMessage>(16);
-      let action: Action | undefined;
-      let pointerId: number | undefined;
-      let start: Start | undefined;
+): Stream.Stream<CanvasMessage> => {
+  let action: Action | undefined;
+  let pointerId: number | undefined;
+  let start: Start | undefined;
 
-      const end = () => {
-        if (pointerId !== undefined && node.hasPointerCapture(pointerId))
-          node.releasePointerCapture(pointerId);
-        if (action !== undefined) Queue.offerUnsafe(messages, FinishedCanvasTransform());
-        action = undefined;
-        pointerId = undefined;
-        start = undefined;
-      };
-      const move = (event: Event) => {
-        if (
-          !(event instanceof PointerEvent) ||
-          start === undefined ||
-          event.pointerId !== pointerId
-        )
-          return;
-        // Start deferred drag once pointer moves past threshold
-        if (action === undefined) {
-          const dx = event.clientX - start.clientX;
-          const dy = event.clientY - start.clientY;
-          if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
-          action = "drag";
-          Queue.offerUnsafe(messages, StartedCanvasTransform());
-        }
-        if (action === "drag") {
-          Queue.offerUnsafe(
-            messages,
-            MovedCanvasElement({
-              id: element.id,
-              x: start.x + event.clientX - start.clientX,
-              y: start.y + event.clientY - start.clientY,
-            }),
-          );
-          return;
-        }
-        if (action === "rotate") {
-          const rect = node.getBoundingClientRect();
-          const angle =
-            Math.atan2(
-              event.clientY - (rect.top + rect.height / 2),
-              event.clientX - (rect.left + rect.width / 2),
-            ) *
-            (180 / Math.PI);
-          Queue.offerUnsafe(
-            messages,
-            TransformedCanvasElement({
-              id: element.id,
-              x: start.x,
-              y: start.y,
-              width: start.width,
-              height: start.height,
-              rotation: start.rotation + normalizedAngle(angle - start.angle),
-            }),
-          );
-          return;
-        }
-        const dx = event.clientX - start.clientX;
-        const dy = event.clientY - start.clientY;
-        const handle = start.handle;
-        if (handle === undefined) return;
-        const left = handle.includes("west") ? start.x + dx : start.x;
-        const top = handle.includes("north") ? start.y + dy : start.y;
-        const minimumSize = minimumCanvasSize(element);
-        const width = Math.max(
-          minimumSize,
-          start.width + (handle.includes("west") ? -dx : handle.includes("east") ? dx : 0),
-        );
-        const height = Math.max(
-          minimumSize,
-          start.height + (handle.includes("north") ? -dy : handle.includes("south") ? dy : 0),
-        );
-        Queue.offerUnsafe(
-          messages,
-          TransformedCanvasElement({
-            id: element.id,
-            x:
-              width === minimumSize && handle.includes("west")
-                ? start.x + start.width - minimumSize
-                : left,
-            y:
-              height === minimumSize && handle.includes("north")
-                ? start.y + start.height - minimumSize
-                : top,
-            width,
-            height,
-            rotation: start.rotation,
-          }),
-        );
-      };
-      const begin = (event: Event) => {
-        if (!(event instanceof PointerEvent) || event.button !== 0) return;
+  const releasePointerCapture = () => {
+    if (pointerId !== undefined && node.hasPointerCapture(pointerId))
+      node.releasePointerCapture(pointerId);
+  };
+
+  const resetState = () => {
+    action = undefined;
+    pointerId = undefined;
+    start = undefined;
+  };
+
+  return Stream.mergeAll({ concurrency: "unbounded" })([
+    // Select element on pointerdown
+    fromEventFilterMap<PointerEvent, CanvasMessage>({
+      target: node,
+      type: "pointerdown",
+      toMessage: (event) => {
+        if (event.button !== 0) return Option.none();
         const target = event.target;
-        if (!(target instanceof Element)) return;
-        if (target.closest("[data-canvas-controls]")) return;
+        if (!(target instanceof Element)) return Option.none();
+        if (target.closest("[data-canvas-controls]")) return Option.none();
         const richText = target.closest("[data-rich-text-editor]");
-        if (richText !== null && node.hasAttribute("data-editing")) return;
+        if (richText !== null && node.hasAttribute("data-editing")) return Option.none();
         const previousTextPointerDown = Number(node.getAttribute("data-text-pointer-down"));
         if (richText !== null && event.timeStamp - previousTextPointerDown < 400) {
           node.removeAttribute("data-text-pointer-down");
           node.dispatchEvent(new Event("canvas-text-edit"));
-          return;
+          return Option.none();
         }
-        if (richText !== null) node.setAttribute("data-text-pointer-down", String(event.timeStamp));
+        if (richText !== null)
+          node.setAttribute("data-text-pointer-down", String(event.timeStamp));
+        event.preventDefault();
+        return Option.some(SelectedCanvasElement({ id: element.id }));
+      },
+    }),
+
+    // Track interaction (drag, resize, rotate) — set up pointer capture
+    fromEventFilterMap<PointerEvent, CanvasMessage>({
+      target: node,
+      type: "pointerdown",
+      toMessage: (event) => {
+        if (event.button !== 0) return Option.none();
+        const target = event.target;
+        if (!(target instanceof Element)) return Option.none();
+        if (target.closest("[data-canvas-controls]")) return Option.none();
+        const richText = target.closest("[data-rich-text-editor]");
+        if (richText !== null && node.hasAttribute("data-editing")) return Option.none();
         const resize = (target
           .closest("[data-canvas-resize]")
           ?.getAttribute("data-canvas-resize") ?? null) as Handle | null;
@@ -247,11 +260,8 @@ export const canvasElement = (
             : target.closest("[data-canvas-rotate]")
               ? "rotate"
               : undefined;
-        event.preventDefault();
-        Queue.offerUnsafe(messages, SelectedCanvasElement({ id: element.id }));
         if (immediate !== undefined) {
           const rect = node.getBoundingClientRect();
-          Queue.offerUnsafe(messages, StartedCanvasTransform());
           action = immediate;
           pointerId = event.pointerId;
           start = {
@@ -267,9 +277,9 @@ export const canvasElement = (
             ...(resize === null ? {} : { handle: resize }),
           };
           node.setPointerCapture(pointerId);
-          return;
+          return Option.some(StartedCanvasTransform());
         }
-        // Body click: select + prepare for deferred drag
+        // Body click: prepare for deferred drag
         pointerId = event.pointerId;
         start = {
           ...current(node),
@@ -278,23 +288,127 @@ export const canvasElement = (
           angle: 0,
         };
         node.setPointerCapture(pointerId);
-      };
-
-      node.addEventListener("pointerdown", begin);
-      node.addEventListener("pointermove", move);
-      node.addEventListener("pointerup", end);
-      node.addEventListener("pointercancel", end);
-      return Stream.fromQueue(messages).pipe(
-        Stream.ensuring(
-          Effect.sync(() => {
-            end();
-            node.removeEventListener("pointerdown", begin);
-            node.removeEventListener("pointermove", move);
-            node.removeEventListener("pointerup", end);
-            node.removeEventListener("pointercancel", end);
-            Queue.shutdown(messages);
-          }),
-        ),
-      );
+        return Option.none();
+      },
     }),
+
+    // Pointer move — dispatch transform messages
+    fromEventFilterMap<PointerEvent, CanvasMessage>({
+      target: node,
+      type: "pointermove",
+      toMessage: (event) => {
+        if (start === undefined || event.pointerId !== pointerId) return Option.none();
+        // Start deferred drag once pointer moves past threshold
+        if (action === undefined) {
+          const dx = event.clientX - start.clientX;
+          const dy = event.clientY - start.clientY;
+          if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD)
+            return Option.none();
+          action = "drag";
+          return Option.some(StartedCanvasTransform());
+        }
+        if (action === "drag") {
+          const x = start.x + event.clientX - start.clientX;
+          const y = start.y + event.clientY - start.clientY;
+          node.setAttribute("data-canvas-x", String(x));
+          node.setAttribute("data-canvas-y", String(y));
+          return Option.some(MovedCanvasElement({ id: element.id, x, y }));
+        }
+        if (action === "rotate") {
+          const rect = node.getBoundingClientRect();
+          const angle =
+            Math.atan2(
+              event.clientY - (rect.top + rect.height / 2),
+              event.clientX - (rect.left + rect.width / 2),
+            ) *
+            (180 / Math.PI);
+          const rotation = start.rotation + normalizedAngle(angle - start.angle);
+          node.setAttribute("data-canvas-rotation", String(rotation));
+          return Option.some(
+            TransformedCanvasElement({
+              id: element.id,
+              x: start.x,
+              y: start.y,
+              width: start.width,
+              height: start.height,
+              rotation,
+            }),
+          );
+        }
+        const dx = event.clientX - start.clientX;
+        const dy = event.clientY - start.clientY;
+        const handle = start.handle;
+        if (handle === undefined) return Option.none();
+        const left = handle.includes("west") ? start.x + dx : start.x;
+        const top = handle.includes("north") ? start.y + dy : start.y;
+        const minimumSize = minimumCanvasSize(element);
+        const width = Math.max(
+          minimumSize,
+          start.width + (handle.includes("west") ? -dx : handle.includes("east") ? dx : 0),
+        );
+        const height = Math.max(
+          minimumSize,
+          start.height + (handle.includes("north") ? -dy : handle.includes("south") ? dy : 0),
+        );
+        const x =
+          width === minimumSize && handle.includes("west")
+            ? start.x + start.width - minimumSize
+            : left;
+        const y =
+          height === minimumSize && handle.includes("north")
+            ? start.y + start.height - minimumSize
+            : top;
+        node.setAttribute("data-canvas-x", String(x));
+        node.setAttribute("data-canvas-y", String(y));
+        node.setAttribute("data-canvas-width", String(width));
+        node.setAttribute("data-canvas-height", String(height));
+        return Option.some(
+          TransformedCanvasElement({
+            id: element.id,
+            x,
+            y,
+            width,
+            height,
+            rotation: start.rotation,
+          }),
+        );
+      },
+    }),
+
+    // Pointer up — finish transform
+    fromEventFilterMap<PointerEvent, CanvasMessage>({
+      target: node,
+      type: "pointerup",
+      toMessage: () => {
+        releasePointerCapture();
+        const msg = action !== undefined
+          ? Option.some(FinishedCanvasTransform())
+          : Option.none();
+        resetState();
+        return msg;
+      },
+    }),
+
+    // Pointer cancel — finish transform
+    fromEventFilterMap<PointerEvent, CanvasMessage>({
+      target: node,
+      type: "pointercancel",
+      toMessage: () => {
+        releasePointerCapture();
+        const msg = action !== undefined
+          ? Option.some(FinishedCanvasTransform())
+          : Option.none();
+        resetState();
+        return msg;
+      },
+    }),
+  ]).pipe(
+    // Safety net: release capture if the element unmounts mid-interaction
+    Stream.ensuring(
+      Effect.sync(() => {
+        releasePointerCapture();
+        resetState();
+      }),
+    ),
   );
+};

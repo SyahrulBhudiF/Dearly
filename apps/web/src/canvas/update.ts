@@ -15,6 +15,8 @@ import {
   transformSelectedElement,
 } from "./elements";
 import { GotDeleteDialogMessage, type CanvasMessage } from "./message";
+import { serializeCanvasElement } from "./clipboard";
+import { WriteClipboard } from "./command";
 import type { Model } from "./model";
 
 // Maximum canvas history entries. Oldest entries are dropped (FIFO) when
@@ -178,7 +180,6 @@ export const update = (model: Model, message: CanvasMessage): UpdateResult =>
       ChangedImageTitle: () => afterDocument(model, message),
       AddedTextCanvasElement: () => afterDocument(model, message),
       PastedCanvasText: () => afterDocument(model, message),
-      RequestedCut: () => withoutDocument(model, message),
       CutCanvasElement: () => afterDocument(model, message),
       PastedCanvasElement: () => afterDocument(model, message),
       DeletedCanvasElement: () => afterDocument(model, message),
@@ -202,6 +203,11 @@ export const update = (model: Model, message: CanvasMessage): UpdateResult =>
       ChangedTextFormat: () => withoutDocument(model, message),
       ToggledShapePicker: () => withoutDocument(model, message),
       ChangedShapeColor: () => withoutDocument(model, message),
+      OpenedContextMenu: () => withoutDocument(model, message),
+      ClosedContextMenu: () => withoutDocument(model, message),
+      ClipboardWritten: () => withoutDocument(model, message),
+      RequestedLayerCopy: () => afterDocument(model, message),
+      RequestedLayerCut: () => afterDocument(model, message),
       GotDeleteDialogMessage: () => withoutDocument(model, message),
       CanvasRequestedUpload: () => withoutDocument(model, message),
     }),
@@ -241,8 +247,7 @@ const updateDocument = (model: Model, message: CanvasMessage): UpdateResult =>
       ],
       AddedTextCanvasElement: (): UpdateResult => addText(model, ""),
       PastedCanvasText: ({ text }): UpdateResult => addText(model, text),
-      RequestedCut: (): UpdateResult => openRemovalDialog(model, "cut"),
-      CutCanvasElement: (): UpdateResult => removeSelected(model),
+      CutCanvasElement: (): UpdateResult => cutSelected(model),
       PastedCanvasElement: ({ element }): UpdateResult => pasteElement(model, element),
       CanvasRequestedUpload: (): UpdateResult => [model, []],
       SelectedCanvasElement: ({ id }): UpdateResult => [
@@ -250,7 +255,7 @@ const updateDocument = (model: Model, message: CanvasMessage): UpdateResult =>
         [],
       ],
       DeselectedCanvasElement: (): UpdateResult => [
-        { ...model, selectedElementId: null, toolbarMenu: null },
+        { ...model, selectedElementId: null, contextMenu: null, toolbarMenu: null },
         [],
       ],
       TransformedCanvasElement: ({ id, x, y, width, height, rotation }): UpdateResult => [
@@ -262,7 +267,7 @@ const updateDocument = (model: Model, message: CanvasMessage): UpdateResult =>
         },
         [],
       ],
-      RequestedDelete: (): UpdateResult => openRemovalDialog(model, "delete"),
+      RequestedDelete: (): UpdateResult => openRemovalDialog({ ...model, contextMenu: null }, "delete"),
       GotDeleteDialogMessage: ({ message }): UpdateResult => {
         const [deleteDialog, commands] = Dialog.update(model.deleteDialog, message);
         return [
@@ -270,7 +275,7 @@ const updateDocument = (model: Model, message: CanvasMessage): UpdateResult =>
           Command.mapMessages(commands, (child) => GotDeleteDialogMessage({ message: child })),
         ];
       },
-      DeletedCanvasElement: (): UpdateResult => removeSelected(model),
+      DeletedCanvasElement: (): UpdateResult => deleteSelected(model),
       RotatedCanvasElement: ({ degrees }): UpdateResult => [
         {
           ...model,
@@ -334,6 +339,34 @@ const updateDocument = (model: Model, message: CanvasMessage): UpdateResult =>
         [],
       ],
       ChangedShapeColor: ({ color }): UpdateResult => [{ ...model, shapeColor: color }, []],
+      OpenedContextMenu: ({ x, y, elementId }): UpdateResult => [
+        { ...model, contextMenu: { x, y, elementId } },
+        [],
+      ],
+      ClosedContextMenu: (): UpdateResult => [{ ...model, contextMenu: null }, []],
+      ClipboardWritten: (): UpdateResult => [model, []],
+      RequestedLayerCopy: ({ id }): UpdateResult => {
+        const element = model.elements.find((e) => e.id === id);
+        if (element === undefined) return [model, []];
+        return [
+          { ...model, selectedElementId: id, contextMenu: null },
+          [WriteClipboard({ serialized: serializeCanvasElement(element) })],
+        ];
+      },
+      RequestedLayerCut: ({ id }): UpdateResult => {
+        const element = model.elements.find((e) => e.id === id);
+        if (element === undefined) return [model, []];
+        return [
+          {
+            ...model,
+            elements: model.elements.filter((e) => e.id !== id),
+            selectedElementId: null,
+            contextMenu: null,
+            toolbarMenu: null,
+          },
+          [WriteClipboard({ serialized: serializeCanvasElement(element) })],
+        ];
+      },
       AddedShape: ({ shape }): UpdateResult => addShape(model, shape),
       // Handled by early returns in update() before reaching updateDocument.
       // Kept here only for Match.tagsExhaustive exhaustiveness.
@@ -421,7 +454,7 @@ export const addEmoji = (model: Model, emoji: string): Model =>
     selectedElementId: null,
   });
 
-const openRemovalDialog = (model: Model, pendingRemoval: "cut" | "delete"): UpdateResult => {
+const openRemovalDialog = (model: Model, pendingRemoval: "delete"): UpdateResult => {
   if (model.selectedElementId === null) return [model, []];
   const [deleteDialog, commands] = Dialog.open(model.deleteDialog);
   return [
@@ -430,7 +463,22 @@ const openRemovalDialog = (model: Model, pendingRemoval: "cut" | "delete"): Upda
   ];
 };
 
-const removeSelected = (model: Model): UpdateResult => {
+const cutSelected = (model: Model): UpdateResult => {
+  if (model.selectedElementId === null) return [model, []];
+  return [
+    {
+      ...model,
+      elements: model.elements.filter((element) => element.id !== model.selectedElementId),
+      selectedElementId: null,
+      pendingRemoval: null,
+      resizing: null,
+      toolbarMenu: null,
+    },
+    [],
+  ];
+};
+
+const deleteSelected = (model: Model): UpdateResult => {
   if (model.selectedElementId === null) return [model, []];
   const [deleteDialog, commands] = Dialog.close(model.deleteDialog);
   return [

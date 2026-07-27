@@ -16,3 +16,18 @@ export const parseCanvasElement = (value: string) => {
     return undefined;
   }
 };
+
+export const writeClipboard = (serialized: string) => {
+  navigator.clipboard
+    .write([
+      new ClipboardItem({
+        [CANVAS_ELEMENT_CLIPBOARD_TYPE]: new Blob([serialized], {
+          type: CANVAS_ELEMENT_CLIPBOARD_TYPE,
+        }),
+      }),
+    ])
+    .catch(() => {
+      // Fallback: write as plain text so paste-at-least-text works
+      navigator.clipboard.writeText(serialized).catch(() => {});
+    });
+};

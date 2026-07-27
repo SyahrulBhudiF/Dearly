@@ -6,11 +6,14 @@ import EmojiConvertor from "emoji-js";
 import {
   ArrowDownToLine,
   ArrowUpToLine,
+  Copy,
   GripVertical,
   ImageUp,
   Layers3,
+  Scissors,
   Shapes,
   Sparkles,
+  Trash2,
   Type,
 } from "lucide";
 import type { ShapeKind } from "@dearly/domain";
@@ -37,14 +40,18 @@ import {
   AddedShape,
   AddedTextCanvasElement,
   ChangedShapeColor,
+  ClosedContextMenu,
   DeselectedCanvasElement,
   MovedCanvasElementLayer,
+  RequestedDelete,
+  RequestedLayerCopy,
+  RequestedLayerCut,
   SelectedCanvasElement,
   ToggledLayersPanel,
   ToggledShapePicker,
 } from "../canvas/message";
-import { canvasClipboard } from "../canvas/drag";
 import { serializeCanvasElement } from "../canvas/clipboard";
+import { canvasClipboard } from "../canvas/drag";
 import { sortableLayers } from "../canvas/layers";
 import { icon } from "../components/icon";
 import { CanvasItem } from "../canvas/view";
@@ -343,8 +350,30 @@ const layerRow = (h: HtmlFactory, element: CanvasElement, model: CanvasModel) =>
         ],
       ),
       h.div(
-        [h.Class("flex shrink-0")],
+        [h.Class("flex shrink-0 gap-0.5")],
         [
+          h.button(
+            [
+              h.OnClick(canvas(RequestedLayerCopy({ id: element.id }))),
+              h.AriaLabel(`Copy ${label}`),
+              h.Title("Copy"),
+              h.Class(
+                "grid size-7 place-items-center rounded-md text-muted hover:bg-paper hover:text-wine",
+              ),
+            ],
+            [icon(h, Copy, "Copy")],
+          ),
+          h.button(
+            [
+              h.OnClick(canvas(RequestedLayerCut({ id: element.id }))),
+              h.AriaLabel(`Cut ${label}`),
+              h.Title("Cut"),
+              h.Class(
+                "grid size-7 place-items-center rounded-md text-muted hover:bg-paper hover:text-wine",
+              ),
+            ],
+            [icon(h, Scissors, "Cut")],
+          ),
           h.button(
             [
               h.OnClick(canvas(MovedCanvasElementLayer({ id: element.id, edge: "front" }))),
@@ -807,7 +836,77 @@ export const canvasShell = (h: HtmlFactory, canvasModel: CanvasModel, mediaModel
             ),
           DeleteDialog(h, deleteDialog, canvasModel.pendingRemoval),
           UploadDialog(h, mediaModel),
+          canvasModel.contextMenu !== null
+            ? contextMenuView(h, canvasModel)
+            : null,
         ],
+      ),
+    ],
+  );
+};
+
+const contextMenuView = (h: HtmlFactory, canvasModel: CanvasModel): ReturnType<typeof h.div> => {
+  const { contextMenu, elements } = canvasModel;
+  if (contextMenu === null) return null as never;
+  const element = contextMenu.elementId !== null
+    ? elements.find((e) => e.id === contextMenu.elementId)
+    : undefined;
+  return h.div(
+    [h.Class("contents")],
+    [
+      // Backdrop — closes menu when clicking outside
+      h.div(
+        [
+          h.OnClick(canvas(ClosedContextMenu())),
+          h.AriaHidden(true),
+          h.Class("fixed inset-0 z-30"),
+        ],
+        [],
+      ),
+      // Menu panel
+      h.div(
+        [
+          h.DataAttribute("context-menu", "true"),
+          h.Class(
+            "fixed z-40 min-w-36 rounded-[var(--radius)] border border-line bg-paper p-1 shadow-[var(--shadow)]",
+          ),
+          h.Style({ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }),
+        ],
+        [
+          element !== undefined
+            ? h.button(
+                [
+                  h.OnClick(canvas(RequestedLayerCopy({ id: element.id }))),
+                  h.Class(
+                    "flex w-full items-center gap-3 rounded-[calc(var(--radius)-0.4rem)] px-3 py-2 text-left font-note text-sm hover:bg-rose/35",
+                  ),
+                ],
+                [icon(h, Copy, "Copy"), "Copy"],
+              )
+            : null,
+          element !== undefined
+            ? h.button(
+                [
+                  h.OnClick(canvas(RequestedLayerCut({ id: element.id }))),
+                  h.Class(
+                    "flex w-full items-center gap-3 rounded-[calc(var(--radius)-0.4rem)] px-3 py-2 text-left font-note text-sm hover:bg-rose/35",
+                  ),
+                ],
+                [icon(h, Scissors, "Cut"), "Cut"],
+              )
+            : null,
+          element !== undefined
+            ? h.button(
+                [
+                  h.OnClick(canvas(RequestedDelete())),
+                  h.Class(
+                    "flex w-full items-center gap-3 rounded-[calc(var(--radius)-0.4rem)] px-3 py-2 text-left font-note text-sm text-red-600 hover:bg-rose/35",
+                  ),
+                ],
+                [icon(h, Trash2, "Delete"), "Delete"],
+              )
+            : null,
+        ].filter(Boolean),
       ),
     ],
   );

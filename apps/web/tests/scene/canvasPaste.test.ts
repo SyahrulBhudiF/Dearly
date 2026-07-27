@@ -7,7 +7,6 @@ import {
   PastedCanvasElement,
   PastedCanvasText,
   RedidCanvas,
-  RequestedCut,
   SelectedCanvasElement,
   UndidCanvas,
 } from "../../src/canvas/message";
@@ -142,11 +141,8 @@ test("cut removes the selected Canvas Element as one undoable action", () => {
     seeded,
     GotCanvasMessage({ message: SelectedCanvasElement({ id: source.id }) }),
   );
-  const [requested] = update(selected, GotCanvasMessage({ message: RequestedCut() }));
-  expect(requested.canvas.elements).toEqual([source]);
-  expect(requested.canvas.pendingRemoval).toBe("cut");
 
-  const [cut] = update(requested, GotCanvasMessage({ message: CutCanvasElement() }));
+  const [cut] = update(selected, GotCanvasMessage({ message: CutCanvasElement() }));
 
   expect(cut.canvas.elements).toEqual([]);
   expect(cut.canvas.selectedElementId).toBeNull();

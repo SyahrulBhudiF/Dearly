@@ -13,7 +13,8 @@ import {
 } from "lexical";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
 import { registerRichText } from "@lexical/rich-text";
-import { Effect, Queue, Stream } from "effect";
+import { Effect, Option, Queue, Stream } from "effect";
+import { fromEventFilterMap } from "foldkit/subscription";
 import type { RichTextDocument } from "@dearly/domain";
 import type { CanvasMessage } from "./message";
 import {
@@ -309,21 +310,90 @@ export const richTextEditor = (
         Queue.offerUnsafe(messages, button.ariaLabel === "Undo" ? UndidCanvas() : RedidCanvas());
       };
       Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
-      host.addEventListener("canvas-text-edit", enterEditMode);
-      host.addEventListener("click", format);
-      editorNode.addEventListener("beforeinput", beforeInput);
-      editorNode.addEventListener("blur", exitEditMode);
-      document.addEventListener("click", history, true);
-      document.addEventListener("pointerdown", outside, true);
-      return Stream.fromQueue(messages).pipe(
+
+      return Stream.mergeAll({ concurrency: "unbounded" })([
+        Stream.fromQueue(messages),
+
+        fromEventFilterMap<Event, CanvasMessage>({
+          target: host,
+          type: "canvas-text-edit",
+          toMessage: (event) => {
+            enterEditMode(event);
+            return Option.none();
+          },
+        }),
+
+        fromEventFilterMap<Event, CanvasMessage>({
+          target: host,
+          type: "click",
+          toMessage: (event) => {
+            format(event);
+            return Option.none();
+          },
+        }),
+
+        fromEventFilterMap<InputEvent, CanvasMessage>({
+          target: editorNode,
+          type: "beforeinput",
+          toMessage: (event) => {
+            if (
+              event.inputType !== "historyUndo" &&
+              event.inputType !== "historyRedo"
+            )
+              return Option.none();
+            if (keydownHandledUndo) {
+              keydownHandledUndo = false;
+              return Option.none();
+            }
+            event.preventDefault();
+            commit();
+            return Option.some(
+              event.inputType === "historyUndo" ? UndidCanvas() : RedidCanvas(),
+            );
+          },
+        }),
+
+        fromEventFilterMap<FocusEvent, CanvasMessage>({
+          target: editorNode,
+          type: "blur",
+          toMessage: () => {
+            exitEditMode();
+            return Option.none();
+          },
+        }),
+
+        fromEventFilterMap<MouseEvent, CanvasMessage>({
+          target: document,
+          type: "click",
+          options: { capture: true },
+          toMessage: (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return Option.none();
+            const button = target.closest<HTMLButtonElement>(
+              '[aria-label="Undo"], [aria-label="Redo"]',
+            );
+            if (button === null) return Option.none();
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            commit();
+            return Option.some(
+              button.ariaLabel === "Undo" ? UndidCanvas() : RedidCanvas(),
+            );
+          },
+        }),
+
+        fromEventFilterMap<PointerEvent, CanvasMessage>({
+          target: document,
+          type: "pointerdown",
+          options: { capture: true },
+          toMessage: (event) => {
+            outside(event);
+            return Option.none();
+          },
+        }),
+      ]).pipe(
         Stream.ensuring(
           Effect.sync(() => {
-            host.removeEventListener("canvas-text-edit", enterEditMode);
-            host.removeEventListener("click", format);
-            editorNode.removeEventListener("beforeinput", beforeInput);
-            editorNode.removeEventListener("blur", exitEditMode);
-            document.removeEventListener("click", history, true);
-            document.removeEventListener("pointerdown", outside, true);
             unregisterKeydown();
             unregisterHistory();
             unregisterBlockUndo();

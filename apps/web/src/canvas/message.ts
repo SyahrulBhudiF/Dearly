@@ -25,9 +25,13 @@ export const ChangedImageTitle = Message.m("ChangedImageTitle", {
 });
 export const AddedTextCanvasElement = Message.m("AddedTextCanvasElement");
 export const PastedCanvasText = Message.m("PastedCanvasText", { text: Schema.String });
-export const RequestedCut = Message.m("RequestedCut");
 export const CutCanvasElement = Message.m("CutCanvasElement");
 export const PastedCanvasElement = Message.m("PastedCanvasElement", { element: CanvasElement });
+export const OpenedContextMenu = Message.m("OpenedContextMenu", { x: Schema.Number, y: Schema.Number, elementId: Schema.NullOr(Schema.String) });
+export const ClosedContextMenu = Message.m("ClosedContextMenu");
+export const ClipboardWritten = Message.m("ClipboardWritten");
+export const RequestedLayerCopy = Message.m("RequestedLayerCopy", { id: Schema.String });
+export const RequestedLayerCut = Message.m("RequestedLayerCut", { id: Schema.String });
 export const RequestedUpload = Message.m("CanvasRequestedUpload", {
   file: Schema.Any,
   kind: Schema.Literal("image"),
@@ -98,9 +102,13 @@ export const CanvasMessage = Schema.Union([
   ChangedImageTitle,
   AddedTextCanvasElement,
   PastedCanvasText,
-  RequestedCut,
   CutCanvasElement,
   PastedCanvasElement,
+  OpenedContextMenu,
+  ClosedContextMenu,
+  ClipboardWritten,
+  RequestedLayerCopy,
+  RequestedLayerCut,
   RequestedUpload,
   SelectedCanvasElement,
   DeselectedCanvasElement,

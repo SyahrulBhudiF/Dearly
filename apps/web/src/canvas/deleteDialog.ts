@@ -2,14 +2,14 @@ import { Button, Dialog } from "@foldkit/ui";
 import { Html } from "foldkit";
 import type { AppMessage } from "../app/message";
 import { GotCanvasMessage } from "../app/message";
-import { CutCanvasElement, DeletedCanvasElement, GotDeleteDialogMessage } from "./message";
+import { DeletedCanvasElement, GotDeleteDialogMessage } from "./message";
 
 type HtmlFactory = ReturnType<typeof Html.html<AppMessage>>;
 
 export const DeleteDialog = (
   h: HtmlFactory,
   deleteDialog: Dialog.Model,
-  pendingRemoval: "cut" | "delete" | null,
+  _pendingRemoval: "delete" | null,
 ): ReturnType<HtmlFactory["submodel"]> =>
   h.submodel({
     slotId: "delete-canvas-element",
@@ -47,15 +47,11 @@ export const DeleteDialog = (
                       [
                         h.h2(
                           [...title, h.Class("font-display text-2xl")],
-                          [pendingRemoval === "cut" ? "Cut element?" : "Delete element?"],
+                          ["Delete element?"],
                         ),
                         h.p(
                           [...description, h.Class("mt-2 text-sm text-muted")],
-                          [
-                            pendingRemoval === "cut"
-                              ? "The element will be copied before it is removed."
-                              : "You can undo this action.",
-                          ],
+                          ["You can undo this action."],
                         ),
                         h.div(
                           [h.Class("mt-6 flex justify-end gap-3")],
@@ -66,10 +62,7 @@ export const DeleteDialog = (
                             ),
                             Button.view<AppMessage>({
                               onClick: GotCanvasMessage({
-                                message:
-                                  pendingRemoval === "cut"
-                                    ? CutCanvasElement()
-                                    : DeletedCanvasElement(),
+                                message: DeletedCanvasElement(),
                               }),
                               toView: ({ button }) =>
                                 h.button(
@@ -80,7 +73,7 @@ export const DeleteDialog = (
                                       "rounded-[var(--radius)] bg-wine px-3 py-2 text-sm text-paper",
                                     ),
                                   ],
-                                  [pendingRemoval === "cut" ? "Cut" : "Delete"],
+                                  ["Delete"],
                                 ),
                             }),
                           ],

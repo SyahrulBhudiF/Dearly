@@ -54,8 +54,6 @@ test("cut removes the selected Canvas Element and undo restores it", async ({ pa
   await source.click();
   await expect(page.locator("[data-entry-canvas]")).toHaveAttribute("data-canvas-selection");
   await page.keyboard.press("ControlOrMeta+X");
-  await expect(page.getByRole("heading", { name: "Cut element?" })).toBeVisible();
-  await page.getByRole("button", { name: "Cut", exact: true }).dispatchEvent("click");
   await expect.poll(async () => (await canvasElements(page)).length).toBe(2);
 
   await page.keyboard.press("ControlOrMeta+Z");
