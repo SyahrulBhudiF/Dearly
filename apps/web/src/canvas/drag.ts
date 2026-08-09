@@ -16,7 +16,11 @@ import {
   StartedCanvasTransform,
   TransformedCanvasElement,
 } from "./message";
-import { CANVAS_ELEMENT_CLIPBOARD_TYPE, parseCanvasElement } from "./clipboard";
+import {
+  CANVAS_ELEMENT_CLIPBOARD_TYPE,
+  canvasElementToText,
+  parseCanvasElement,
+} from "./clipboard";
 
 type Handle =
   | "north-west"
@@ -83,6 +87,11 @@ export const canvasClipboard = (node: HTMLElement): Stream.Stream<CanvasMessage>
         if (value === undefined || event.clipboardData === null) return Option.none();
         event.preventDefault();
         event.clipboardData.setData(CANVAS_ELEMENT_CLIPBOARD_TYPE, value);
+        const element = parseCanvasElement(value);
+        if (element !== undefined) {
+          const text = canvasElementToText(element);
+          if (text !== "") event.clipboardData.setData("text/plain", text);
+        }
         return Option.none();
       },
     }),
@@ -96,6 +105,11 @@ export const canvasClipboard = (node: HTMLElement): Stream.Stream<CanvasMessage>
         event.preventDefault();
         const value = node.dataset.canvasSelection;
         event.clipboardData?.setData(CANVAS_ELEMENT_CLIPBOARD_TYPE, value);
+        const element = parseCanvasElement(value);
+        if (element !== undefined && event.clipboardData !== null) {
+          const text = canvasElementToText(element);
+          if (text !== "") event.clipboardData.setData("text/plain", text);
+        }
         return Option.some(CutCanvasElement());
       },
     }),

@@ -39,6 +39,16 @@ export const entryPage = (model: Model): Html.Document => ({
             }),
           );
         }
+        if (normalized === "y") {
+          const target = document.activeElement;
+          if (
+            target?.closest?.("[data-rich-text-editor]") ||
+            target instanceof HTMLInputElement ||
+            target instanceof HTMLTextAreaElement
+          )
+            return Option.none();
+          return Option.some(GotCanvasMessage({ message: RedidCanvas() }));
+        }
         return Option.none();
       }),
       h.Class("paper-grain min-h-screen bg-paper px-5 py-7 text-ink sm:px-10 lg:px-16"),

@@ -210,6 +210,13 @@ export const richTextEditor = (
             keydownHandledUndo = true;
             return true;
           }
+          if ((event.metaKey || event.ctrlKey) && event.key === "y") {
+            event.preventDefault();
+            commit();
+            Queue.offerUnsafe(messages, RedidCanvas());
+            keydownHandledUndo = true;
+            return true;
+          }
           keydownHandledUndo = false;
           return false;
         },
