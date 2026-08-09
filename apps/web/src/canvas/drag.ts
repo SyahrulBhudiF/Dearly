@@ -119,7 +119,6 @@ export const canvasClipboard = (node: HTMLElement): Stream.Stream<CanvasMessage>
       target: document,
       type: "paste",
       toMessage: (event) => {
-        console.log({ event });
         if (isEditable(event)) return Option.none();
         const clipboard = event.clipboardData;
         const element = parseCanvasElement(clipboard?.getData(CANVAS_ELEMENT_CLIPBOARD_TYPE) ?? "");
