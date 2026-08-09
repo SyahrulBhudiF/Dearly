@@ -32,34 +32,37 @@ const makeClient = (binding: Fetcher): HttpClient.HttpClient =>
     }),
   );
 
+const isNavigation = (request: Request) =>
+  request.method === "GET" && (request.headers.get("accept") ?? "").includes("text/html");
+
 const make = (binding: Fetcher) => {
-  const client = makeClient(binding).pipe(
-    HttpClient.filterStatusOk,
-    HttpClient.retryTransient({ times: 3 }),
-  );
+  const client = makeClient(binding).pipe(HttpClient.retryTransient({ times: 3 }));
+
+  const fetchAsset = (request: Request) =>
+    client.execute(HttpClientRequest.fromWeb(request)).pipe(
+      Effect.flatMap((res) =>
+        Effect.gen(function* () {
+          const body = yield* Stream.toReadableStreamEffect(res.stream);
+          return Option.some(
+            new Response(body, {
+              status: res.status,
+              headers: res.headers,
+            }),
+          );
+        }),
+      ),
+      Effect.catchTag("HttpClientError", () => Effect.succeed(Option.none<Response>())),
+    );
 
   return Effect.succeed(
     AssetService.of({
       fetch: Effect.fn("AssetService.fetch")(function* (request: Request) {
-        const httpRequest = HttpClientRequest.fromWeb(request);
-        return yield* client.execute(httpRequest).pipe(
-          Effect.flatMap((res) =>
-            Effect.gen(function* () {
-              const body = yield* Stream.toReadableStreamEffect(res.stream);
-              return Option.some(
-                new Response(body, {
-                  status: res.status,
-                  headers: res.headers,
-                }),
-              );
-            }),
-          ),
-          Effect.catchTag("HttpClientError", (error) =>
-            Effect.logError("[AssetService.fetch] Failed", error).pipe(
-              Effect.as(Option.none<Response>()),
-            ),
-          ),
-        );
+        const served = yield* fetchAsset(request);
+        if (Option.isSome(served) && served.value.status !== 404) return served;
+        // SPA fallback: a browser navigation to a client-side route
+        // (e.g. /entry/2026-08-09) has no static file — serve the app shell.
+        if (!isNavigation(request)) return served;
+        return yield* fetchAsset(new Request(new URL("/index.html", request.url)));
       }),
     }),
   );

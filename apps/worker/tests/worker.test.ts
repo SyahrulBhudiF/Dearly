@@ -40,4 +40,25 @@ describe("worker routes", () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ _tag: "NotFound", message: "Route not found" });
   });
+
+  it("serves the app shell for SPA route navigations", async () => {
+    const response = await handleRequest(
+      request("/entry/2026-08-09", {
+        headers: { accept: "text/html" },
+      }),
+      {
+        ASSETS: {
+          fetch: async (input) => {
+            const url = new URL(String(input));
+            return url.pathname === "/index.html"
+              ? new Response("html", { status: 200 })
+              : new Response("not found", { status: 404 });
+          },
+        } as AssetBinding,
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("html");
+  });
 });
