@@ -244,19 +244,6 @@ export const richTextEditor = (
         () => true,
         COMMAND_PRIORITY_HIGH,
       );
-      const beforeInput = (event: InputEvent) => {
-        if (event.inputType !== "historyUndo" && event.inputType !== "historyRedo") return;
-        if (keydownHandledUndo) {
-          keydownHandledUndo = false;
-          return;
-        }
-        event.preventDefault();
-        commit();
-        Queue.offerUnsafe(
-          messages,
-          event.inputType === "historyUndo" ? UndidCanvas() : RedidCanvas(),
-        );
-      };
       const format = (event: Event) => {
         const target = event.target;
         if (!(target instanceof Element)) return;
@@ -297,18 +284,6 @@ export const richTextEditor = (
             : null;
         if (menu === null || !host.contains(menu)) Queue.offerUnsafe(messages, ClosedToolbarMenu());
       };
-      const history = (event: MouseEvent) => {
-        const target = event.target;
-        if (!(target instanceof Element)) return;
-        const button = target.closest<HTMLButtonElement>(
-          '[aria-label="Undo"], [aria-label="Redo"]',
-        );
-        if (button === null) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        commit();
-        Queue.offerUnsafe(messages, button.ariaLabel === "Undo" ? UndidCanvas() : RedidCanvas());
-      };
       Queue.offerUnsafe(messages, ChangedTextFormat({ format: readTextFormat(editor) }));
 
       return Stream.mergeAll({ concurrency: "unbounded" })([
@@ -336,10 +311,7 @@ export const richTextEditor = (
           target: editorNode,
           type: "beforeinput",
           toMessage: (event) => {
-            if (
-              event.inputType !== "historyUndo" &&
-              event.inputType !== "historyRedo"
-            )
+            if (event.inputType !== "historyUndo" && event.inputType !== "historyRedo")
               return Option.none();
             if (keydownHandledUndo) {
               keydownHandledUndo = false;
@@ -347,9 +319,7 @@ export const richTextEditor = (
             }
             event.preventDefault();
             commit();
-            return Option.some(
-              event.inputType === "historyUndo" ? UndidCanvas() : RedidCanvas(),
-            );
+            return Option.some(event.inputType === "historyUndo" ? UndidCanvas() : RedidCanvas());
           },
         }),
 
@@ -376,9 +346,7 @@ export const richTextEditor = (
             event.preventDefault();
             event.stopImmediatePropagation();
             commit();
-            return Option.some(
-              button.ariaLabel === "Undo" ? UndidCanvas() : RedidCanvas(),
-            );
+            return Option.some(button.ariaLabel === "Undo" ? UndidCanvas() : RedidCanvas());
           },
         }),
 

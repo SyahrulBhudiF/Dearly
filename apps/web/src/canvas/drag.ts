@@ -1,4 +1,4 @@
-import { Effect, Option, Queue, Stream } from "effect";
+import { Effect, Option, Stream } from "effect";
 import { fromEventFilterMap } from "foldkit/subscription";
 import type { CanvasElement } from "@dearly/domain";
 import type { CanvasMessage } from "./message";
@@ -233,8 +233,7 @@ export const canvasElement = (
           node.dispatchEvent(new Event("canvas-text-edit"));
           return Option.none();
         }
-        if (richText !== null)
-          node.setAttribute("data-text-pointer-down", String(event.timeStamp));
+        if (richText !== null) node.setAttribute("data-text-pointer-down", String(event.timeStamp));
         event.preventDefault();
         return Option.some(SelectedCanvasElement({ id: element.id }));
       },
@@ -302,8 +301,7 @@ export const canvasElement = (
         if (action === undefined) {
           const dx = event.clientX - start.clientX;
           const dy = event.clientY - start.clientY;
-          if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD)
-            return Option.none();
+          if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return Option.none();
           action = "drag";
           return Option.some(StartedCanvasTransform());
         }
@@ -381,9 +379,7 @@ export const canvasElement = (
       type: "pointerup",
       toMessage: () => {
         releasePointerCapture();
-        const msg = action !== undefined
-          ? Option.some(FinishedCanvasTransform())
-          : Option.none();
+        const msg = action !== undefined ? Option.some(FinishedCanvasTransform()) : Option.none();
         resetState();
         return msg;
       },
@@ -395,9 +391,7 @@ export const canvasElement = (
       type: "pointercancel",
       toMessage: () => {
         releasePointerCapture();
-        const msg = action !== undefined
-          ? Option.some(FinishedCanvasTransform())
-          : Option.none();
+        const msg = action !== undefined ? Option.some(FinishedCanvasTransform()) : Option.none();
         resetState();
         return msg;
       },
